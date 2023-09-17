@@ -12,19 +12,20 @@ class IBMSUNREAL_API TimeLine {
 
 public:
 	UPROPERTY()
-	TArray<BMSNote*> BackgroundNotes;
+		TArray<BMSNote*> BackgroundNotes;
 	UPROPERTY()
-	BMSNote *InvisibleNotes[18];
+		TArray<BMSNote*> InvisibleNotes;
 	UPROPERTY()
-	BMSNote *Notes[18];
+		TArray<BMSNote*> Notes;
+	UPROPERTY()
+		TArray<BMSNote*> LandmineNotes;
 	double Bpm = 0;
 	bool BpmChange = false;
 	bool BpmChangeApplied = false;
 	int BgaBase = -1;
 	int BgaLayer = -1;
 	int BgaPoor = -1;
-	UPROPERTY()
-	TArray<BMSNote*> LandmineNotes;
+
 	double StopLength = 0;
 	double Scroll = 1;
 

@@ -4,7 +4,10 @@
 #include "TimeLine.h"
 
 TimeLine::TimeLine(int lanes) {
-
+	UE_LOG(LogTemp, Warning, TEXT("TimeLine::TimeLine %d"), lanes);
+	Notes.SetNumUninitialized(lanes);
+	InvisibleNotes.SetNumUninitialized(lanes);
+	LandmineNotes.SetNumUninitialized(lanes);
 }
 
 TimeLine* TimeLine::SetNote(int lane, BMSNote* note)
@@ -26,10 +29,6 @@ TimeLine* TimeLine::SetInvisibleNote(int lane, BMSNote* note)
 
 TimeLine* TimeLine::SetLandmineNote(int lane, BMSNote* note)
 {
-	if (lane >= LandmineNotes.Num())
-	{
-		LandmineNotes.SetNum(lane + 1);
-	}
 	LandmineNotes[lane] = note;
 	note->Lane = lane;
 	note->Timeline = this;
