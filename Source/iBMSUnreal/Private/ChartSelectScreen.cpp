@@ -100,8 +100,6 @@ void AChartSelectScreen::BeginPlay()
 
                 if (diff.type == DiffType::Added) {
                     try {
-                        TArray <FString> lines;
-                        lines.SetNum(100);
                         auto parser = new BMSParser();
                         parser->Parse(diff.path, false, false);
                         auto measureNum = parser->chart.Measures.Num();

@@ -13,7 +13,7 @@ class IBMSUNREAL_API BMSParser
 
 public:
 	BMSParser();
-	void Parse(FString path, bool addReadyMeasure, bool metaOnly);
+	void Parse(FString& path, bool addReadyMeasure, bool metaOnly);
 	~BMSParser();
 	Chart chart;
 private:
@@ -25,9 +25,9 @@ private:
 
 	int lnobj = -1;
 	int lntype = 1;
-	int DecodeBase36(FString str);
-	void ParseHeader(FString cmd, FString xx, FString value);
+	int DecodeBase36(FString& str);
+	void ParseHeader(FString& cmd, FString& xx, FString& value);
 
 	int Gcd(int a, int b);
-	int ToWaveId(FString wav);
+	int ToWaveId(FString& wav);
 };

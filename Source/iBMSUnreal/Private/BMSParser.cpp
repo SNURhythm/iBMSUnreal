@@ -43,7 +43,7 @@ BMSParser::BMSParser()
 }
 
 
-void BMSParser::Parse(FString path, bool addReadyMeasure, bool metaOnly)
+void BMSParser::Parse(FString& path, bool addReadyMeasure, bool metaOnly)
 {
 	
 	// implement the same thing as BMSParser.cs
@@ -66,7 +66,8 @@ void BMSParser::Parse(FString path, bool addReadyMeasure, bool metaOnly)
 		{
 			auto measure = FCString::Atoi(*line.Mid(1, 3));
 			lastMeasure = FMath::Max(lastMeasure, measure);
-			auto channel = DecodeBase36(line.Mid(4, 2));
+			FString ch = line.Mid(4, 2);
+			auto channel = DecodeBase36(ch);
 			auto value = line.Mid(7);
 			if (!measures.Contains(measure))
 			{
@@ -82,28 +83,33 @@ void BMSParser::Parse(FString path, bool addReadyMeasure, bool metaOnly)
 				if (line.Len() < 7) continue;
 				auto xx = line.Mid(4, 2);
 				auto value = line.Mid(7);
-				ParseHeader(upperLine.Mid(1, 3), xx, value);
+				FString cmd = upperLine.Mid(1, 3);
+				ParseHeader(cmd, xx, value);
 			}
 			else if (upperLine.StartsWith("#STOP"))
 			{
 				if (line.Len() < 8) continue;
 				auto xx = line.Mid(5, 2);
 				auto value = line.Mid(8);
-				ParseHeader("STOP", xx, value);
+				FString cmd = "STOP";
+				ParseHeader(cmd, xx, value);
 			}
 			else if (upperLine.StartsWith("#BPM"))
 			{
 				if (line.Mid(4).StartsWith(" "))
 				{
 					auto value = line.Mid(5);
-					ParseHeader("BPM", "", value);
+					FString cmd = "BPM";
+					FString xx;
+					ParseHeader(cmd, xx, value);
 				}
 				else
 				{
 					if (line.Len() < 7) continue;
 					auto xx = line.Mid(4, 2);
 					auto value = line.Mid(7);
-					ParseHeader("BPM", xx, value);
+					FString cmd = "BPM";
+					ParseHeader(cmd, xx, value);
 				}
 			}
 			else
@@ -162,7 +168,7 @@ void BMSParser::Parse(FString path, bool addReadyMeasure, bool metaOnly)
 		for (auto& pair : measures[i])
 		{
 			auto channel = pair.Key;
-			auto data = pair.Value;
+			auto& data = pair.Value;
 			if (channel == Channel::SectionRate)
 			{
 				measure.Scale = FCString::Atod(*data);
@@ -433,7 +439,7 @@ void BMSParser::Parse(FString path, bool addReadyMeasure, bool metaOnly)
 	chart.Meta.MaxBpm = maxBpm;
 }
 
-void BMSParser::ParseHeader(FString cmd, FString xx, FString value) {
+void BMSParser::ParseHeader(FString& cmd, FString& xx, FString& value) {
 	// Debug.Log($"cmd: {cmd}, xx: {xx} isXXNull: {xx == null}, value: {value}");
 	cmd = cmd.ToUpper();
 	if (cmd == "PLAYER")
@@ -580,7 +586,7 @@ int BMSParser::Gcd(int a, int b) {
 	}
 }
 
-int BMSParser::ToWaveId(FString wav) {
+int BMSParser::ToWaveId(FString& wav) {
 	auto decoded = DecodeBase36(wav);
 	// check range
 	if (decoded < 0 || decoded > 36 * 36 - 1)
@@ -591,7 +597,7 @@ int BMSParser::ToWaveId(FString wav) {
 	return wavTable[decoded].IsEmpty() ? NoWav : decoded;
 }
 
-int BMSParser::DecodeBase36(FString str) {
+int BMSParser::DecodeBase36(FString& str) {
 	int result = 0;
 	for (auto c : str)
 	{
