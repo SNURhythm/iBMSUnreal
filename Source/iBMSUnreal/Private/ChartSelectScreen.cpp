@@ -112,9 +112,9 @@ void AChartSelectScreen::BeginPlay()
                         delete parser->Chart;
                         delete parser;
                     }
-                    catch (...) {
-                        UE_LOG(LogTemp, Warning, TEXT("exception!"));
-                    }
+                    catch (const std::exception& e) {
+						UE_LOG(LogTemp, Warning, TEXT("exception: %s"), e.what());
+					}
                 }
             
                 }, true);
