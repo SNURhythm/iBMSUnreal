@@ -74,7 +74,7 @@ void AChartSelectScreen::BeginPlay()
         TSet<FString> PathSet;
         // TODO: Initialize prevPathSet by db
         IFileManager& FileManager = IFileManager::Get();
-        FString Directory = FString("/Users/xf/Library/Application Support/SNURhythm/iBMS/");
+        FString Directory = FString("C:/Users/XF/AppData/LocalLow/SNURhythm/iBMS/");
         UE_LOG(LogTemp, Warning, TEXT("ChartSelectScreen FindNew!!"));
         // print bCancelled
         UE_LOG(LogTemp, Warning, TEXT("ChartSelectScreen isCancelled!! %d"), (bool)bCancelled);
@@ -93,7 +93,7 @@ void AChartSelectScreen::BeginPlay()
 
         if (Diffs.Num() > 0) {
             bool bSupportMultithread = FPlatformProcess::SupportsMultithreading();
-
+            FThreadSafeCounter SuccessCount;
             ParallelFor(Diffs.Num(), [&](int32 i) {
 
                 auto diff = Diffs[i];
@@ -102,14 +102,19 @@ void AChartSelectScreen::BeginPlay()
                     try {
                         auto parser = new FBMSParser();
                         parser->Parse(diff.path, false, false);
-                        auto measureNum = parser->Chart.Measures.Num();
+                        auto measureNum = parser->Chart->Measures.Num();
+                        SuccessCount.Increment();
+                        if(SuccessCount.GetValue() % 100 == 0)
+                            UE_LOG(LogTemp, Warning, TEXT("success count: %d"), SuccessCount.GetValue());
                         /*UE_LOG(LogTemp, Warning, TEXT("measure num: %d"), measureNum);*/
+                        //delete parser->Chart;
                     }
                     catch (...) {
-						UE_LOG(LogTemp, Warning, TEXT("exception!"));
-					}
+                        UE_LOG(LogTemp, Warning, TEXT("exception!"));
+                    }
                 }
-                }, !bSupportMultithread);
+            
+                }, true);
         }
 
 

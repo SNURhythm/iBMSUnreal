@@ -4,7 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "FBMSNote.h"
-
+#include "FBMSLandmineNote.h"
 /**
  * 
  */
@@ -15,7 +15,7 @@ public:
 	TArray<FBMSNote*> BackgroundNotes;
 	TArray<FBMSNote*> InvisibleNotes;
 	TArray<FBMSNote*> Notes;
-	TArray<FBMSNote*> LandmineNotes;
+	TArray<FBMSLandmineNote*> LandmineNotes;
 	double Bpm = 0;
 	bool BpmChange = false;
 	bool BpmChangeApplied = false;
@@ -29,13 +29,13 @@ public:
 	long Timing = 0;
 	double Pos = 0;
 
-	explicit FTimeLine(int lanes);
+	explicit FTimeLine(int lanes, bool metaOnly);
 
 	FTimeLine* SetNote(int lane, FBMSNote* note);
 
 	FTimeLine* SetInvisibleNote(int lane, FBMSNote* note);
 
-	FTimeLine* SetLandmineNote(int lane, FBMSNote* note);
+	FTimeLine* SetLandmineNote(int lane, FBMSLandmineNote* note);
 
 	FTimeLine* AddBackgroundNote(FBMSNote* note);
 

@@ -9,4 +9,8 @@ FChart::FChart(): Meta()
 
 FChart::~FChart()
 {
+	for (auto& measure : Measures)
+	{
+		delete measure;
+	}
 }

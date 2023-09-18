@@ -39,6 +39,7 @@ const int Scroll = 1020;
 FRegexPattern headerRegex = FRegexPattern(TEXT("^#([A-Za-z]+?)(\\d\\d)? +?(.+)?"));
 FBMSParser::FBMSParser(): BpmTable{}, WavTable{}, BmpTable{}, StopLengthTable{}
 {
+	Chart = new FChart();
 }
 
 
@@ -145,9 +146,9 @@ void FBMSParser::Parse(FString& path, bool addReadyMeasure, bool metaOnly)
 	int totalScratchNotes = 0;
 	int totalBackSpinNotes = 0;
 	int totalLandmineNotes = 0;
-	auto currentBpm = Chart.Meta.Bpm;
-	auto minBpm = Chart.Meta.Bpm;
-	auto maxBpm = Chart.Meta.Bpm;
+	auto currentBpm = Chart->Meta.Bpm;
+	auto minBpm = Chart->Meta.Bpm;
+	auto maxBpm = Chart->Meta.Bpm;
 	auto lastNote = TArray<FBMSNote*>();
 	lastNote.Init(nullptr, TempKey);
 	auto lnStart = TArray<FBMSLongNote*>();
@@ -220,7 +221,7 @@ void FBMSParser::Parse(FString& path, bool addReadyMeasure, bool metaOnly)
 			auto isScratch = laneNumber == 7 || laneNumber == 15;
 			if (laneNumber == 5 || laneNumber == 6 || laneNumber == 13 || laneNumber == 14)
 			{
-				Chart.Meta.KeyMode = 7;
+				Chart->Meta.KeyMode = 7;
 			}
 
 			auto dataCount = data.Len() / 2;
@@ -231,7 +232,8 @@ void FBMSParser::Parse(FString& path, bool addReadyMeasure, bool metaOnly)
 				{
 					if (timelines.Num() == 0 && j == 0)
 					{
-						timelines.Add(0, new FTimeLine(TempKey)); // add ghost timeline
+						auto timeline = new FTimeLine(TempKey, metaOnly);
+						timelines.Add(0, timeline); // add ghost timeline
 					}
 
 					continue;
@@ -241,7 +243,10 @@ void FBMSParser::Parse(FString& path, bool addReadyMeasure, bool metaOnly)
 				// ReSharper disable PossibleLossOfFraction
 				auto position = (double)(j / g) / (dataCount / g);
 
-				if (!timelines.Contains(position)) timelines.Add(position, new FTimeLine(TempKey));
+				if (!timelines.Contains(position)) {
+					auto timeline = new FTimeLine(TempKey, metaOnly);
+					timelines.Add(position, timeline);
+				}
 
 				auto timeline = timelines[position];
 				if (channel == Channel::LaneAutoplay || channel == Channel::P1InvisibleKeyBase)
@@ -388,15 +393,15 @@ void FBMSParser::Parse(FString& path, bool addReadyMeasure, bool metaOnly)
 			}
 		}
 
-		Chart.Meta.TotalNotes = totalNotes;
-		Chart.Meta.TotalLongNotes = totalLongNotes;
-		Chart.Meta.TotalScratchNotes = totalScratchNotes;
-		Chart.Meta.TotalBackSpinNotes = totalBackSpinNotes;
+		Chart->Meta.TotalNotes = totalNotes;
+		Chart->Meta.TotalLongNotes = totalLongNotes;
+		Chart->Meta.TotalScratchNotes = totalScratchNotes;
+		Chart->Meta.TotalBackSpinNotes = totalBackSpinNotes;
 		
 		auto lastPosition = 0.0;
 
 		measure.Timing = static_cast<long>(timePassed);
-		if (!metaOnly) Chart.Measures.Add(&measure);
+		if (!metaOnly) Chart->Measures.Add(&measure);
 		for (auto& pair : timelines)
 		{
 			auto position = pair.Key;
@@ -419,13 +424,13 @@ void FBMSParser::Parse(FString& path, bool addReadyMeasure, bool metaOnly)
 			if (!metaOnly) measure.TimeLines.Add(timeline);
 			timePassed += timeline->GetStopDuration();
 
-			Chart.Meta.PlayLength = static_cast<long>(timePassed);
+			Chart->Meta.PlayLength = static_cast<long>(timePassed);
 
 			lastPosition = position;
 		}
 
 		if (!metaOnly && measure.TimeLines.Num() == 0) {
-			auto timeline = new FTimeLine(TempKey);
+			auto timeline = new FTimeLine(TempKey, metaOnly);
 			timeline->Timing = static_cast<long>(timePassed);
 			timeline->Bpm = currentBpm;
 			measure.TimeLines.Add(timeline);
@@ -433,9 +438,9 @@ void FBMSParser::Parse(FString& path, bool addReadyMeasure, bool metaOnly)
 		timePassed += 240000000.0 * (1 - lastPosition) * measure.Scale / currentBpm;
 	}
 
-	Chart.Meta.TotalLength = static_cast<long>(timePassed);
-	Chart.Meta.MinBpm = minBpm;
-	Chart.Meta.MaxBpm = maxBpm;
+	Chart->Meta.TotalLength = static_cast<long>(timePassed);
+	Chart->Meta.MinBpm = minBpm;
+	Chart->Meta.MaxBpm = maxBpm;
 }
 
 void FBMSParser::ParseHeader(FString& Cmd, FString& Xx, FString& Value) {
@@ -443,31 +448,31 @@ void FBMSParser::ParseHeader(FString& Cmd, FString& Xx, FString& Value) {
 	const FString CmdUpper = Cmd.ToUpper();
 	if (CmdUpper == "PLAYER")
 	{
-		Chart.Meta.Player = FCString::Atoi(*Value);
+		Chart->Meta.Player = FCString::Atoi(*Value);
 	}
 	else if (CmdUpper == "GENRE")
 	{
-		Chart.Meta.Genre = Value;
+		Chart->Meta.Genre = Value;
 	}
 	else if (CmdUpper == "TITLE")
 	{
-		Chart.Meta.Title = Value;
+		Chart->Meta.Title = Value;
 	}
 	else if (CmdUpper == "SUBTITLE")
 	{
-		Chart.Meta.SubTitle = Value;
+		Chart->Meta.SubTitle = Value;
 	}
 	else if (CmdUpper == "ARTIST")
 	{
-		Chart.Meta.Artist = Value;
+		Chart->Meta.Artist = Value;
 	}
 	else if (CmdUpper == "SUBARTIST")
 	{
-		Chart.Meta.SubArtist = Value;
+		Chart->Meta.SubArtist = Value;
 	}
 	else if (CmdUpper == "DIFFICULTY")
 	{
-		Chart.Meta.Difficulty = FCString::Atoi(*Value);
+		Chart->Meta.Difficulty = FCString::Atoi(*Value);
 	}
 	else if (CmdUpper == "BPM")
 	{
@@ -475,7 +480,7 @@ void FBMSParser::ParseHeader(FString& Cmd, FString& Xx, FString& Value) {
 		if (Xx.IsEmpty())
 		{
 			// chart initial bpm
-			Chart.Meta.Bpm = FCString::Atod(*Value);
+			Chart->Meta.Bpm = FCString::Atod(*Value);
 		}
 		else
 		{
@@ -498,7 +503,7 @@ void FBMSParser::ParseHeader(FString& Cmd, FString& Xx, FString& Value) {
 	{
 		try
 		{
-			Chart.Meta.PlayLevel = FCString::Atod(*Value);
+			Chart->Meta.PlayLevel = FCString::Atod(*Value);
 		}
 		catch (...)
 		{
@@ -507,30 +512,30 @@ void FBMSParser::ParseHeader(FString& Cmd, FString& Xx, FString& Value) {
 	}
 	else if (CmdUpper == "RANK")
 	{
-		Chart.Meta.Rank = FCString::Atoi(*Value);
+		Chart->Meta.Rank = FCString::Atoi(*Value);
 	}
 	else if (CmdUpper == "TOTAL")
 	{
 		auto total = FCString::Atod(*Value);
 		if (total > 0)
 		{
-			Chart.Meta.Total = total;	
+			Chart->Meta.Total = total;	
 		}
 	}
 	else if (CmdUpper == "VOLWAV") {
 
 	}
 	else if (CmdUpper == "STAGEFILE") {
-		Chart.Meta.StageFile = Value;
+		Chart->Meta.StageFile = Value;
 	}
 	else if (CmdUpper == "BANNER") {
-		Chart.Meta.Banner = Value;
+		Chart->Meta.Banner = Value;
 	}
 	else if (CmdUpper == "BACKBMP") {
-		Chart.Meta.BackBmp = Value;
+		Chart->Meta.BackBmp = Value;
 	}
 	else if (CmdUpper == "PREVIEW") {
-		Chart.Meta.Preview = Value;
+		Chart->Meta.Preview = Value;
 	}
 	else if (CmdUpper == "WAV") {
 		if (Xx.IsEmpty() || Value.IsEmpty())
@@ -549,7 +554,7 @@ void FBMSParser::ParseHeader(FString& Cmd, FString& Xx, FString& Value) {
 		BmpTable[DecodeBase36(Xx)] = Value;
 		if (Xx == "00")
 		{
-			Chart.Meta.BgaPoorDefault = true;
+			Chart->Meta.BgaPoorDefault = true;
 		}
 	}
 	else if (CmdUpper == "RANDOM") {
@@ -568,7 +573,7 @@ void FBMSParser::ParseHeader(FString& Cmd, FString& Xx, FString& Value) {
 		Lntype = FCString::Atoi(*Value);
 	}
 	else if (CmdUpper == "LNMODE") {
-		Chart.Meta.LnMode = FCString::Atoi(*Value);
+		Chart->Meta.LnMode = FCString::Atoi(*Value);
 	}
 	else {
 		UE_LOG(LogTemp, Warning, TEXT("Unknown command: %s"), *CmdUpper);
@@ -618,4 +623,5 @@ int FBMSParser::DecodeBase36(FString& Str) {
 }
 FBMSParser::~FBMSParser()
 {
+	delete &Chart;
 }

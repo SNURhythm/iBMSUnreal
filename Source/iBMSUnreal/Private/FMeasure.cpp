@@ -5,7 +5,7 @@
 
 FMeasure::~FMeasure()
 {
-	for (const auto* Timeline : TimeLines)
+	for (const auto& Timeline : TimeLines)
 	{
 		delete Timeline;
 	}

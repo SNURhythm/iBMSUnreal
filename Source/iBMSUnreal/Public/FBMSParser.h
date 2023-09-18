@@ -15,7 +15,7 @@ public:
 	FBMSParser();
 	void Parse(FString& path, bool addReadyMeasure, bool metaOnly);
 	~FBMSParser();
-	FChart Chart;
+	FChart *Chart;
 private:
 	// bpmTable
 	double BpmTable[36 * 36];

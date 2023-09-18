@@ -3,11 +3,12 @@
 
 #include "FTimeLine.h"
 
-FTimeLine::FTimeLine(int lanes) {
+FTimeLine::FTimeLine(int lanes, bool metaOnly) {
+	if (metaOnly) return;
 	UE_LOG(LogTemp, Warning, TEXT("TimeLine::TimeLine %d"), lanes);
-	Notes.SetNumUninitialized(lanes);
-	InvisibleNotes.SetNumUninitialized(lanes);
-	LandmineNotes.SetNumUninitialized(lanes);
+	Notes.Init(nullptr, lanes);
+	InvisibleNotes.Init(nullptr, lanes);
+	LandmineNotes.Init(nullptr, lanes);
 }
 
 FTimeLine* FTimeLine::SetNote(int lane, FBMSNote* note)
@@ -27,7 +28,7 @@ FTimeLine* FTimeLine::SetInvisibleNote(int lane, FBMSNote* note)
 	return this;
 }
 
-FTimeLine* FTimeLine::SetLandmineNote(int lane, FBMSNote* note)
+FTimeLine* FTimeLine::SetLandmineNote(int lane, FBMSLandmineNote* note)
 {
 	LandmineNotes[lane] = note;
 	note->Lane = lane;
@@ -49,5 +50,26 @@ double FTimeLine::GetStopDuration()
 
 FTimeLine::~FTimeLine()
 {
+	for (auto note : Notes) {
+		if (note != nullptr) {
+			delete note;
+		}
+	}
+	for (auto note : InvisibleNotes) {
+		if (note != nullptr) {
+			delete note;
+		}
+	}
+	for (auto note : LandmineNotes) {
+		if (note != nullptr) {
+			delete note;
+		}
+	}
+	for (auto note : BackgroundNotes) {
+		if (note != nullptr) {
+			delete note;
+		}
+	}
+
 
 }
