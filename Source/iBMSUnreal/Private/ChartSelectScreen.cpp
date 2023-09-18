@@ -74,6 +74,7 @@ void AChartSelectScreen::BeginPlay()
         // find new charts
         TArray<FDiff> Diffs;
         TSet<FString> PathSet;
+        FThreadSafeCounter SuccessCount;
         // TODO: Initialize prevPathSet by db
         IFileManager& FileManager = IFileManager::Get();
         FString Directory = FString("C:/Users/XF/AppData/LocalLow/SNURhythm/iBMS/");
@@ -95,31 +96,40 @@ void AChartSelectScreen::BeginPlay()
 
         if (Diffs.Num() > 0) {
             bool bSupportMultithread = FPlatformProcess::SupportsMultithreading();
-            FThreadSafeCounter SuccessCount;
-            ParallelFor(Diffs.Num(), [&](int32 i) {
+            const int taskNum = FPlatformMisc::NumberOfWorkerThreadsToSpawn()-1;
+            const int taskSize = Diffs.Num() / taskNum;
+            ParallelFor(taskNum, [&](int32 idx) {
                 if (bCancelled) return;
-                auto diff = Diffs[i];
+                int start = idx * taskSize;
+                if (start >= Diffs.Num()) return;
+                int end = (idx + 1) * taskSize;
+                if (idx == taskNum - 1) end = Diffs.Num();
+                if (end > Diffs.Num()) end = Diffs.Num();
+                for (int i = start; i < end; i++) {
+                    auto diff = Diffs[i];
 
-                if (diff.type == EDiffType::Added) {
-                    try {
-                        auto parser = new FBMSParser();
-                        parser->Parse(diff.path, false, true);
-                        auto measureNum = parser->Chart->Measures.Num();
-                        SuccessCount.Increment();
-                        if(SuccessCount.GetValue() % 100 == 0)
-                            UE_LOG(LogTemp, Warning, TEXT("success count: %d"), SuccessCount.GetValue());
-                        /*UE_LOG(LogTemp, Warning, TEXT("measure num: %d"), measureNum);*/
-                        delete parser->Chart;
-                        delete parser;
+                    if (diff.type == EDiffType::Added) {
+                        try {
+                            auto parser = new FBMSParser();
+                            parser->Parse(diff.path, false, true);
+                            auto measureNum = parser->Chart->Measures.Num();
+                            SuccessCount.Increment();
+                            if (SuccessCount.GetValue() % 100 == 0)
+                                UE_LOG(LogTemp, Warning, TEXT("success count: %d"), SuccessCount.GetValue());
+                            /*UE_LOG(LogTemp, Warning, TEXT("measure num: %d"), measureNum);*/
+                            delete parser->Chart;
+                            delete parser;
+                        }
+                        catch (const std::exception& e) {
+                            UE_LOG(LogTemp, Warning, TEXT("exception: %s"), e.what());
+                        }
                     }
-                    catch (const std::exception& e) {
-						UE_LOG(LogTemp, Warning, TEXT("exception: %s"), e.what());
-					}
                 }
             
-                }, true);
+                }, !bSupportMultithread);
         }
         UE_LOG(LogTemp, Warning, TEXT("ChartSelectScreen End Task!!"));
+        UE_LOG(LogTemp, Warning, TEXT("success count: %d"), SuccessCount.GetValue());
 
 
         });
