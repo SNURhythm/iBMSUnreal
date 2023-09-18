@@ -5,25 +5,27 @@
 #include "FBMSParser.h"
 #include <Tasks/Task.h>
 using namespace UE::Tasks;
-enum EDiffType {
+static enum EDiffType {
     Deleted,
     Added
 };
-struct FDiff {
+static struct FDiff {
     FString path;
     EDiffType type;
 };
-void FindNew(TArray<FDiff>& Diffs, const TSet<FString>& PrevPathSet, const FString& Directory, FThreadSafeBool& bCancelled)
+static void FindNew(TArray<FDiff>& Diffs, const TSet<FString>& PrevPathSet, const FString& Directory, std::atomic_bool& bCancelled)
 {
     IFileManager& FileManager = IFileManager::Get();
     TArray<FString> DirectoriesToVisit;
     DirectoriesToVisit.Add(Directory);
     while (DirectoriesToVisit.Num() > 0 )
     {
+        if (bCancelled) break;
         FString CurrentDirectory = DirectoriesToVisit.Pop();
         TArray<FString> Files;
         FileManager.IterateDirectory(*CurrentDirectory, [&](const TCHAR* FilenameOrDirectory, bool bIsDirectory) -> bool
             {
+                if (bCancelled) return false;
                 if (bIsDirectory)
                 {
 
@@ -66,7 +68,7 @@ void AChartSelectScreen::BeginPlay()
 	Super::BeginPlay();
 	UE_LOG(LogTemp, Warning, TEXT("ChartSelectScreen BeginPlay()!!"));
 
-    FThreadSafeBool bCancelled = false;
+    
     FTask loadTask = Launch(UE_SOURCE_LOCATION, [&]() {
         UE_LOG(LogTemp, Warning, TEXT("ChartSelectScreen Start Task!!"));
         // find new charts
@@ -95,7 +97,7 @@ void AChartSelectScreen::BeginPlay()
             bool bSupportMultithread = FPlatformProcess::SupportsMultithreading();
             FThreadSafeCounter SuccessCount;
             ParallelFor(Diffs.Num(), [&](int32 i) {
-
+                if (bCancelled) return;
                 auto diff = Diffs[i];
 
                 if (diff.type == EDiffType::Added) {
@@ -117,6 +119,7 @@ void AChartSelectScreen::BeginPlay()
             
                 }, true);
         }
+        UE_LOG(LogTemp, Warning, TEXT("ChartSelectScreen End Task!!"));
 
 
         });
@@ -128,5 +131,12 @@ void AChartSelectScreen::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+}
+
+void AChartSelectScreen::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+	Super::EndPlay(EndPlayReason);
+	UE_LOG(LogTemp, Warning, TEXT("ChartSelectScreen EndPlay()!!"));
+    bCancelled = true;
 }
 
