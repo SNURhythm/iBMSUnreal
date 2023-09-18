@@ -1,12 +1,12 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "BMSParser.h"
-#include "BMSLongNote.h"
-#include "BMSNote.h"
-#include "BMSLandmineNote.h"
-#include "TimeLine.h"
-#include "Measure.h"
+#include "FBMSParser.h"
+#include "FBMSLongNote.h"
+#include "FBMSNote.h"
+#include "FBMSLandmineNote.h"
+#include "FTimeLine.h"
+#include "FMeasure.h"
 
 enum Channel {
 	LaneAutoplay = 1,
@@ -33,17 +33,16 @@ namespace KeyAssign {
 };
 
 const int TempKey = 18;
-const int NoWav = - 1;
-const int MetronomeWav = -2;
+constexpr int NoWav = -1;
+constexpr int MetronomeWav = -2;
 const int Scroll = 1020;
 FRegexPattern headerRegex = FRegexPattern(TEXT("^#([A-Za-z]+?)(\\d\\d)? +?(.+)?"));
-BMSParser::BMSParser()
+FBMSParser::FBMSParser(): BpmTable{}, WavTable{}, BmpTable{}, StopLengthTable{}
 {
-	
 }
 
 
-void BMSParser::Parse(FString& path, bool addReadyMeasure, bool metaOnly)
+void FBMSParser::Parse(FString& path, bool addReadyMeasure, bool metaOnly)
 {
 	
 	// implement the same thing as BMSParser.cs
@@ -100,7 +99,7 @@ void BMSParser::Parse(FString& path, bool addReadyMeasure, bool metaOnly)
 				{
 					auto value = line.Mid(5);
 					FString cmd = "BPM";
-					FString xx;
+					FString xx = "";
 					ParseHeader(cmd, xx, value);
 				}
 				else
@@ -146,12 +145,12 @@ void BMSParser::Parse(FString& path, bool addReadyMeasure, bool metaOnly)
 	int totalScratchNotes = 0;
 	int totalBackSpinNotes = 0;
 	int totalLandmineNotes = 0;
-	auto currentBpm = chart.Meta.Bpm;
-	auto minBpm = chart.Meta.Bpm;
-	auto maxBpm = chart.Meta.Bpm;
-	auto lastNote = TArray<BMSNote*>();
+	auto currentBpm = Chart.Meta.Bpm;
+	auto minBpm = Chart.Meta.Bpm;
+	auto maxBpm = Chart.Meta.Bpm;
+	auto lastNote = TArray<FBMSNote*>();
 	lastNote.Init(nullptr, TempKey);
-	auto lnStart = TArray<BMSLongNote*>();
+	auto lnStart = TArray<FBMSLongNote*>();
 	lnStart.Init(nullptr, TempKey);
 
 	for (auto i = 0; i <= lastMeasure; ++i)
@@ -162,8 +161,8 @@ void BMSParser::Parse(FString& path, bool addReadyMeasure, bool metaOnly)
 		}
 
 		// gcd (int, int)
-		auto measure = Measure();
-		auto timelines = TMap<double, TimeLine*>();
+		auto measure = FMeasure();
+		auto timelines = TMap<double, FTimeLine*>();
 
 		for (auto& pair : measures[i])
 		{
@@ -221,7 +220,7 @@ void BMSParser::Parse(FString& path, bool addReadyMeasure, bool metaOnly)
 			auto isScratch = laneNumber == 7 || laneNumber == 15;
 			if (laneNumber == 5 || laneNumber == 6 || laneNumber == 13 || laneNumber == 14)
 			{
-				chart.Meta.KeyMode = 7;
+				Chart.Meta.KeyMode = 7;
 			}
 
 			auto dataCount = data.Len() / 2;
@@ -232,7 +231,7 @@ void BMSParser::Parse(FString& path, bool addReadyMeasure, bool metaOnly)
 				{
 					if (timelines.Num() == 0 && j == 0)
 					{
-						timelines.Add(0, new TimeLine(TempKey)); // add ghost timeline
+						timelines.Add(0, new FTimeLine(TempKey)); // add ghost timeline
 					}
 
 					continue;
@@ -242,7 +241,7 @@ void BMSParser::Parse(FString& path, bool addReadyMeasure, bool metaOnly)
 				// ReSharper disable PossibleLossOfFraction
 				auto position = (double)(j / g) / (dataCount / g);
 
-				if (!timelines.Contains(position)) timelines.Add(position, new TimeLine(TempKey));
+				if (!timelines.Contains(position)) timelines.Add(position, new FTimeLine(TempKey));
 
 				auto timeline = timelines[position];
 				if (channel == Channel::LaneAutoplay || channel == Channel::P1InvisibleKeyBase)
@@ -254,12 +253,12 @@ void BMSParser::Parse(FString& path, bool addReadyMeasure, bool metaOnly)
 				case Channel::LaneAutoplay:
 					if (val == "**")
 					{
-						timeline->AddBackgroundNote(new BMSNote{ MetronomeWav });
+						timeline->AddBackgroundNote(new FBMSNote{ MetronomeWav });
 						break;
 					}
 					if (DecodeBase36(val) != 0)
 					{
-						auto bgNote = new BMSNote{ ToWaveId(val) };
+						auto bgNote = new FBMSNote{ ToWaveId(val) };
 						timeline->AddBackgroundNote(bgNote);
 					}
 
@@ -279,7 +278,7 @@ void BMSParser::Parse(FString& path, bool addReadyMeasure, bool metaOnly)
 					timeline->BgaLayer = DecodeBase36(val);
 					break;
 				case Channel::BpmChangeExtend:
-					timeline->Bpm = bpmTable[DecodeBase36(val)];
+					timeline->Bpm = BpmTable[DecodeBase36(val)];
 					// Debug.Log($"BPM_CHANGE_EXTEND: {timeline.Bpm}, on measure {i}, {val}");
 					timeline->BpmChange = true;
 					break;
@@ -289,7 +288,7 @@ void BMSParser::Parse(FString& path, bool addReadyMeasure, bool metaOnly)
 					break;
 				case Channel::P1KeyBase: {
 					auto ch = DecodeBase36(val);
-					if (ch == lnobj && lastNote[laneNumber] != nullptr) {
+					if (ch == Lnobj && lastNote[laneNumber] != nullptr) {
 						if (isScratch)
 						{
 							++totalBackSpinNotes;
@@ -304,9 +303,9 @@ void BMSParser::Parse(FString& path, bool addReadyMeasure, bool metaOnly)
 						if (metaOnly) break;
 
 						auto lastTimeline = last->Timeline;
-						auto ln = new BMSLongNote{ last->Wav };
+						auto ln = new FBMSLongNote{ last->Wav };
 
-						ln->Tail = new BMSLongNote{ NoWav };
+						ln->Tail = new FBMSLongNote{ NoWav };
 						ln->Tail->Head = ln;
 						lastTimeline->SetNote(
 							laneNumber, ln
@@ -316,7 +315,7 @@ void BMSParser::Parse(FString& path, bool addReadyMeasure, bool metaOnly)
 						);
 					}
 					else {
-						auto note = new BMSNote{ ToWaveId(val) };
+						auto note = new FBMSNote{ ToWaveId(val) };
 						lastNote[laneNumber] = note;
 						++totalNotes;
 						if (isScratch) ++totalScratchNotes;
@@ -329,7 +328,7 @@ void BMSParser::Parse(FString& path, bool addReadyMeasure, bool metaOnly)
 				}
 				break;
 				case Channel::P1InvisibleKeyBase: {
-					auto invNote = new BMSNote{ ToWaveId(val) };
+					auto invNote = new FBMSNote{ ToWaveId(val) };
 					timeline->SetInvisibleNote(
 						laneNumber, invNote
 					);
@@ -337,7 +336,7 @@ void BMSParser::Parse(FString& path, bool addReadyMeasure, bool metaOnly)
 				}
 				break;
 				case Channel::P1LongKeyBase:
-					if (lntype == 1)
+					if (Lntype == 1)
 					{
 						if (lnStart[laneNumber] == nullptr)
 						{
@@ -351,7 +350,7 @@ void BMSParser::Parse(FString& path, bool addReadyMeasure, bool metaOnly)
 								++totalLongNotes;
 							}
 
-							auto ln = new BMSLongNote{ ToWaveId(val) };
+							auto ln = new FBMSLongNote{ ToWaveId(val) };
 							lnStart[laneNumber] = ln;
 
 							if (metaOnly) break;
@@ -363,7 +362,7 @@ void BMSParser::Parse(FString& path, bool addReadyMeasure, bool metaOnly)
 						}
 						else
 						{
-							auto tail = new BMSLongNote{ NoWav };
+							auto tail = new FBMSLongNote{ NoWav };
 							tail->Head = lnStart[laneNumber];
 							lnStart[laneNumber]->Tail = tail;
 							lnStart[laneNumber] = nullptr;
@@ -382,22 +381,22 @@ void BMSParser::Parse(FString& path, bool addReadyMeasure, bool metaOnly)
 					if (metaOnly) break;
 					auto damage = DecodeBase36(val) / 2.0f;
 					timeline->SetNote(
-						laneNumber, new BMSLandmineNote{ damage }
+						laneNumber, new FBMSLandmineNote{ damage }
 					);
 					break;
 				}
 			}
 		}
 
-		chart.Meta.TotalNotes = totalNotes;
-		chart.Meta.TotalLongNotes = totalLongNotes;
-		chart.Meta.TotalScratchNotes = totalScratchNotes;
-		chart.Meta.TotalBackSpinNotes = totalBackSpinNotes;
+		Chart.Meta.TotalNotes = totalNotes;
+		Chart.Meta.TotalLongNotes = totalLongNotes;
+		Chart.Meta.TotalScratchNotes = totalScratchNotes;
+		Chart.Meta.TotalBackSpinNotes = totalBackSpinNotes;
 		
 		auto lastPosition = 0.0;
 
-		measure.Timing = (long)timePassed;
-		if (!metaOnly) chart.Measures.Add(&measure);
+		measure.Timing = static_cast<long>(timePassed);
+		if (!metaOnly) Chart.Measures.Add(&measure);
 		for (auto& pair : timelines)
 		{
 			auto position = pair.Key;
@@ -406,7 +405,7 @@ void BMSParser::Parse(FString& path, bool addReadyMeasure, bool metaOnly)
 			// Debug.Log($"measure: {i}, position: {position}, lastPosition: {lastPosition} bpm: {bpm} scale: {measure.scale} interval: {240 * 1000 * 1000 * (position - lastPosition) * measure.scale / bpm}");
 			auto interval = 240000000.0 * (position - lastPosition) * measure.Scale / currentBpm;
 			timePassed += interval;
-			timeline->Timing = (long)timePassed;
+			timeline->Timing = static_cast<long>(timePassed);
 			if (timeline->BpmChange)
 			{
 				currentBpm = timeline->Bpm;
@@ -420,186 +419,186 @@ void BMSParser::Parse(FString& path, bool addReadyMeasure, bool metaOnly)
 			if (!metaOnly) measure.TimeLines.Add(timeline);
 			timePassed += timeline->GetStopDuration();
 
-			chart.Meta.PlayLength = (long)timePassed;
+			Chart.Meta.PlayLength = static_cast<long>(timePassed);
 
 			lastPosition = position;
 		}
 
 		if (!metaOnly && measure.TimeLines.Num() == 0) {
-			auto timeline = new TimeLine(TempKey);
-			timeline->Timing = (long)timePassed;
+			auto timeline = new FTimeLine(TempKey);
+			timeline->Timing = static_cast<long>(timePassed);
 			timeline->Bpm = currentBpm;
 			measure.TimeLines.Add(timeline);
 		}
 		timePassed += 240000000.0 * (1 - lastPosition) * measure.Scale / currentBpm;
 	}
 
-	chart.Meta.TotalLength = (long)timePassed;
-	chart.Meta.MinBpm = minBpm;
-	chart.Meta.MaxBpm = maxBpm;
+	Chart.Meta.TotalLength = static_cast<long>(timePassed);
+	Chart.Meta.MinBpm = minBpm;
+	Chart.Meta.MaxBpm = maxBpm;
 }
 
-void BMSParser::ParseHeader(FString& cmd, FString& xx, FString& value) {
+void FBMSParser::ParseHeader(FString& Cmd, FString& Xx, FString& Value) {
 	// Debug.Log($"cmd: {cmd}, xx: {xx} isXXNull: {xx == null}, value: {value}");
-	cmd = cmd.ToUpper();
-	if (cmd == "PLAYER")
+	const FString CmdUpper = Cmd.ToUpper();
+	if (CmdUpper == "PLAYER")
 	{
-		chart.Meta.Player = FCString::Atoi(*value);
+		Chart.Meta.Player = FCString::Atoi(*Value);
 	}
-	else if (cmd == "GENRE")
+	else if (CmdUpper == "GENRE")
 	{
-		chart.Meta.Genre = value;
+		Chart.Meta.Genre = Value;
 	}
-	else if (cmd == "TITLE")
+	else if (CmdUpper == "TITLE")
 	{
-		chart.Meta.Title = value;
+		Chart.Meta.Title = Value;
 	}
-	else if (cmd == "SUBTITLE")
+	else if (CmdUpper == "SUBTITLE")
 	{
-		chart.Meta.SubTitle = value;
+		Chart.Meta.SubTitle = Value;
 	}
-	else if (cmd == "ARTIST")
+	else if (CmdUpper == "ARTIST")
 	{
-		chart.Meta.Artist = value;
+		Chart.Meta.Artist = Value;
 	}
-	else if (cmd == "SUBARTIST")
+	else if (CmdUpper == "SUBARTIST")
 	{
-		chart.Meta.SubArtist = value;
+		Chart.Meta.SubArtist = Value;
 	}
-	else if (cmd == "DIFFICULTY")
+	else if (CmdUpper == "DIFFICULTY")
 	{
-		chart.Meta.Difficulty = FCString::Atoi(*value);
+		Chart.Meta.Difficulty = FCString::Atoi(*Value);
 	}
-	else if (cmd == "BPM")
+	else if (CmdUpper == "BPM")
 	{
-		if (value.IsEmpty()) throw "invalid BPM value";
-		if (xx.IsEmpty())
+		if (Value.IsEmpty()) throw "invalid BPM value";
+		if (Xx.IsEmpty())
 		{
 			// chart initial bpm
-			chart.Meta.Bpm = FCString::Atod(*value);
+			Chart.Meta.Bpm = FCString::Atod(*Value);
 		}
 		else
 		{
 			// Debug.Log($"BPM: {DecodeBase36(xx)} = {double.Parse(value)}");
-			bpmTable[DecodeBase36(xx)] = FCString::Atod(*value);
+			BpmTable[DecodeBase36(Xx)] = FCString::Atod(*Value);
 		}
 	}
-	else if (cmd == "STOP")
+	else if (CmdUpper == "STOP")
 	{
-		if (value.IsEmpty() || xx.IsEmpty() || xx.Len() == 0) throw "invalid arguments in #STOP";
-		StopLengthTable[DecodeBase36(xx)] = FCString::Atod(*value);
+		if (Value.IsEmpty() || Xx.IsEmpty() || Xx.Len() == 0) throw "invalid arguments in #STOP";
+		StopLengthTable[DecodeBase36(Xx)] = FCString::Atod(*Value);
 	}
-	else if (cmd == "MIDIFILE")
-	{
-	}
-	else if (cmd == "VIDEOFILE")
+	else if (CmdUpper == "MIDIFILE")
 	{
 	}
-	else if (cmd == "PLAYLEVEL")
+	else if (CmdUpper == "VIDEOFILE")
+	{
+	}
+	else if (CmdUpper == "PLAYLEVEL")
 	{
 		try
 		{
-			chart.Meta.PlayLevel = FCString::Atod(*value);
+			Chart.Meta.PlayLevel = FCString::Atod(*Value);
 		}
 		catch (...)
 		{
-			UE_LOG(LogTemp, Warning, TEXT("invalid playlevel: %s"), *value);
+			UE_LOG(LogTemp, Warning, TEXT("invalid playlevel: %s"), *Value);
 		}
 	}
-	else if (cmd == "RANK")
+	else if (CmdUpper == "RANK")
 	{
-		chart.Meta.Rank = FCString::Atoi(*value);
+		Chart.Meta.Rank = FCString::Atoi(*Value);
 	}
-	else if (cmd == "TOTAL")
+	else if (CmdUpper == "TOTAL")
 	{
-		auto total = FCString::Atod(*value);
+		auto total = FCString::Atod(*Value);
 		if (total > 0)
 		{
-			chart.Meta.Total = total;	
+			Chart.Meta.Total = total;	
 		}
 	}
-	else if (cmd == "VOLWAV") {
+	else if (CmdUpper == "VOLWAV") {
 
 	}
-	else if (cmd == "STAGEFILE") {
-		chart.Meta.StageFile = value;
+	else if (CmdUpper == "STAGEFILE") {
+		Chart.Meta.StageFile = Value;
 	}
-	else if (cmd == "BANNER") {
-		chart.Meta.Banner = value;
+	else if (CmdUpper == "BANNER") {
+		Chart.Meta.Banner = Value;
 	}
-	else if (cmd == "BACKBMP") {
-		chart.Meta.BackBmp = value;
+	else if (CmdUpper == "BACKBMP") {
+		Chart.Meta.BackBmp = Value;
 	}
-	else if (cmd == "PREVIEW") {
-		chart.Meta.Preview = value;
+	else if (CmdUpper == "PREVIEW") {
+		Chart.Meta.Preview = Value;
 	}
-	else if (cmd == "WAV") {
-		if (xx.IsEmpty() || value.IsEmpty())
+	else if (CmdUpper == "WAV") {
+		if (Xx.IsEmpty() || Value.IsEmpty())
 		{
 			UE_LOG(LogTemp, Warning, TEXT("WAV command requires two arguments"));
 			return;
 		}
-		wavTable[DecodeBase36(xx)] = value;
+		WavTable[DecodeBase36(Xx)] = Value;
 	}
-	else if (cmd == "BMP") {
-		if (xx.IsEmpty() || value.IsEmpty())
+	else if (CmdUpper == "BMP") {
+		if (Xx.IsEmpty() || Value.IsEmpty())
 		{
 			UE_LOG(LogTemp, Warning, TEXT("WAV command requires two arguments"));
 			return;
 		}
-		bmpTable[DecodeBase36(xx)] = value;
-		if (xx == "00")
+		BmpTable[DecodeBase36(Xx)] = Value;
+		if (Xx == "00")
 		{
-			chart.Meta.BgaPoorDefault = true;
+			Chart.Meta.BgaPoorDefault = true;
 		}
 	}
-	else if (cmd == "RANDOM") {
+	else if (CmdUpper == "RANDOM") {
 
 	}
-	else if (cmd == "IF") {
+	else if (CmdUpper == "IF") {
 
 	}
-	else if (cmd == "ENDIF") {
+	else if (CmdUpper == "ENDIF") {
 
 	}
-	else if (cmd == "LNOBJ") {
-		lnobj = DecodeBase36(value);
+	else if (CmdUpper == "LNOBJ") {
+		Lnobj = DecodeBase36(Value);
 	}
-	else if (cmd == "LNTYPE") {
-		lntype = FCString::Atoi(*value);
+	else if (CmdUpper == "LNTYPE") {
+		Lntype = FCString::Atoi(*Value);
 	}
-	else if (cmd == "LNMODE") {
-		chart.Meta.LnMode = FCString::Atoi(*value);
+	else if (CmdUpper == "LNMODE") {
+		Chart.Meta.LnMode = FCString::Atoi(*Value);
 	}
 	else {
-		UE_LOG(LogTemp, Warning, TEXT("Unknown command: %s"), *cmd);
+		UE_LOG(LogTemp, Warning, TEXT("Unknown command: %s"), *CmdUpper);
 	}	
 }
 
-int BMSParser::Gcd(int a, int b) {
+int FBMSParser::Gcd(int A, int B) {
 	while (true)
 	{
-		if (b == 0) return a;
-		auto a1 = a;
-		a = b;
-		b = a1 % b;
+		if (B == 0) return A;
+		auto a1 = A;
+		A = B;
+		B = a1 % B;
 	}
 }
 
-int BMSParser::ToWaveId(FString& wav) {
-	auto decoded = DecodeBase36(wav);
+int FBMSParser::ToWaveId(FString& Wav) {
+	auto decoded = DecodeBase36(Wav);
 	// check range
 	if (decoded < 0 || decoded > 36 * 36 - 1)
 	{
 		return NoWav;
 	}
 
-	return wavTable[decoded].IsEmpty() ? NoWav : decoded;
+	return WavTable[decoded].IsEmpty() ? NoWav : decoded;
 }
 
-int BMSParser::DecodeBase36(FString& str) {
+int FBMSParser::DecodeBase36(FString& Str) {
 	int result = 0;
-	for (auto c : str)
+	for (auto c : Str)
 	{
 		result *= 36;
 		if (FChar::IsDigit(c))
@@ -617,6 +616,6 @@ int BMSParser::DecodeBase36(FString& str) {
 	}
 	return result;
 }
-BMSParser::~BMSParser()
+FBMSParser::~FBMSParser()
 {
 }

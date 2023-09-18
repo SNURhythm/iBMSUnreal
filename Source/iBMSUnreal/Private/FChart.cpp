@@ -1,12 +1,12 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "Chart.h"
+#include "FChart.h"
 
-Chart::Chart()
+FChart::FChart(): Meta()
 {
 }
 
-Chart::~Chart()
+FChart::~FChart()
 {
 }

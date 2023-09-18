@@ -6,8 +6,8 @@
 /**
  * 
  */
-class TimeLine;
-class IBMSUNREAL_API BMSNote {
+class FTimeLine;
+class IBMSUNREAL_API FBMSNote {
 public:
 	int Lane = 0;
 	int Wav = 0;
@@ -15,16 +15,16 @@ public:
 	bool IsPlayed = false;
 	bool IsDead = false;
 	long PlayedTime = 0;
-	TimeLine* Timeline;
+	FTimeLine* Timeline;
 
-	// ·¹ÀÎ
+	// ï¿½ï¿½ï¿½ï¿½
 	// private Note nextNote;
 
-	BMSNote(int wav);
+	FBMSNote(int Wav);
 
-	void Play(long time);
+	void Play(long Time);
 
-	void Press(long time);
+	void Press(long Time);
 
 	void Reset();
 };

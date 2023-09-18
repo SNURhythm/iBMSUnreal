@@ -3,13 +3,13 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Measure.h"
+#include "FMeasure.h"
 /**
  * 
  */
 
 
-class IBMSUNREAL_API ChartMeta {
+class IBMSUNREAL_API FChartMeta {
 	public:
 	FString SHA256;
 	FString MD5;
@@ -45,12 +45,12 @@ class IBMSUNREAL_API ChartMeta {
 };
 
 
-class IBMSUNREAL_API Chart
+class IBMSUNREAL_API FChart
 {
 public:
-	Chart();
-	~Chart();
-	ChartMeta Meta;
+	FChart();
+	~FChart();
+	FChartMeta Meta;
 	UPROPERTY()
-	TArray<Measure*> Measures;
+	TArray<FMeasure*> Measures;
 };

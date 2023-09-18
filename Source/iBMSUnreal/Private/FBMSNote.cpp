@@ -1,25 +1,25 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "BMSNote.h"
+#include "FBMSNote.h"
 
-BMSNote::BMSNote(int wav)
+FBMSNote::FBMSNote(int wav)
 {
 	Wav = wav;
 }
 
-void BMSNote::Play(long time)
+void FBMSNote::Play(long Time)
 {
 	IsPlayed = true;
-	PlayedTime = time;
+	PlayedTime = Time;
 }
 
-void BMSNote::Press(long time)
+void FBMSNote::Press(long Time)
 {
-	Play(time);
+	Play(Time);
 }
 
-void BMSNote::Reset()
+void FBMSNote::Reset()
 {
 	IsPlayed = false;
 	IsDead = false;

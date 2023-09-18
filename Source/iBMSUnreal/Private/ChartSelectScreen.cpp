@@ -2,18 +2,18 @@
 
 
 #include "ChartSelectScreen.h"
-#include "BMSParser.h"
+#include "FBMSParser.h"
 #include <Tasks/Task.h>
 using namespace UE::Tasks;
-enum DiffType {
+enum EDiffType {
     Deleted,
     Added
 };
-struct Diff {
+struct FDiff {
     FString path;
-    DiffType type;
+    EDiffType type;
 };
-void FindNew(TArray<Diff>& Diffs, const TSet<FString>& PrevPathSet, const FString& Directory, FThreadSafeBool& bCancelled)
+void FindNew(TArray<FDiff>& Diffs, const TSet<FString>& PrevPathSet, const FString& Directory, FThreadSafeBool& bCancelled)
 {
     IFileManager& FileManager = IFileManager::Get();
     TArray<FString> DirectoriesToVisit;
@@ -41,9 +41,9 @@ void FindNew(TArray<Diff>& Diffs, const TSet<FString>& PrevPathSet, const FStrin
 
                     if (!PrevPathSet.Contains(FilePath))
                     {
-                        auto diff = Diff();
+                        auto diff = FDiff();
                         diff.path = FilePath;
-                        diff.type = DiffType::Added;
+                        diff.type = EDiffType::Added;
                         Diffs.Add(diff);
                     }
                 }
@@ -70,11 +70,11 @@ void AChartSelectScreen::BeginPlay()
     FTask loadTask = Launch(UE_SOURCE_LOCATION, [&]() {
         UE_LOG(LogTemp, Warning, TEXT("ChartSelectScreen Start Task!!"));
         // find new charts
-        TArray<Diff> Diffs;
+        TArray<FDiff> Diffs;
         TSet<FString> PathSet;
         // TODO: Initialize prevPathSet by db
         IFileManager& FileManager = IFileManager::Get();
-        FString Directory = FString("C:/Users/XF/AppData/LocalLow/SNURhythm/iBMS/");
+        FString Directory = FString("/Users/xf/Library/Application Support/SNURhythm/iBMS/");
         UE_LOG(LogTemp, Warning, TEXT("ChartSelectScreen FindNew!!"));
         // print bCancelled
         UE_LOG(LogTemp, Warning, TEXT("ChartSelectScreen isCancelled!! %d"), (bool)bCancelled);
@@ -84,9 +84,9 @@ void AChartSelectScreen::BeginPlay()
         for (auto& path : PathSet) {
             if (bCancelled) break;
             if (!FileManager.FileExists(*path)) {
-                auto diff = Diff();
+                auto diff = FDiff();
                 diff.path = path;
-                diff.type = DiffType::Deleted;
+                diff.type = EDiffType::Deleted;
                 Diffs.Add(diff);
             }
         }
@@ -98,11 +98,11 @@ void AChartSelectScreen::BeginPlay()
 
                 auto diff = Diffs[i];
 
-                if (diff.type == DiffType::Added) {
+                if (diff.type == EDiffType::Added) {
                     try {
-                        auto parser = new BMSParser();
+                        auto parser = new FBMSParser();
                         parser->Parse(diff.path, false, false);
-                        auto measureNum = parser->chart.Measures.Num();
+                        auto measureNum = parser->Chart.Measures.Num();
                         /*UE_LOG(LogTemp, Warning, TEXT("measure num: %d"), measureNum);*/
                     }
                     catch (...) {
