@@ -9,4 +9,5 @@ FMeasure::~FMeasure()
 	{
 		delete Timeline;
 	}
+	TimeLines.Empty();
 }

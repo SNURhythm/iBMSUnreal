@@ -9,7 +9,7 @@
  */
 
 
-class IBMSUNREAL_API FChartMeta {
+struct FChartMeta {
 	public:
 	FString SHA256;
 	FString MD5;
@@ -51,6 +51,5 @@ public:
 	FChart();
 	~FChart();
 	FChartMeta Meta;
-	UPROPERTY()
 	TArray<FMeasure*> Measures;
 };

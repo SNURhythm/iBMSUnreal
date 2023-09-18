@@ -5,7 +5,6 @@
 
 FTimeLine::FTimeLine(int lanes, bool metaOnly) {
 	if (metaOnly) return;
-	UE_LOG(LogTemp, Warning, TEXT("TimeLine::TimeLine %d"), lanes);
 	Notes.Init(nullptr, lanes);
 	InvisibleNotes.Init(nullptr, lanes);
 	LandmineNotes.Init(nullptr, lanes);
@@ -55,21 +54,23 @@ FTimeLine::~FTimeLine()
 			delete note;
 		}
 	}
+	Notes.Empty();
 	for (auto note : InvisibleNotes) {
 		if (note != nullptr) {
 			delete note;
 		}
 	}
+	InvisibleNotes.Empty();
 	for (auto note : LandmineNotes) {
 		if (note != nullptr) {
 			delete note;
 		}
 	}
+	LandmineNotes.Empty();
 	for (auto note : BackgroundNotes) {
 		if (note != nullptr) {
 			delete note;
 		}
 	}
-
-
+	BackgroundNotes.Empty();
 }

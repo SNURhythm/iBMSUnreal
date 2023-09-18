@@ -107,7 +107,7 @@ void AChartSelectScreen::BeginPlay()
                         if(SuccessCount.GetValue() % 100 == 0)
                             UE_LOG(LogTemp, Warning, TEXT("success count: %d"), SuccessCount.GetValue());
                         /*UE_LOG(LogTemp, Warning, TEXT("measure num: %d"), measureNum);*/
-                        //delete parser->Chart;
+                        delete parser->Chart;
                     }
                     catch (...) {
                         UE_LOG(LogTemp, Warning, TEXT("exception!"));
