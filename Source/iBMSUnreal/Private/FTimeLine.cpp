@@ -49,25 +49,25 @@ double FTimeLine::GetStopDuration()
 
 FTimeLine::~FTimeLine()
 {
-	for (auto note : Notes) {
+	for (const auto& note : Notes) {
 		if (note != nullptr) {
 			delete note;
 		}
 	}
 	Notes.Empty();
-	for (auto note : InvisibleNotes) {
+	for (const auto& note : InvisibleNotes) {
 		if (note != nullptr) {
 			delete note;
 		}
 	}
 	InvisibleNotes.Empty();
-	for (auto note : LandmineNotes) {
+	for (const auto& note : LandmineNotes) {
 		if (note != nullptr) {
 			delete note;
 		}
 	}
 	LandmineNotes.Empty();
-	for (auto note : BackgroundNotes) {
+	for (const auto& note : BackgroundNotes) {
 		if (note != nullptr) {
 			delete note;
 		}

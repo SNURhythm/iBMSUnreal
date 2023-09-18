@@ -9,7 +9,7 @@ FChart::FChart(): Meta()
 
 FChart::~FChart()
 {
-	for (auto& measure : Measures)
+	for (const auto& measure : Measures)
 	{
 		delete measure;
 	}

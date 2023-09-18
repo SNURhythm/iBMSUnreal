@@ -37,5 +37,7 @@ void FBMSLongNote::Reset()
 
 FBMSLongNote::~FBMSLongNote()
 {
+	Head = nullptr;
+	Tail = nullptr;
 }
 

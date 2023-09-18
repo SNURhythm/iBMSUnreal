@@ -25,3 +25,8 @@ void FBMSNote::Reset()
 	IsDead = false;
 	PlayedTime = 0;
 }
+
+FBMSNote::~FBMSNote()
+{
+	Timeline = nullptr;
+}

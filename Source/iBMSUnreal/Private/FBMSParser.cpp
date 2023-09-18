@@ -45,20 +45,20 @@ FBMSParser::FBMSParser(): BpmTable{}, WavTable{}, BmpTable{}, StopLengthTable{}
 
 void FBMSParser::Parse(FString& path, bool addReadyMeasure, bool metaOnly)
 {
-	
+
 	// implement the same thing as BMSParser.cs
 	auto measures = TMap<int, TArray<TPair<int, FString>>>();
 	auto bytes = TArray<uint8>();
 	FFileHelper::LoadFileToArray(bytes, *path);
 	auto md5 = FMD5::HashBytes(bytes.GetData(), bytes.Num());
-	
+
 	// bytes to FString
 	auto bytesString = FString(ANSI_TO_TCHAR(reinterpret_cast<const char*>(bytes.GetData())));
 	auto lines = TArray<FString>();
 	bytesString.ParseIntoArrayLines(lines);
 	auto lastMeasure = -1;
-	
-	for (auto &line : lines)
+
+	for (auto& line : lines)
 	{
 		if (!line.StartsWith("#")) continue;
 		if (line.Len() < 7) continue;
@@ -328,12 +328,15 @@ void FBMSParser::Parse(FString& path, bool addReadyMeasure, bool metaOnly)
 						lastNote[laneNumber] = note;
 						++totalNotes;
 						if (isScratch) ++totalScratchNotes;
-						if (metaOnly) break;
+						if (metaOnly) {
+							delete note; // this is intended
+							break;
+						}
 						timeline->SetNote(
 							laneNumber, note
 						);
 					}
-					
+
 				}
 				break;
 				case Channel::P1InvisibleKeyBase: {
@@ -341,9 +344,9 @@ void FBMSParser::Parse(FString& path, bool addReadyMeasure, bool metaOnly)
 					timeline->SetInvisibleNote(
 						laneNumber, invNote
 					);
-					
+
 				}
-				break;
+												break;
 				case Channel::P1LongKeyBase:
 					if (Lntype == 1)
 					{
@@ -362,7 +365,10 @@ void FBMSParser::Parse(FString& path, bool addReadyMeasure, bool metaOnly)
 							auto ln = new FBMSLongNote{ ToWaveId(val) };
 							lnStart[laneNumber] = ln;
 
-							if (metaOnly) break;
+							if (metaOnly) {
+								delete ln; // this is intended
+								break;
+							}
 
 							timeline->SetNote(
 								laneNumber, ln
@@ -371,15 +377,15 @@ void FBMSParser::Parse(FString& path, bool addReadyMeasure, bool metaOnly)
 						}
 						else
 						{
-							auto tail = new FBMSLongNote{ NoWav };
-							tail->Head = lnStart[laneNumber];
-							lnStart[laneNumber]->Tail = tail;
+							if (!metaOnly) {
+								auto tail = new FBMSLongNote{ NoWav };
+								tail->Head = lnStart[laneNumber];
+								lnStart[laneNumber]->Tail = tail;
+								timeline->SetNote(
+									laneNumber, tail
+								);
+							}
 							lnStart[laneNumber] = nullptr;
-							if (metaOnly) break;
-							timeline->SetNote(
-								laneNumber, tail
-							);
-
 						}
 					}
 
@@ -401,11 +407,11 @@ void FBMSParser::Parse(FString& path, bool addReadyMeasure, bool metaOnly)
 		Chart->Meta.TotalLongNotes = totalLongNotes;
 		Chart->Meta.TotalScratchNotes = totalScratchNotes;
 		Chart->Meta.TotalBackSpinNotes = totalBackSpinNotes;
-		
+
 		auto lastPosition = 0.0;
 
 		measure->Timing = static_cast<long>(timePassed);
-		if (!metaOnly) Chart->Measures.Add(measure);
+
 		for (auto& pair : timelines)
 		{
 			auto position = pair.Key;
@@ -425,9 +431,10 @@ void FBMSParser::Parse(FString& path, bool addReadyMeasure, bool metaOnly)
 
 			// Debug.Log($"measure: {i}, position: {position}, lastPosition: {lastPosition}, bpm: {currentBpm} scale: {measure.Scale} interval: {interval} stop: {timeline.GetStopDuration()}");
 
-			if (!metaOnly) measure->TimeLines.Add(timeline);
+			
 			timePassed += timeline->GetStopDuration();
-
+			if (!metaOnly) measure->TimeLines.Add(timeline);
+			else delete timeline;
 			Chart->Meta.PlayLength = static_cast<long>(timePassed);
 
 			lastPosition = position;
@@ -440,6 +447,8 @@ void FBMSParser::Parse(FString& path, bool addReadyMeasure, bool metaOnly)
 			measure->TimeLines.Add(timeline);
 		}
 		timePassed += 240000000.0 * (1 - lastPosition) * measure->Scale / currentBpm;
+		if (!metaOnly) Chart->Measures.Add(measure);
+		else delete measure;
 	}
 
 	Chart->Meta.TotalLength = static_cast<long>(timePassed);
@@ -580,7 +589,7 @@ void FBMSParser::ParseHeader(FString& Cmd, FString& Xx, FString& Value) {
 		Chart->Meta.LnMode = FCString::Atoi(*Value);
 	}
 	else {
-		UE_LOG(LogTemp, Warning, TEXT("Unknown command: %s"), *CmdUpper);
+		//UE_LOG(LogTemp, Warning, TEXT("Unknown command: %s"), *CmdUpper);
 	}	
 }
 

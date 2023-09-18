@@ -27,4 +27,5 @@ public:
 	void Press(long Time);
 
 	void Reset();
+	~FBMSNote();
 };
