@@ -107,7 +107,7 @@ void AChartSelectScreen::BeginPlay()
                 if (end > Diffs.Num()) end = Diffs.Num();
                 for (int i = start; i < end; i++) {
                     if (bCancelled) return;
-                    auto diff = Diffs[i];
+                    auto& diff = Diffs[i];
 
                     if (diff.type == EDiffType::Added) {
                         try {
