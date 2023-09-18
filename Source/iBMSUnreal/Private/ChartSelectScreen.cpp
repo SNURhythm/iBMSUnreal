@@ -74,7 +74,7 @@ void AChartSelectScreen::BeginPlay()
         // find new charts
         TArray<FDiff> Diffs;
         TSet<FString> PathSet;
-        FThreadSafeCounter SuccessCount;
+        std::atomic_int SuccessCount;
         // TODO: Initialize prevPathSet by db
         IFileManager& FileManager = IFileManager::Get();
         FString Directory = FString("C:/Users/XF/AppData/LocalLow/SNURhythm/iBMS/");
@@ -106,17 +106,16 @@ void AChartSelectScreen::BeginPlay()
                 if (idx == taskNum - 1) end = Diffs.Num();
                 if (end > Diffs.Num()) end = Diffs.Num();
                 for (int i = start; i < end; i++) {
+                    if (bCancelled) return;
                     auto diff = Diffs[i];
 
                     if (diff.type == EDiffType::Added) {
                         try {
                             auto parser = new FBMSParser();
                             parser->Parse(diff.path, false, true);
-                            auto measureNum = parser->Chart->Measures.Num();
-                            SuccessCount.Increment();
-                            if (SuccessCount.GetValue() % 100 == 0)
-                                UE_LOG(LogTemp, Warning, TEXT("success count: %d"), SuccessCount.GetValue());
-                            /*UE_LOG(LogTemp, Warning, TEXT("measure num: %d"), measureNum);*/
+                            SuccessCount++;
+                            if (SuccessCount % 100 == 0)
+                                UE_LOG(LogTemp, Warning, TEXT("success count: %d"), (int)SuccessCount);
                             delete parser->Chart;
                             delete parser;
                         }
@@ -129,7 +128,7 @@ void AChartSelectScreen::BeginPlay()
                 }, !bSupportMultithread);
         }
         UE_LOG(LogTemp, Warning, TEXT("ChartSelectScreen End Task!!"));
-        UE_LOG(LogTemp, Warning, TEXT("success count: %d"), SuccessCount.GetValue());
+        UE_LOG(LogTemp, Warning, TEXT("success count: %d"), (int)SuccessCount);
 
 
         });
