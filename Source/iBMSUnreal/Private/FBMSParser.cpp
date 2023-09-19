@@ -36,7 +36,7 @@ const int TempKey = 8;
 constexpr int NoWav = -1;
 constexpr int MetronomeWav = -2;
 const int Scroll = 1020;
-FRegexPattern headerRegex = FRegexPattern(TEXT("^#([A-Za-z]+?)(\\d\\d)? +?(.+)?"));
+
 FBMSParser::FBMSParser(): BpmTable{}, WavTable{}, BmpTable{}, StopLengthTable{}
 {
 	Chart = new FChart();
@@ -45,6 +45,7 @@ FBMSParser::FBMSParser(): BpmTable{}, WavTable{}, BmpTable{}, StopLengthTable{}
 
 void FBMSParser::Parse(FString& path, bool addReadyMeasure, bool metaOnly)
 {
+	FRegexPattern headerRegex = FRegexPattern(TEXT("^#([A-Za-z]+?)(\\d\\d)? +?(.+)?"));
 
 	// implement the same thing as BMSParser.cs
 	auto measures = TMap<int, TArray<TPair<int, FString>>>();
@@ -53,7 +54,7 @@ void FBMSParser::Parse(FString& path, bool addReadyMeasure, bool metaOnly)
 	auto md5 = FMD5::HashBytes(bytes.GetData(), bytes.Num());
 
 	// bytes to FString
-	auto bytesString = FString(ANSI_TO_TCHAR(reinterpret_cast<const char*>(bytes.GetData())));
+	auto bytesString = BytesToString(bytes.GetData(), bytes.Num());
 	auto lines = TArray<FString>();
 	bytesString.ParseIntoArrayLines(lines);
 	auto lastMeasure = -1;
