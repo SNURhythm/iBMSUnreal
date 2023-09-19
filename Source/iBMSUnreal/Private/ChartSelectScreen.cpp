@@ -5,11 +5,11 @@
 #include "FBMSParser.h"
 #include <Tasks/Task.h>
 using namespace UE::Tasks;
-static enum EDiffType {
+enum EDiffType {
     Deleted,
     Added
 };
-static struct FDiff {
+struct FDiff {
     FString path;
     EDiffType type;
 };
