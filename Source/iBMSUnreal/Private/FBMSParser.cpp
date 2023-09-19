@@ -489,7 +489,7 @@ void FBMSParser::ParseHeader(FString& Cmd, FString& Xx, FString& Value) {
 	}
 	else if (CmdUpper == "BPM")
 	{
-		if (Value.IsEmpty()) throw "invalid BPM value";
+		if (Value.IsEmpty()) return; // TODO: handle this
 		if (Xx.IsEmpty())
 		{
 			// chart initial bpm
@@ -503,7 +503,7 @@ void FBMSParser::ParseHeader(FString& Cmd, FString& Xx, FString& Value) {
 	}
 	else if (CmdUpper == "STOP")
 	{
-		if (Value.IsEmpty() || Xx.IsEmpty() || Xx.Len() == 0) throw "invalid arguments in #STOP";
+		if (Value.IsEmpty() || Xx.IsEmpty() || Xx.Len() == 0) return;  // TODO: handle this
 		StopLengthTable[DecodeBase36(Xx)] = FCString::Atod(*Value);
 	}
 	else if (CmdUpper == "MIDIFILE")
@@ -514,14 +514,7 @@ void FBMSParser::ParseHeader(FString& Cmd, FString& Xx, FString& Value) {
 	}
 	else if (CmdUpper == "PLAYLEVEL")
 	{
-		try
-		{
-			Chart->Meta.PlayLevel = FCString::Atod(*Value);
-		}
-		catch (...)
-		{
-			UE_LOG(LogTemp, Warning, TEXT("invalid playlevel: %s"), *Value);
-		}
+		Chart->Meta.PlayLevel = FCString::Atod(*Value); // TODO: handle error
 	}
 	else if (CmdUpper == "RANK")
 	{

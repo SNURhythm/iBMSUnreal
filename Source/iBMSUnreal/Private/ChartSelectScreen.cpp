@@ -109,19 +109,15 @@ void AChartSelectScreen::BeginPlay()
                     if (bCancelled) return;
                     auto& diff = Diffs[i];
 
-                    if (diff.type == EDiffType::Added) {
-                        try {
-                            auto parser = new FBMSParser();
-                            parser->Parse(diff.path, false, true);
-                            SuccessCount++;
-                            if (SuccessCount % 100 == 0)
-                                UE_LOG(LogTemp, Warning, TEXT("success count: %d"), (int)SuccessCount);
-                            delete parser->Chart;
-                            delete parser;
-                        }
-                        catch (const std::exception& e) {
-                            UE_LOG(LogTemp, Warning, TEXT("exception: %s"), e.what());
-                        }
+                    if (diff.type == EDiffType::Added)
+                    {
+                        auto parser = new FBMSParser();
+                        parser->Parse(diff.path, false, true);
+                        SuccessCount++;
+                        if (SuccessCount % 100 == 0)
+                            UE_LOG(LogTemp, Warning, TEXT("success count: %d"), (int)SuccessCount);
+                        delete parser->Chart;
+                        delete parser;
                     }
                 }
             
