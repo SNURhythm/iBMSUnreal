@@ -4,8 +4,8 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/GameModeBase.h"
+#include "fmod.hpp"
 #include "BMSGameModeBase.generated.h"
-
 /**
  * 
  */
@@ -19,7 +19,10 @@ protected:
 	virtual void InitGame(const FString& MapName, const FString& Options, FString& ErrorMessage) override;
 	// Logout
 	virtual void Logout(AController* Exiting) override;
+	virtual void Tick(float DeltaSeconds) override;
 private:
 	std::atomic_bool bCancelled;
+	FMOD::System* FMODSystem;
+
 	
 };

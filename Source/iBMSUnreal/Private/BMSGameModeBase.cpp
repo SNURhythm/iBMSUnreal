@@ -6,6 +6,7 @@
 
 #include "FBMSParser.h"
 #include <Tasks/Task.h>
+
 using namespace UE::Tasks;
 enum EDiffType {
     Deleted,
@@ -17,11 +18,13 @@ struct FDiff {
 };
 static void FindNew(TArray<FDiff>& Diffs, const TSet<FString>& PrevPathSet, const FString& Directory, std::atomic_bool& bCancelled)
 {
+    
     IFileManager& FileManager = IFileManager::Get();
     TArray<FString> DirectoriesToVisit;
     DirectoriesToVisit.Add(Directory);
     while (DirectoriesToVisit.Num() > 0)
     {
+
         if (bCancelled) break;
         FString CurrentDirectory = DirectoriesToVisit.Pop();
         TArray<FString> Files;
@@ -59,9 +62,23 @@ static void FindNew(TArray<FDiff>& Diffs, const TSet<FString>& PrevPathSet, cons
 void ABMSGameModeBase::InitGame(const FString& MapName, const FString& Options, FString& ErrorMessage)
 {
 	Super::InitGame(MapName, Options, ErrorMessage);
-	UE_LOG(LogTemp, Warning, TEXT("InitGame"));
+    auto result = FMOD::System_Create(&FMODSystem);
+    if (result != FMOD_OK)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("FMOD error! (%d)\n"), result);
+		return;
+	}
+    FMODSystem->setSoftwareChannels(4092);
+    FMODSystem->setSoftwareFormat(48000, FMOD_SPEAKERMODE_DEFAULT, 0);
+    FMODSystem->setDSPBufferSize(256, 4);
+    FMODSystem->init(4092, FMOD_INIT_NORMAL, 0);
 
+
+	UE_LOG(LogTemp, Warning, TEXT("InitGame"));
     FTask loadTask = Launch(UE_SOURCE_LOCATION, [&]() {
+        FMOD::Sound* SuccessSound;
+        FString SoundPath = FPaths::Combine(FPaths::ProjectContentDir(), "/Sounds/success.mp3");
+        FMODSystem->createSound(TCHAR_TO_ANSI(*SoundPath), FMOD_DEFAULT, 0, &SuccessSound);
         UE_LOG(LogTemp, Warning, TEXT("BMSGameModeBase Start Task!!"));
         // find new charts
         TArray<FDiff> Diffs;
@@ -69,7 +86,9 @@ void ABMSGameModeBase::InitGame(const FString& MapName, const FString& Options, 
         std::atomic_int SuccessCount;
         // TODO: Initialize prevPathSet by db
         IFileManager& FileManager = IFileManager::Get();
-        FString Directory = FString("C:/Users/XF/AppData/LocalLow/SNURhythm/iBMS/");
+        // use iOS Document Directory
+        FString Directory = "C:/Users/XF/AppData/LocalLow/SNURhythm/iBMS/";
+        UE_LOG(LogTemp, Warning, TEXT("BMSGameModeBase Directory!! %s"), *Directory);
         UE_LOG(LogTemp, Warning, TEXT("BMSGameModeBase FindNew!!"));
         // print bCancelled
         UE_LOG(LogTemp, Warning, TEXT("BMSGameModeBase isCancelled!! %d"), (bool)bCancelled);
@@ -115,6 +134,8 @@ void ABMSGameModeBase::InitGame(const FString& MapName, const FString& Options, 
 
                 }, !bSupportMultithread);
         }
+        auto result = FMODSystem->playSound(SuccessSound, 0, false, 0);
+        UE_LOG(LogTemp, Warning, TEXT("FMODSystem->playSound!! %d"), result);
         UE_LOG(LogTemp, Warning, TEXT("BMSGameModeBase End Task!!"));
         UE_LOG(LogTemp, Warning, TEXT("success count: %d"), (int)SuccessCount);
 
@@ -127,4 +148,10 @@ void ABMSGameModeBase::Logout(AController* Exiting)
 	Super::Logout(Exiting);
 	UE_LOG(LogTemp, Warning, TEXT("Logout"));
 	bCancelled = true;
+}
+
+void ABMSGameModeBase::Tick(float DeltaSeconds)
+{
+	Super::Tick(DeltaSeconds);
+    FMODSystem->update();
 }
