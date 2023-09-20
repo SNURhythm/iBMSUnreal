@@ -4,7 +4,7 @@
 #include "BMSGameModeBase.h"
 
 
-#include "FBMSParser.h"
+#include "BMSParser.h"
 #include <Tasks/Task.h>
 
 using namespace UE::Tasks;
@@ -88,12 +88,12 @@ void ABMSGameModeBase::InitGame(const FString& MapName, const FString& Options, 
         IFileManager& FileManager = IFileManager::Get();
         // use iOS Document Directory
         FString Directory = "C:/Users/XF/AppData/LocalLow/SNURhythm/iBMS/";
-        UE_LOG(LogTemp, Warning, TEXT("BMSGameModeBase Directory!! %s"), *Directory);
-        UE_LOG(LogTemp, Warning, TEXT("BMSGameModeBase FindNew!!"));
+        UE_LOG(LogTemp, Warning, TEXT("BMSGameModeBase Directory: %s"), *Directory);
+        UE_LOG(LogTemp, Warning, TEXT("BMSGameModeBase FindNew"));
         // print bCancelled
-        UE_LOG(LogTemp, Warning, TEXT("BMSGameModeBase isCancelled!! %d"), (bool)bCancelled);
+        UE_LOG(LogTemp, Warning, TEXT("BMSGameModeBase isCancelled: %d"), (bool)bCancelled);
         FindNew(Diffs, PathSet, Directory, bCancelled);
-        UE_LOG(LogTemp, Warning, TEXT("BMSGameModeBase FindNew Done!! %d"), Diffs.Num());
+        UE_LOG(LogTemp, Warning, TEXT("BMSGameModeBase FindNew Done: %d"), Diffs.Num());
         // find deleted charts
         for (auto& path : PathSet) {
             if (bCancelled) break;
@@ -108,6 +108,7 @@ void ABMSGameModeBase::InitGame(const FString& MapName, const FString& Options, 
         if (Diffs.Num() > 0) {
             bool bSupportMultithread = FPlatformProcess::SupportsMultithreading();
             const int taskNum = FPlatformMisc::NumberOfWorkerThreadsToSpawn() - 1;
+            UE_LOG(LogTemp, Warning, TEXT("BMSGameModeBase taskNum: %d"), taskNum);
             const int taskSize = Diffs.Num() / taskNum;
             ParallelFor(taskNum, [&](int32 idx) {
                 if (bCancelled) return;
@@ -123,11 +124,12 @@ void ABMSGameModeBase::InitGame(const FString& MapName, const FString& Options, 
                     if (diff.type == EDiffType::Added)
                     {
                         auto parser = new FBMSParser();
-                        parser->Parse(diff.path, false, true);
+                        FChart* chart;
+                        parser->Parse(diff.path, &chart, false, true);
                         SuccessCount++;
                         if (SuccessCount % 100 == 0)
                             UE_LOG(LogTemp, Warning, TEXT("success count: %d"), (int)SuccessCount);
-                        delete parser->Chart;
+                        delete chart;
                         delete parser;
                     }
                 }
@@ -135,8 +137,8 @@ void ABMSGameModeBase::InitGame(const FString& MapName, const FString& Options, 
                 }, !bSupportMultithread);
         }
         auto result = FMODSystem->playSound(SuccessSound, 0, false, 0);
-        UE_LOG(LogTemp, Warning, TEXT("FMODSystem->playSound!! %d"), result);
-        UE_LOG(LogTemp, Warning, TEXT("BMSGameModeBase End Task!!"));
+        UE_LOG(LogTemp, Warning, TEXT("FMODSystem->playSound: %d"), result);
+        UE_LOG(LogTemp, Warning, TEXT("BMSGameModeBase End Task"));
         UE_LOG(LogTemp, Warning, TEXT("success count: %d"), (int)SuccessCount);
 
 
