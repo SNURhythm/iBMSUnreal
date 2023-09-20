@@ -43,7 +43,7 @@ FBMSParser::FBMSParser(): BpmTable{}, StopLengthTable{}
 }
 
 
-void FBMSParser::Parse(FString& path, FChart** chart, bool addReadyMeasure, bool metaOnly)
+void FBMSParser::Parse(const FString& path, FChart** chart, bool addReadyMeasure, bool metaOnly)
 {
 	auto Chart = new FChart();
 	*chart = Chart;
@@ -459,7 +459,7 @@ void FBMSParser::Parse(FString& path, FChart** chart, bool addReadyMeasure, bool
 	Chart->Meta.MaxBpm = maxBpm;
 }
 
-void FBMSParser::ParseHeader(FChart*& Chart, FString& Cmd, FString& Xx, FString& Value) {
+void FBMSParser::ParseHeader(FChart*& Chart, const FString& Cmd, const FString& Xx, const FString& Value) {
 	// Debug.Log($"cmd: {cmd}, xx: {xx} isXXNull: {xx == null}, value: {value}");
 	const FString CmdUpper = Cmd.ToUpper();
 	if (CmdUpper == "PLAYER")
@@ -610,7 +610,7 @@ int FBMSParser::ToWaveId(FChart*& Chart, FString& Wav) {
 	return Chart->WavTable[decoded].IsEmpty() ? NoWav : decoded;
 }
 
-int FBMSParser::DecodeBase36(FString& Str) {
+int FBMSParser::DecodeBase36(const FString& Str) {
 	int result = 0;
 	for (auto c : Str)
 	{

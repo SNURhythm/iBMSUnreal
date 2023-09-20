@@ -13,7 +13,7 @@ class IBMSUNREAL_API FBMSParser
 
 public:
 	FBMSParser();
-	void Parse(FString& path, FChart** chart, bool addReadyMeasure, bool metaOnly);
+	void Parse(const FString& path, FChart** chart, bool addReadyMeasure, bool metaOnly);
 	~FBMSParser();
 private:
 	// bpmTable
@@ -22,8 +22,8 @@ private:
 
 	int Lnobj = -1;
 	int Lntype = 1;
-	int DecodeBase36(FString& Str);
-	void ParseHeader(FChart*& Chart, FString& Cmd, FString& Xx, FString& Value);
+	int DecodeBase36(const FString& Str);
+	void ParseHeader(FChart*& Chart, const FString& Cmd, const FString& Xx, const FString& Value);
 
 	static int Gcd(int A, int B);
 	int ToWaveId(FChart*& Chart, FString& Wav);
