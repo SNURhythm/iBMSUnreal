@@ -59,6 +59,12 @@ static void FindNew(TArray<FDiff>& Diffs, const TSet<FString>& PrevPathSet, cons
             });
     }
 }
+
+ABMSGameModeBase::ABMSGameModeBase()
+{
+	PrimaryActorTick.bCanEverTick = true;
+}
+
 void ABMSGameModeBase::InitGame(const FString& MapName, const FString& Options, FString& ErrorMessage)
 {
 	Super::InitGame(MapName, Options, ErrorMessage);

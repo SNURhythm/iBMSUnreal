@@ -13,7 +13,8 @@ UCLASS()
 class IBMSUNREAL_API ABMSGameModeBase : public AGameModeBase
 {
 	GENERATED_BODY()
-
+public:
+	ABMSGameModeBase();
 protected:
 	// InitGame
 	virtual void InitGame(const FString& MapName, const FString& Options, FString& ErrorMessage) override;
