@@ -1,5 +1,6 @@
 # Visual Studio 2015 user specific files
 .DS_Store
+**/.DS_Store
 .vs/
 
 # Compiled Object files
@@ -72,5 +73,6 @@ Intermediate/*
 Plugins/*/Intermediate/*
 !Plugins/FMODStudio/**
 Plugins/FMODStudio/Intermediate
+Plugins/FMODStudio/**/.DS_Store
 # Cache files for the editor to use
 DerivedDataCache/*
