@@ -100,7 +100,14 @@ void ABMSGameModeBase::InitGame(const FString& MapName, const FString& Options, 
         // TODO: Initialize prevPathSet by db
         IFileManager& FileManager = IFileManager::Get();
         // use iOS Document Directory
-        FString Directory = "C:/Users/XF/AppData/LocalLow/SNURhythm/iBMS/";
+#if PLATFORM_IOS
+        // mkdir "BMS"
+        FString Directory = FPaths::Combine(FPaths::RootDir(), "BMS/");
+        FileManager.MakeDirectory(*Directory);
+#else
+        // use Application Support Directory
+        FString Directory = FPaths::Combine(FPaths::ProjectDir(), "BMS/");
+#endif
         UE_LOG(LogTemp, Warning, TEXT("BMSGameModeBase Directory: %s"), *Directory);
         UE_LOG(LogTemp, Warning, TEXT("BMSGameModeBase FindNew"));
         // print bCancelled
@@ -142,6 +149,7 @@ void ABMSGameModeBase::InitGame(const FString& MapName, const FString& Options, 
                         SuccessCount++;
                         if (SuccessCount % 100 == 0)
                             UE_LOG(LogTemp, Warning, TEXT("success count: %d"), (int)SuccessCount);
+                        UE_LOG(LogTemp,Warning,TEXT("TITLE: %s"), *chart->Meta.Title);
                         delete chart;
                         delete parser;
                     }

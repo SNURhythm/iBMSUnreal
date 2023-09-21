@@ -54,9 +54,8 @@ void FBMSParser::Parse(const FString& path, FChart** chart, bool addReadyMeasure
 	auto bytes = TArray<uint8>();
 	FFileHelper::LoadFileToArray(bytes, *path);
 	auto md5 = FMD5::HashBytes(bytes.GetData(), bytes.Num());
-
 	// bytes to FString
-	auto bytesString = BytesToString(bytes.GetData(), bytes.Num());
+	auto bytesString = FString(UTF8_TO_TCHAR(reinterpret_cast<const char*>(bytes.GetData())));
 	auto lines = TArray<FString>();
 	bytesString.ParseIntoArrayLines(lines);
 	auto lastMeasure = -1;
