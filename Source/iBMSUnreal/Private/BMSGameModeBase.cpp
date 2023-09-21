@@ -84,8 +84,13 @@ void ABMSGameModeBase::InitGame(const FString& MapName, const FString& Options, 
     FTask loadTask = Launch(UE_SOURCE_LOCATION, [&]() {
         FMOD::Sound* SuccessSound;
         FString SoundPathRel = FPaths::Combine(FPaths::ProjectContentDir(), "Sounds/success.wav");
-        FString SoundPath = FPaths::ConvertRelativePathToFull(SoundPathRel);
+        FString SoundPath = IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(*SoundPathRel);
         UE_LOG(LogTemp, Warning, TEXT("BMSGameModeBase SoundPath: %s"), *SoundPath);
+        // /private/var/containers/Bundle/Application/GUID/iBMSUnreal.app/Documents
+        FString DocumentsPathRel = FPaths::RootDir();
+        FString DocumentsPath = IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(*DocumentsPathRel);
+        UE_LOG(LogTemp, Warning, TEXT("BMSGameModeBase DocumentsPath: %s"), *DocumentsPath);
+
         FMODSystem->createSound(TCHAR_TO_ANSI(*SoundPath), FMOD_DEFAULT, 0, &SuccessSound);
         UE_LOG(LogTemp, Warning, TEXT("BMSGameModeBase Start Task!!"));
         // find new charts
