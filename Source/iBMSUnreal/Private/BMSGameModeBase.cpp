@@ -105,7 +105,7 @@ void ABMSGameModeBase::InitGame(const FString& MapName, const FString& Options, 
         FString Directory = FPaths::Combine(FPaths::RootDir(), "BMS/");
         FileManager.MakeDirectory(*Directory);
 #else
-        // use Application Support Directory
+        // use Project/BMS. Note that this would not work on packaged build, so we need to make it configurable
         FString Directory = FPaths::Combine(FPaths::ProjectDir(), "BMS/");
 #endif
         UE_LOG(LogTemp, Warning, TEXT("BMSGameModeBase Directory: %s"), *Directory);
@@ -172,10 +172,12 @@ void ABMSGameModeBase::Logout(AController* Exiting)
 	UE_LOG(LogTemp, Warning, TEXT("Logout"));
 	bCancelled = true;
     FMODSystem->release();
+    FMODSystem = nullptr;
 }
 
 void ABMSGameModeBase::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
+    if (FMODSystem==nullptr) return;
     FMODSystem->update();
 }
