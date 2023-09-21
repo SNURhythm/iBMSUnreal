@@ -158,6 +158,7 @@ void ABMSGameModeBase::Logout(AController* Exiting)
 	Super::Logout(Exiting);
 	UE_LOG(LogTemp, Warning, TEXT("Logout"));
 	bCancelled = true;
+    FMODSystem->release();
 }
 
 void ABMSGameModeBase::Tick(float DeltaSeconds)
