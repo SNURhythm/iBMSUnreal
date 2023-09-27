@@ -262,6 +262,7 @@ void FBMSParser::Parse(const FString& path, FChart** chart, bool addReadyMeasure
 				switch (channel)
 				{
 				case Channel::LaneAutoplay:
+					if (metaOnly) break;
 					if (val == "**")
 					{
 						timeline->AddBackgroundNote(new FBMSNote{ MetronomeWav });
@@ -342,13 +343,14 @@ void FBMSParser::Parse(const FString& path, FChart** chart, bool addReadyMeasure
 				}
 				break;
 				case Channel::P1InvisibleKeyBase:
-					{
-						auto invNote = new FBMSNote{ ToWaveId(Chart, val) };
-						timeline->SetInvisibleNote(
-							laneNumber, invNote
-						);
-						break;
-					}
+				{
+					if (metaOnly) break;
+					auto invNote = new FBMSNote{ ToWaveId(Chart, val) };
+					timeline->SetInvisibleNote(
+						laneNumber, invNote
+					);
+					break;
+				}
 												
 				case Channel::P1LongKeyBase:
 					if (Lntype == 1)
@@ -459,7 +461,7 @@ void FBMSParser::Parse(const FString& path, FChart** chart, bool addReadyMeasure
 	Chart->Meta.MaxBpm = maxBpm;
 }
 
-void FBMSParser::ParseHeader(FChart*& Chart, const FString& Cmd, const FString& Xx, FString& Value) {
+void FBMSParser::ParseHeader(FChart* Chart, const FString& Cmd, const FString& Xx, FString Value) {
 	// Debug.Log($"cmd: {cmd}, xx: {xx} isXXNull: {xx == null}, value: {value}");
 	const FString CmdUpper = Cmd.ToUpper();
 	if (CmdUpper == "PLAYER")
@@ -599,7 +601,7 @@ int FBMSParser::Gcd(int A, int B) {
 	}
 }
 
-int FBMSParser::ToWaveId(FChart*& Chart, FString& Wav) {
+int FBMSParser::ToWaveId(FChart* Chart, const FString& Wav) {
 	auto decoded = DecodeBase36(Wav);
 	// check range
 	if (decoded < 0 || decoded > 36 * 36 - 1)

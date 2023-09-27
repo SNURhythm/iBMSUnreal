@@ -145,7 +145,7 @@ void ABMSGameModeBase::InitGame(const FString& MapName, const FString& Options, 
                     {
                         auto parser = new FBMSParser();
                         FChart* chart;
-                        parser->Parse(diff.path, &chart, false, true);
+                        parser->Parse(diff.path, &chart, false, false);
                         SuccessCount++;
                         if (SuccessCount % 100 == 0)
                             UE_LOG(LogTemp, Warning, TEXT("success count: %d"), (int)SuccessCount);
