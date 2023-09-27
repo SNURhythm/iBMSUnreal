@@ -461,7 +461,7 @@ void FBMSParser::Parse(const FString& path, FChart** chart, bool addReadyMeasure
 	Chart->Meta.MaxBpm = maxBpm;
 }
 
-void FBMSParser::ParseHeader(FChart* Chart, const FString& Cmd, const FString& Xx, FString Value) {
+void FBMSParser::ParseHeader(FChart* Chart, FString& Cmd, FString& Xx, FString Value) {
 	// Debug.Log($"cmd: {cmd}, xx: {xx} isXXNull: {xx == null}, value: {value}");
 	const FString CmdUpper = Cmd.ToUpper();
 	if (CmdUpper == "PLAYER")
@@ -503,13 +503,25 @@ void FBMSParser::ParseHeader(FChart* Chart, const FString& Cmd, const FString& X
 		else
 		{
 			// Debug.Log($"BPM: {DecodeBase36(xx)} = {double.Parse(value)}");
-			BpmTable[DecodeBase36(Xx)] = FCString::Atod(*Value);
+			int id = DecodeBase36(Xx);
+			if (!CheckResourceIdRange(id))
+			{
+				UE_LOG(LogTemp, Warning, TEXT("Invalid BPM id: %s"), *Xx);
+				return;
+			}
+			BpmTable[id] = FCString::Atod(*Value);
 		}
 	}
 	else if (CmdUpper == "STOP")
 	{
 		if (Value.IsEmpty() || Xx.IsEmpty() || Xx.Len() == 0) return;  // TODO: handle this
-		StopLengthTable[DecodeBase36(Xx)] = FCString::Atod(*Value);
+		int id = DecodeBase36(Xx);
+		if (!CheckResourceIdRange(id))
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Invalid STOP id: %s"), *Xx);
+			return;
+		}
+		StopLengthTable[id] = FCString::Atod(*Value);
 	}
 	else if (CmdUpper == "MIDIFILE")
 	{
@@ -554,15 +566,27 @@ void FBMSParser::ParseHeader(FChart* Chart, const FString& Cmd, const FString& X
 			UE_LOG(LogTemp, Warning, TEXT("WAV command requires two arguments"));
 			return;
 		}
-		Chart->WavTable[DecodeBase36(Xx)] = Value;
+		int id = DecodeBase36(Xx);
+		if (!CheckResourceIdRange(id))
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Invalid WAV id: %s"), *Xx);
+			return;
+		}
+		Chart->WavTable[id] = Value;
 	}
 	else if (CmdUpper == "BMP") {
 		if (Xx.IsEmpty() || Value.IsEmpty())
 		{
-			UE_LOG(LogTemp, Warning, TEXT("WAV command requires two arguments"));
+			UE_LOG(LogTemp, Warning, TEXT("BMP command requires two arguments"));
 			return;
 		}
-		Chart->BmpTable[DecodeBase36(Xx)] = Value;
+		int id = DecodeBase36(Xx);
+		if (!CheckResourceIdRange(id))
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Invalid BMP id: %s"), *Xx);
+			return;
+		}
+		Chart->BmpTable[id] = Value;
 		if (Xx == "00")
 		{
 			Chart->Meta.BgaPoorDefault = true;
@@ -601,11 +625,17 @@ int FBMSParser::Gcd(int A, int B) {
 	}
 }
 
+bool FBMSParser::CheckResourceIdRange(int Id)
+{
+	return Id >= 0 && Id < 36 * 36;
+}
+
 int FBMSParser::ToWaveId(FChart* Chart, const FString& Wav) {
 	auto decoded = DecodeBase36(Wav);
 	// check range
-	if (decoded < 0 || decoded > 36 * 36 - 1)
+	if (!CheckResourceIdRange(decoded))
 	{
+		UE_LOG(LogTemp, Warning, TEXT("Invalid wav id: %s"), *Wav);
 		return NoWav;
 	}
 
@@ -614,7 +644,8 @@ int FBMSParser::ToWaveId(FChart* Chart, const FString& Wav) {
 
 int FBMSParser::DecodeBase36(const FString& Str) {
 	int result = 0;
-	for (auto c : Str)
+	const FString& StrUpper = Str.ToUpper();
+	for (auto c : StrUpper)
 	{
 		result *= 36;
 		if (FChar::IsDigit(c))
