@@ -149,7 +149,7 @@ void ABMSGameModeBase::InitGame(const FString& MapName, const FString& Options, 
                         SuccessCount++;
                         if (SuccessCount % 100 == 0)
                             UE_LOG(LogTemp, Warning, TEXT("success count: %d"), (int)SuccessCount);
-                        //UE_LOG(LogTemp,Warning,TEXT("TITLE: %s"), *chart->Meta.Title);
+                        UE_LOG(LogTemp,Warning,TEXT("TITLE: %s"), *chart->Meta.Title);
                         delete chart;
                         delete parser;
                     }

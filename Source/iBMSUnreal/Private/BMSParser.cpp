@@ -7,7 +7,7 @@
 #include "BMSLandmineNote.h"
 #include "TimeLine.h"
 #include "Measure.h"
-
+#include "ShiftJISConverter.h"
 enum Channel {
 	LaneAutoplay = 1,
 	SectionRate = 2,
@@ -55,9 +55,9 @@ void FBMSParser::Parse(const FString& path, FChart** chart, bool addReadyMeasure
 	FFileHelper::LoadFileToArray(bytes, *path);
 	auto md5 = FMD5::HashBytes(bytes.GetData(), bytes.Num());
 	// bytes to FString
-	auto bytesString = FString(UTF8_TO_TCHAR(reinterpret_cast<const char*>(bytes.GetData())));
+	auto content = ShiftJISConverter::BytesToUTF8(bytes);
 	auto lines = TArray<FString>();
-	bytesString.ParseIntoArrayLines(lines);
+	content.ParseIntoArrayLines(lines);
 	auto lastMeasure = -1;
 
 	for (auto& line : lines)
