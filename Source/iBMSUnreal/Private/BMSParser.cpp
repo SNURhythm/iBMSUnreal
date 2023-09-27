@@ -247,7 +247,7 @@ void FBMSParser::Parse(const FString& path, FChart** chart, bool addReadyMeasure
 
 				auto g = Gcd(j, dataCount);
 				// ReSharper disable PossibleLossOfFraction
-				auto position = (double)(j / g) / (dataCount / g);
+				auto position = static_cast<double>(j / g) / (dataCount / g);
 
 				if (!timelines.Contains(position)) {
 					auto timeline = new FTimeLine(TempKey, metaOnly);
@@ -341,14 +341,15 @@ void FBMSParser::Parse(const FString& path, FChart** chart, bool addReadyMeasure
 
 				}
 				break;
-				case Channel::P1InvisibleKeyBase: {
-					auto invNote = new FBMSNote{ ToWaveId(Chart, val) };
-					timeline->SetInvisibleNote(
-						laneNumber, invNote
-					);
-
-				}
-												break;
+				case Channel::P1InvisibleKeyBase:
+					{
+						auto invNote = new FBMSNote{ ToWaveId(Chart, val) };
+						timeline->SetInvisibleNote(
+							laneNumber, invNote
+						);
+						break;
+					}
+												
 				case Channel::P1LongKeyBase:
 					if (Lntype == 1)
 					{
@@ -458,7 +459,7 @@ void FBMSParser::Parse(const FString& path, FChart** chart, bool addReadyMeasure
 	Chart->Meta.MaxBpm = maxBpm;
 }
 
-void FBMSParser::ParseHeader(FChart*& Chart, const FString& Cmd, const FString& Xx, const FString& Value) {
+void FBMSParser::ParseHeader(FChart*& Chart, const FString& Cmd, const FString& Xx, FString& Value) {
 	// Debug.Log($"cmd: {cmd}, xx: {xx} isXXNull: {xx == null}, value: {value}");
 	const FString CmdUpper = Cmd.ToUpper();
 	if (CmdUpper == "PLAYER")

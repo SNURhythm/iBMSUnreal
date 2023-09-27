@@ -23,7 +23,7 @@ private:
 	int Lnobj = -1;
 	int Lntype = 1;
 	int DecodeBase36(const FString& Str);
-	void ParseHeader(FChart*& Chart, const FString& Cmd, const FString& Xx, const FString& Value);
+	void ParseHeader(FChart*& Chart, const FString& Cmd, const FString& Xx, FString& Value);
 
 	static int Gcd(int A, int B);
 	int ToWaveId(FChart*& Chart, FString& Wav);
