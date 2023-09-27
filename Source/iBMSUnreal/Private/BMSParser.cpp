@@ -8,6 +8,7 @@
 #include "TimeLine.h"
 #include "Measure.h"
 #include "ShiftJISConverter.h"
+#include "SHA256.h"
 enum Channel {
 	LaneAutoplay = 1,
 	SectionRate = 2,
@@ -54,7 +55,8 @@ void FBMSParser::Parse(const FString& path, FChart** chart, bool addReadyMeasure
 	auto measures = TMap<int, TArray<TPair<int, FString>>>();
 	auto bytes = TArray<uint8>();
 	FFileHelper::LoadFileToArray(bytes, *path);
-	auto md5 = FMD5::HashBytes(bytes.GetData(), bytes.Num());
+	Chart->Meta.MD5 = FMD5::HashBytes(bytes.GetData(), bytes.Num());
+	Chart->Meta.SHA256 = sha256(bytes);
 	// bytes to FString
 	auto content = ShiftJISConverter::BytesToUTF8(bytes);
 	auto lines = TArray<FString>();

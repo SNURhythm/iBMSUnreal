@@ -18,8 +18,7 @@ public:
 
 	static ChartDBHelper& GetInstance()
 	{
-		// enable multi-threading
-		sqlite3_config(SQLITE_CONFIG_MULTITHREAD);
+		sqlite3_config(SQLITE_CONFIG_SERIALIZED);
 		static ChartDBHelper instance;
 		return instance;
 	}
@@ -36,6 +35,8 @@ public:
 	void Delete(sqlite3* db, FString& path);
 	void Clear(sqlite3* db);
 	void Close(sqlite3* db);
+	void BeginTransaction(sqlite3* db);
+	void CommitTransaction(sqlite3* db);
 private:
 	FChartMeta ReadChartMeta(sqlite3_stmt* stmt);
 };

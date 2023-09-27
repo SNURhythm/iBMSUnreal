@@ -371,7 +371,7 @@ sqlite3* ChartDBHelper::Connect() {
 	sqlite3* db;
 	int rc;
 	rc = sqlite3_open(TCHAR_TO_UTF8(*path), &db);
-	
+	sqlite3_busy_timeout(db, 1000);
 	if (rc) {
 		UE_LOG(LogTemp, Error, TEXT("Can't open database: %s"), UTF8_TO_TCHAR(sqlite3_errmsg(db)));
 		sqlite3_close(db);
@@ -381,6 +381,14 @@ sqlite3* ChartDBHelper::Connect() {
 }
 void ChartDBHelper::Close(sqlite3* db) {
 	sqlite3_close(db);
+}
+void ChartDBHelper::BeginTransaction(sqlite3* db)
+{
+	sqlite3_exec(db, "BEGIN", nullptr, nullptr, nullptr);
+}
+void ChartDBHelper::CommitTransaction(sqlite3* db)
+{
+	sqlite3_exec(db, "COMMIT", nullptr, nullptr, nullptr);
 }
 void ChartDBHelper::CreateTable(sqlite3* db) {
 	auto query = "CREATE TABLE IF NOT EXISTS chart_meta ("
