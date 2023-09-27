@@ -495,19 +495,19 @@ void ChartDBHelper::Insert(sqlite3* db, FChartMeta& chartMeta) {
 		sqlite3_close(db);
 		return;
 	}
-	sqlite3_bind_text(stmt, 1, TCHAR_TO_UTF8(*chartMeta.BmsPath), -1, SQLITE_STATIC);
-	sqlite3_bind_text(stmt, 2, TCHAR_TO_UTF8(*chartMeta.MD5), -1, SQLITE_STATIC);
-	sqlite3_bind_text(stmt, 3, TCHAR_TO_UTF8(*chartMeta.SHA256), -1, SQLITE_STATIC);
-	sqlite3_bind_text(stmt, 4, TCHAR_TO_UTF8(*chartMeta.Title), -1, SQLITE_STATIC);
-	sqlite3_bind_text(stmt, 5, TCHAR_TO_UTF8(*chartMeta.SubTitle), -1, SQLITE_STATIC);
-	sqlite3_bind_text(stmt, 6, TCHAR_TO_UTF8(*chartMeta.Genre), -1, SQLITE_STATIC);
-	sqlite3_bind_text(stmt, 7, TCHAR_TO_UTF8(*chartMeta.Artist), -1, SQLITE_STATIC);
-	sqlite3_bind_text(stmt, 8, TCHAR_TO_UTF8(*chartMeta.SubArtist), -1, SQLITE_STATIC);
-	sqlite3_bind_text(stmt, 9, TCHAR_TO_UTF8(*chartMeta.Folder), -1, SQLITE_STATIC);
-	sqlite3_bind_text(stmt, 10, TCHAR_TO_UTF8(*chartMeta.StageFile), -1, SQLITE_STATIC);
-	sqlite3_bind_text(stmt, 11, TCHAR_TO_UTF8(*chartMeta.Banner), -1, SQLITE_STATIC);
-	sqlite3_bind_text(stmt, 12, TCHAR_TO_UTF8(*chartMeta.BackBmp), -1, SQLITE_STATIC);
-	sqlite3_bind_text(stmt, 13, TCHAR_TO_UTF8(*chartMeta.Preview), -1, SQLITE_STATIC);
+	sqlite3_bind_text(stmt, 1, TCHAR_TO_UTF8(*chartMeta.BmsPath), -1, SQLITE_TRANSIENT);
+	sqlite3_bind_text(stmt, 2, TCHAR_TO_UTF8(*chartMeta.MD5), -1, SQLITE_TRANSIENT);
+	sqlite3_bind_text(stmt, 3, TCHAR_TO_UTF8(*chartMeta.SHA256), -1, SQLITE_TRANSIENT);
+	sqlite3_bind_text(stmt, 4, TCHAR_TO_UTF8(*chartMeta.Title), -1, SQLITE_TRANSIENT);
+	sqlite3_bind_text(stmt, 5, TCHAR_TO_UTF8(*chartMeta.SubTitle), -1, SQLITE_TRANSIENT);
+	sqlite3_bind_text(stmt, 6, TCHAR_TO_UTF8(*chartMeta.Genre), -1, SQLITE_TRANSIENT);
+	sqlite3_bind_text(stmt, 7, TCHAR_TO_UTF8(*chartMeta.Artist), -1, SQLITE_TRANSIENT);
+	sqlite3_bind_text(stmt, 8, TCHAR_TO_UTF8(*chartMeta.SubArtist), -1, SQLITE_TRANSIENT);
+	sqlite3_bind_text(stmt, 9, TCHAR_TO_UTF8(*chartMeta.Folder), -1, SQLITE_TRANSIENT);
+	sqlite3_bind_text(stmt, 10, TCHAR_TO_UTF8(*chartMeta.StageFile), -1, SQLITE_TRANSIENT);
+	sqlite3_bind_text(stmt, 11, TCHAR_TO_UTF8(*chartMeta.Banner), -1, SQLITE_TRANSIENT);
+	sqlite3_bind_text(stmt, 12, TCHAR_TO_UTF8(*chartMeta.BackBmp), -1, SQLITE_TRANSIENT);
+	sqlite3_bind_text(stmt, 13, TCHAR_TO_UTF8(*chartMeta.Preview), -1, SQLITE_TRANSIENT);
 	sqlite3_bind_double(stmt, 14, chartMeta.PlayLevel);
 	sqlite3_bind_int(stmt, 15, chartMeta.Difficulty);
 	sqlite3_bind_double(stmt, 16, chartMeta.Total);
@@ -622,7 +622,7 @@ TArray<FChartMeta> ChartDBHelper::Search(sqlite3* db, FString& text) {
 		sqlite3_close(db);
 		return TArray<FChartMeta>();
 	}
-	sqlite3_bind_text(stmt, 1, TCHAR_TO_UTF8(*("%" + text + "%")), -1, SQLITE_STATIC);
+	sqlite3_bind_text(stmt, 1, TCHAR_TO_UTF8(*("%" + text + "%")), -1, SQLITE_TRANSIENT);
 	TArray<FChartMeta> chartMetas;
 	while (sqlite3_step(stmt) == SQLITE_ROW) {
 		try {
@@ -646,7 +646,7 @@ void ChartDBHelper::Delete(sqlite3* db, FString& path) {
 		sqlite3_close(db);
 		return;
 	}
-	sqlite3_bind_text(stmt, 1, TCHAR_TO_UTF8(*path), -1, SQLITE_STATIC);
+	sqlite3_bind_text(stmt, 1, TCHAR_TO_UTF8(*path), -1, SQLITE_TRANSIENT);
 	rc = sqlite3_step(stmt);
 	if (rc != SQLITE_DONE) {
 		UE_LOG(LogTemp, Error, TEXT("SQL error while deleting a chart: %s"), UTF8_TO_TCHAR(sqlite3_errmsg(db)));
