@@ -6,6 +6,7 @@
 
 #include "BMSParser.h"
 #include <Tasks/Task.h>
+#include "ChartDBHelper.h"
 
 using namespace UE::Tasks;
 enum EDiffType {
@@ -93,11 +94,20 @@ void ABMSGameModeBase::InitGame(const FString& MapName, const FString& Options, 
 
         FMODSystem->createSound(TCHAR_TO_ANSI(*SoundPath), FMOD_DEFAULT, 0, &SuccessSound);
         UE_LOG(LogTemp, Warning, TEXT("BMSGameModeBase Start Task!!"));
+        auto dbHelper = ChartDBHelper::GetInstance();
+        auto db = dbHelper.Connect();
+        dbHelper.CreateTable(db);
+        auto chartMetas = dbHelper.SelectAll(db);
         // find new charts
         TArray<FDiff> Diffs;
         TSet<FString> PathSet;
         std::atomic_int SuccessCount;
         // TODO: Initialize prevPathSet by db
+        for (auto& meta : chartMetas) {
+			if (bCancelled) break;
+            auto& path = meta.BmsPath;
+			PathSet.Add(path);
+		}
         IFileManager& FileManager = IFileManager::Get();
         // use iOS Document Directory
 #if PLATFORM_IOS
@@ -145,17 +155,21 @@ void ABMSGameModeBase::InitGame(const FString& MapName, const FString& Options, 
                     {
                         auto parser = new FBMSParser();
                         FChart* chart;
-                        parser->Parse(diff.path, &chart, false, false);
+                        parser->Parse(diff.path, &chart, false, true);
                         SuccessCount++;
                         if (SuccessCount % 100 == 0)
                             UE_LOG(LogTemp, Warning, TEXT("success count: %d"), (int)SuccessCount);
                         UE_LOG(LogTemp,Warning,TEXT("TITLE: %s"), *chart->Meta.Title);
+                        auto db = dbHelper.Connect();
+                        dbHelper.Insert(db, chart->Meta);
+                        // close db
+                        dbHelper.Close(db);
                         delete chart;
                         delete parser;
                     }
                 }
 
-                }, !bSupportMultithread);
+                }, true);
         }
         auto result = FMODSystem->playSound(SuccessSound, 0, false, 0);
         UE_LOG(LogTemp, Warning, TEXT("FMODSystem->playSound: %d"), result);
