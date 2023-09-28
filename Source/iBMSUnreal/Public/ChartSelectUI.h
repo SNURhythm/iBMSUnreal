@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
+#include "Components/EditableTextBox.h"
 #include "Components/ListView.h"
 
 #include "ChartSelectUI.generated.h"
@@ -19,4 +20,6 @@ class IBMSUNREAL_API UChartSelectUI : public UUserWidget
 public:
 	UPROPERTY(meta = (BindWidget))
 	UListView* ChartList;
+	UPROPERTY(meta = (BindWidget))
+	UEditableTextBox* SearchBox;
 };

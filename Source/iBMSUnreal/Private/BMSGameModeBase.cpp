@@ -105,10 +105,12 @@ void ABMSGameModeBase::LoadCharts()
 			auto dbHelper = ChartDBHelper::GetInstance();
 			auto db = dbHelper.Connect();
 			dbHelper.CreateTable(db);
-			auto chartMetas = dbHelper.SelectAll(db);
-			AsyncTask(ENamedThreads::GameThread, [&]()
+	    	auto chartMetas = dbHelper.SelectAll(db);
+	    	auto ChartList = ChartSelectUI->ChartList;
+			AsyncTask(ENamedThreads::GameThread, [chartMetas, ChartList]()
 			{
-				ChartSelectUI->ChartList->SetListItems(chartMetas);
+				if (IsValid(ChartList))
+					ChartList->SetListItems(chartMetas);
 			});
 	    	
 			// find new charts
@@ -196,10 +198,12 @@ void ABMSGameModeBase::LoadCharts()
 					}, !bSupportMultithreading);
 				dbHelper.CommitTransaction(db);
 			}
-	    	AsyncTask(ENamedThreads::GameThread, [&]()
-	    	{
-	    		ChartSelectUI->ChartList->SetListItems(dbHelper.SelectAll(db));
-	    	});
+	    	chartMetas = dbHelper.SelectAll(db);
+	    	AsyncTask(ENamedThreads::GameThread, [chartMetas, ChartList]()
+			{
+				if (IsValid(ChartList))
+					ChartList->SetListItems(chartMetas);
+			});
 	    	
 			const auto Result = FMODSystem->playSound(SuccessSound, nullptr, false, nullptr);
 			UE_LOG(LogTemp, Warning, TEXT("FMODSystem->playSound: %d"), Result);
@@ -264,6 +268,9 @@ void ABMSGameModeBase::BeginPlay()
 	    		}
 	    	
 	    	});
+	    	// on search
+	    	ChartSelectUI->SearchBox->OnTextCommitted.AddDynamic(this, &ABMSGameModeBase::OnSearchBoxTextCommitted);
+	    	ChartSelectUI->SearchBox->OnTextChanged.AddDynamic(this, &ABMSGameModeBase::OnSearchBoxTextChanged);
 	    } else
 	    {
 		    UE_LOG(LogTemp, Warning, TEXT("ChartSelectUI is not valid"));
@@ -273,6 +280,20 @@ void ABMSGameModeBase::BeginPlay()
 	    UE_LOG(LogTemp, Warning, TEXT("WidgetClass is not valid"));
 	}
 	LoadCharts();
+}
+
+void ABMSGameModeBase::OnSearchBoxTextChanged(const FText& Text)
+{
+
+}
+
+void ABMSGameModeBase::OnSearchBoxTextCommitted(const FText& Text, ETextCommit::Type CommitMethod)
+{
+	auto dbHelper = ChartDBHelper::GetInstance();
+	auto db = dbHelper.Connect();
+	auto str = Text.ToString();
+	auto chartMetas = dbHelper.Search(db, str);
+	ChartSelectUI->ChartList->SetListItems(chartMetas);
 }
 
 

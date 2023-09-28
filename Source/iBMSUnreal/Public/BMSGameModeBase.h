@@ -33,7 +33,15 @@ protected:
 private:
 	std::atomic_bool bCancelled;
 	FMOD::System* FMODSystem;
+	UPROPERTY()
 	TObjectPtr<UChartMeta> CurrentChartMeta;
 
+	// On Search Box Text Changed
+	UFUNCTION()
+	void OnSearchBoxTextChanged(const FText& Text);
+
+	// On Search Box Text Committed
+	UFUNCTION()
+	void OnSearchBoxTextCommitted(const FText& Text, ETextCommit::Type CommitMethod);
 	
 };
