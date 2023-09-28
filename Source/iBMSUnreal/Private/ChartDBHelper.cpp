@@ -8,12 +8,12 @@ sqlite3* ChartDBHelper::Connect() {
 	// use iOS Document Directory
 #if PLATFORM_IOS
 	// mkdir "BMS"
-	FString Directory = FPaths::Combine(FPaths::RootDir(), "BMS/");
+	FString Directory = FPaths::Combine(FPaths::RootDir(), ".db/");
 	IFileManager& FileManager = IFileManager::Get();
 	FileManager.MakeDirectory(*Directory);
 #else
 	// use Project/BMS. Note that this would not work on packaged build, so we need to make it configurable
-	FString Directory = FPaths::Combine(FPaths::ProjectDir(), "BMS/");
+	FString Directory = FPaths::Combine(FPaths::ProjectDir(), ".db/");
 #endif
 	
 	FString pathRel = FPaths::Combine(Directory, "chart.db");
