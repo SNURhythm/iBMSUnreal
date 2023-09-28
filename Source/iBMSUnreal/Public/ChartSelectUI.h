@@ -4,9 +4,11 @@
 
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
+#include "Components/Button.h"
 #include "Components/EditableTextBox.h"
 #include "Components/Image.h"
 #include "Components/ListView.h"
+#include "Components/TextBlock.h"
 
 #include "ChartSelectUI.generated.h"
 
@@ -25,4 +27,25 @@ public:
 	UEditableTextBox* SearchBox;
 	UPROPERTY(meta = (BindWidget))
 	UImage* BackgroundImage;
+	UPROPERTY(meta = (BindWidget))
+	UImage* StageFileImage;
+
+	UPROPERTY(meta = (BindWidget))
+	UTextBlock* TitleText;
+	UPROPERTY(meta = (BindWidget))
+	UTextBlock* ArtistText;
+
+	UPROPERTY(meta = (BindWidget))
+	UTextBlock* GenreText;
+	UPROPERTY(meta = (BindWidget))
+	UTextBlock* BPMText;
+	UPROPERTY(meta = (BindWidget))
+	UTextBlock* TotalText;
+	UPROPERTY(meta = (BindWidget))
+	UTextBlock* NotesText;
+	UPROPERTY(meta = (BindWidget))
+	UTextBlock* JudgementText;
+
+	UPROPERTY(meta = (BindWidget))
+	UButton* StartButton;
 };

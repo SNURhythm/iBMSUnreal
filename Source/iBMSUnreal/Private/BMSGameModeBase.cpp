@@ -235,7 +235,22 @@ void ABMSGameModeBase::BeginPlay()
 	    		if(!IsValid(EntryData)) return;
 				auto chartMeta = EntryData->ChartMeta;
 	    		UE_LOG(LogTemp, Warning, TEXT("ChartMeta: %s"), *chartMeta->BmsPath);
-				
+				ChartSelectUI->TitleText->SetText(FText::FromString(chartMeta->Title));
+	    		ChartSelectUI->ArtistText->SetText(FText::FromString(chartMeta->Artist));
+
+	    		ChartSelectUI->GenreText->SetText(FText::FromString(chartMeta->Genre));
+	    		if(chartMeta->MaxBpm == chartMeta->MinBpm)
+	    		{
+	    			ChartSelectUI->BPMText->SetText(FText::FromString(FString::Printf(TEXT("%.1f"), chartMeta->Bpm)));
+	    		} else
+	    		{
+	    			//min~max
+	    			ChartSelectUI->BPMText->SetText(FText::FromString(FString::Printf(TEXT("%.1f~%.1f"), chartMeta->MinBpm, chartMeta->MaxBpm)));
+	    		}
+	    		ChartSelectUI->TotalText->SetText(FText::FromString(FString::Printf(TEXT("%.2lf"), chartMeta->Total)));
+	    		ChartSelectUI->NotesText->SetText(FText::FromString(FString::Printf(TEXT("%d"), chartMeta->TotalNotes)));
+	    		ChartSelectUI->JudgementText->SetText(FText::FromString(FString::Printf(TEXT("%d"), chartMeta->Rank)));
+	    		
 	    		// make background of item CACACA of 20% opacity
 	    		auto entry = ChartSelectUI->ChartList->GetEntryWidgetFromItem(Item);
 	    		auto chartListEntry = Cast<UChartListEntry>(entry);
@@ -268,15 +283,16 @@ void ABMSGameModeBase::BeginPlay()
 	    			// set to blank, black
 	    			ChartSelectUI->BackgroundImage->SetBrushFromTexture(nullptr);
 	    			ChartSelectUI->BackgroundImage->SetBrushTintColor(FLinearColor::Black);
+	    			ChartSelectUI->StageFileImage->SetBrushFromTexture(nullptr);
+	    			ChartSelectUI->StageFileImage->SetBrushTintColor(FLinearColor::Black);
 	    			return;
 	    		}
 	    		path = FPaths::Combine(chartMeta->Folder, path);
 	    		ImageUtils::LoadTexture2D(path, IsValid, -1, -1, BackgroundImage);
-	    		ChartSelectUI->BackgroundImage->SetBrushFromTexture(BackgroundImage);
-	    		// tint to 50% black
 	    		ChartSelectUI->BackgroundImage->SetBrushTintColor(FLinearColor(0.5f, 0.5f, 0.5f, 0.5f));
-	    		
-	    		
+	    		ChartSelectUI->BackgroundImage->SetBrushFromTexture(BackgroundImage);
+	    		ChartSelectUI->StageFileImage->SetBrushTintColor(FLinearColor::White);
+	    		ChartSelectUI->StageFileImage->SetBrushFromTexture(BackgroundImage);
 	    		
 	    	});
 	    	// on item bound

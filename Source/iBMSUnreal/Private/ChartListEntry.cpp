@@ -30,7 +30,7 @@ void UChartListEntry::NativeOnListItemObjectSet(UObject* InObject)
 		auto ChartMeta = EntryData->ChartMeta;
 		TitleText->SetText(FText::FromString(ChartMeta->Title));
 		ArtistText->SetText(FText::FromString(ChartMeta->Artist));
-		KeyModeText->SetText(FText::FromString(ChartMeta->KeyMode+"k"));
+		KeyModeText->SetText(FText::FromString(FString::Printf(TEXT("%dK"), ChartMeta->KeyMode)));
 		auto path = ChartMeta->Banner;
 		if(path.IsEmpty()) {
 			path = ChartMeta->StageFile;
