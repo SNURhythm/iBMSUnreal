@@ -157,7 +157,7 @@ void ABMSGameModeBase::LoadCharts()
 			if (Diffs.Num() > 0)
 			{
 				const bool bSupportMultithreading = FPlatformProcess::SupportsMultithreading();
-				const int TaskNum = FPlatformMisc::NumberOfWorkerThreadsToSpawn() - 1;
+				const int TaskNum = FMath::Max(FPlatformMisc::NumberOfWorkerThreadsToSpawn()/2, 1);
 				UE_LOG(LogTemp, Warning, TEXT("BMSGameModeBase taskNum: %d"), TaskNum);
 				const int TaskSize = Diffs.Num() / TaskNum;
 				dbHelper.BeginTransaction(db);
@@ -189,7 +189,7 @@ void ABMSGameModeBase::LoadCharts()
 
 							}
                             
-							UE_LOG(LogTemp,Warning,TEXT("TITLE: %s"), *Chart->Meta->Title);
+							// UE_LOG(LogTemp,Warning,TEXT("TITLE: %s"), *Chart->Meta->Title);
 
 							dbHelper.Insert(db, *Chart->Meta);
 							// close db
