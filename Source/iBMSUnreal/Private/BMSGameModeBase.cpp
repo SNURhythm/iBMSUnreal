@@ -50,7 +50,7 @@ static void FindNew(TArray<FDiff>& Diffs, const TSet<FString>& PrevPathSet, cons
                     if (!PrevPathSet.Contains(FilePath))
                     {
                         auto diff = FDiff();
-                        diff.path = FilePath;
+                        diff.path = IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(*FilePath);
                         diff.type = EDiffType::Added;
                         Diffs.Add(diff);
                     }
@@ -112,12 +112,13 @@ void ABMSGameModeBase::InitGame(const FString& MapName, const FString& Options, 
         // use iOS Document Directory
 #if PLATFORM_IOS
         // mkdir "BMS"
-        FString Directory = FPaths::Combine(FPaths::RootDir(), "BMS/");
-        FileManager.MakeDirectory(*Directory);
+        FString DirectoryRel = FPaths::Combine(FPaths::RootDir(), "BMS/");
+        FileManager.MakeDirectory(*DirectoryRel);
 #else
         // use Project/BMS. Note that this would not work on packaged build, so we need to make it configurable
-        FString Directory = FPaths::Combine(FPaths::ProjectDir(), "BMS/");
+        FString DirectoryRel = FPaths::Combine(FPaths::ProjectDir(), "BMS/");
 #endif
+        FString Directory = IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(*DirectoryRel);
         UE_LOG(LogTemp, Warning, TEXT("BMSGameModeBase Directory: %s"), *Directory);
         UE_LOG(LogTemp, Warning, TEXT("BMSGameModeBase FindNew"));
         // print bCancelled
