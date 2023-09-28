@@ -106,10 +106,10 @@ void ABMSGameModeBase::LoadCharts()
 			auto db = dbHelper.Connect();
 			dbHelper.CreateTable(db);
 			auto chartMetas = dbHelper.SelectAll(db);
-				AsyncTask(ENamedThreads::GameThread, [&]()
-				{
-					ChartSelectUI->ChartList->SetListItems(chartMetas);
-				});
+			AsyncTask(ENamedThreads::GameThread, [&]()
+			{
+				ChartSelectUI->ChartList->SetListItems(chartMetas);
+			});
 	    	
 			// find new charts
 			TArray<FDiff> Diffs;
@@ -196,7 +196,11 @@ void ABMSGameModeBase::LoadCharts()
 					}, !bSupportMultithreading);
 				dbHelper.CommitTransaction(db);
 			}
-				ChartSelectUI->ChartList->SetListItems(dbHelper.SelectAll(db));
+	    	AsyncTask(ENamedThreads::GameThread, [&]()
+	    	{
+	    		ChartSelectUI->ChartList->SetListItems(dbHelper.SelectAll(db));
+	    	});
+	    	
 			const auto Result = FMODSystem->playSound(SuccessSound, nullptr, false, nullptr);
 			UE_LOG(LogTemp, Warning, TEXT("FMODSystem->playSound: %d"), Result);
 			UE_LOG(LogTemp, Warning, TEXT("BMSGameModeBase End Task"));
