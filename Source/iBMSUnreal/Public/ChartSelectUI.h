@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
 #include "Components/EditableTextBox.h"
+#include "Components/Image.h"
 #include "Components/ListView.h"
 
 #include "ChartSelectUI.generated.h"
@@ -22,4 +23,6 @@ public:
 	UListView* ChartList;
 	UPROPERTY(meta = (BindWidget))
 	UEditableTextBox* SearchBox;
+	UPROPERTY(meta = (BindWidget))
+	UImage* BackgroundImage;
 };

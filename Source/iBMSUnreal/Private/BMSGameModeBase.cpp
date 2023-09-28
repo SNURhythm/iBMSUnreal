@@ -10,6 +10,7 @@
 #include "ChartListEntry.h"
 #include "ChartSelectUI.h"
 #include "Blueprint/UserWidget.h"
+#include "iBMSUnreal/Public/ImageUtils.h"
 
 using namespace UE::Tasks;
 enum EDiffType {
@@ -253,6 +254,29 @@ void ABMSGameModeBase::BeginPlay()
 	    			}
 	    		}
 	    		CurrentEntryData = EntryData;
+	    		UTexture2D* BackgroundImage = nullptr;
+	    		bool IsValid = false;
+	    		
+	    		auto path = chartMeta->StageFile;
+	    		if(path.IsEmpty()) {
+	    			path = chartMeta->BackBmp;
+	    		}
+	    		if(path.IsEmpty()) {
+	    			path = chartMeta->Preview;
+	    		}
+	    		if(path.IsEmpty()) {
+	    			// set to blank, black
+	    			ChartSelectUI->BackgroundImage->SetBrushFromTexture(nullptr);
+	    			ChartSelectUI->BackgroundImage->SetBrushTintColor(FLinearColor::Black);
+	    			return;
+	    		}
+	    		path = FPaths::Combine(chartMeta->Folder, path);
+	    		ImageUtils::LoadTexture2D(path, IsValid, -1, -1, BackgroundImage);
+	    		ChartSelectUI->BackgroundImage->SetBrushFromTexture(BackgroundImage);
+	    		// tint to 50% black
+	    		ChartSelectUI->BackgroundImage->SetBrushTintColor(FLinearColor(0.5f, 0.5f, 0.5f, 0.5f));
+	    		
+	    		
 	    		
 	    	});
 	    	// on item bound
