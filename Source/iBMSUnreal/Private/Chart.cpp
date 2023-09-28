@@ -3,8 +3,9 @@
 
 #include "Chart.h"
 
-FChart::FChart(): Meta()
+FChart::FChart()
 {
+	Meta = NewObject<UChartMeta>();
 }
 
 FChart::~FChart()

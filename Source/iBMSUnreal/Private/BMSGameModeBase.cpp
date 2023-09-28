@@ -7,6 +7,9 @@
 #include "BMSParser.h"
 #include <Tasks/Task.h>
 #include "ChartDBHelper.h"
+#include "ChartListEntry.h"
+#include "ChartSelectUI.h"
+#include "Blueprint/UserWidget.h"
 
 using namespace UE::Tasks;
 enum EDiffType {
@@ -79,17 +82,21 @@ void ABMSGameModeBase::InitGame(const FString& MapName, const FString& Options, 
     FMODSystem->setSoftwareFormat(48000, FMOD_SPEAKERMODE_DEFAULT, 0);
     FMODSystem->setDSPBufferSize(256, 4);
     FMODSystem->init(4092, FMOD_INIT_NORMAL, 0);
-
-
+	
 	UE_LOG(LogTemp, Warning, TEXT("InitGame"));
-    FTask loadTask = Launch(UE_SOURCE_LOCATION, [&]() {
+
+}
+
+void ABMSGameModeBase::LoadCharts()
+{
+	    FTask LoadTask = Launch(UE_SOURCE_LOCATION, [&]() {
         FMOD::Sound* SuccessSound;
-        FString SoundPathRel = FPaths::Combine(FPaths::ProjectContentDir(), "Sounds/success.wav");
-        FString SoundPath = IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(*SoundPathRel);
+        const FString SoundPathRel = FPaths::Combine(FPaths::ProjectContentDir(), "Sounds/success.wav");
+        const FString SoundPath = IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(*SoundPathRel);
         UE_LOG(LogTemp, Warning, TEXT("BMSGameModeBase SoundPath: %s"), *SoundPath);
         // /private/var/containers/Bundle/Application/GUID/iBMSUnreal.app/Documents
-        FString DocumentsPathRel = FPaths::RootDir();
-        FString DocumentsPath = IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(*DocumentsPathRel);
+        const FString DocumentsPathRel = FPaths::RootDir();
+        const FString DocumentsPath = IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(*DocumentsPathRel);
         UE_LOG(LogTemp, Warning, TEXT("BMSGameModeBase DocumentsPath: %s"), *DocumentsPath);
 
         FMODSystem->createSound(TCHAR_TO_ANSI(*SoundPath), FMOD_DEFAULT, 0, &SuccessSound);
@@ -98,6 +105,11 @@ void ABMSGameModeBase::InitGame(const FString& MapName, const FString& Options, 
         auto db = dbHelper.Connect();
         dbHelper.CreateTable(db);
         auto chartMetas = dbHelper.SelectAll(db);
+	    	AsyncTask(ENamedThreads::GameThread, [&]()
+	    	{
+	    		ChartSelectUI->ChartList->SetListItems(chartMetas);
+	    	});
+	    	
         // find new charts
         TArray<FDiff> Diffs;
         TSet<FString> PathSet;
@@ -105,7 +117,7 @@ void ABMSGameModeBase::InitGame(const FString& MapName, const FString& Options, 
         // TODO: Initialize prevPathSet by db
         for (auto& meta : chartMetas) {
 			if (bCancelled) break;
-            auto& path = meta.BmsPath;
+            auto& path = meta->BmsPath;
 			PathSet.Add(path);
 		}
         IFileManager& FileManager = IFileManager::Get();
@@ -136,29 +148,29 @@ void ABMSGameModeBase::InitGame(const FString& MapName, const FString& Options, 
         }
 
         if (Diffs.Num() > 0) {
-            bool bSupportMultithread = FPlatformProcess::SupportsMultithreading();
-            const int taskNum = FPlatformMisc::NumberOfWorkerThreadsToSpawn() - 1;
-            UE_LOG(LogTemp, Warning, TEXT("BMSGameModeBase taskNum: %d"), taskNum);
-            const int taskSize = Diffs.Num() / taskNum;
+	        const bool bSupportMultithreading = FPlatformProcess::SupportsMultithreading();
+            const int TaskNum = FPlatformMisc::NumberOfWorkerThreadsToSpawn() - 1;
+            UE_LOG(LogTemp, Warning, TEXT("BMSGameModeBase taskNum: %d"), TaskNum);
+            const int TaskSize = Diffs.Num() / TaskNum;
             dbHelper.BeginTransaction(db);
             std::atomic_bool isCommitting;
-            ParallelFor(taskNum, [&](int32 idx) {
+            ParallelFor(TaskNum, [&](int32 idx) {
                 if (bCancelled) return;
-                int start = idx * taskSize;
-                if (start >= Diffs.Num()) return;
-                int end = (idx + 1) * taskSize;
-                if (idx == taskNum - 1) end = Diffs.Num();
+                const int Start = idx * TaskSize;
+                if (Start >= Diffs.Num()) return;
+                int end = (idx + 1) * TaskSize;
+                if (idx == TaskNum - 1) end = Diffs.Num();
                 if (end > Diffs.Num()) end = Diffs.Num();
-                for (int i = start; i < end; i++) {
+                for (int i = Start; i < end; i++) {
                     if (bCancelled) return;
                     auto& diff = Diffs[i];
 
                     if (diff.type == EDiffType::Added)
                     {
-                        auto parser = new FBMSParser();
-                        FChart* chart;
-                        parser->Parse(diff.path, &chart, false, false);
-                        SuccessCount++;
+	                    const auto Parser = new FBMSParser();
+                        FChart* Chart;
+                        Parser->Parse(diff.path, &Chart, false, false);
+                        ++SuccessCount;
                         if (SuccessCount % 100 == 0) {
                             UE_LOG(LogTemp, Warning, TEXT("success count: %d"), (int)SuccessCount);
                             if (isCommitting) continue;
@@ -169,26 +181,94 @@ void ABMSGameModeBase::InitGame(const FString& MapName, const FString& Options, 
 
                         }
                             
-                        UE_LOG(LogTemp,Warning,TEXT("TITLE: %s"), *chart->Meta.Title);
+                        UE_LOG(LogTemp,Warning,TEXT("TITLE: %s"), *Chart->Meta->Title);
 
-                        dbHelper.Insert(db, chart->Meta);
+                        dbHelper.Insert(db, *Chart->Meta);
                         // close db
-                        delete chart;
-                        delete parser;
+                        delete Chart;
+                        delete Parser;
                     }
                 }
 
-                }, !bSupportMultithread);
+                }, !bSupportMultithreading);
             dbHelper.CommitTransaction(db);
         }
-        auto result = FMODSystem->playSound(SuccessSound, 0, false, 0);
-        UE_LOG(LogTemp, Warning, TEXT("FMODSystem->playSound: %d"), result);
+        const auto Result = FMODSystem->playSound(SuccessSound, nullptr, false, nullptr);
+        UE_LOG(LogTemp, Warning, TEXT("FMODSystem->playSound: %d"), Result);
         UE_LOG(LogTemp, Warning, TEXT("BMSGameModeBase End Task"));
         UE_LOG(LogTemp, Warning, TEXT("success count: %d"), (int)SuccessCount);
 
 
         });
 }
+void ABMSGameModeBase::BeginPlay()
+{
+
+
+	if(IsValid(WidgetClass))
+	{
+	    ChartSelectUI = CreateWidget<UChartSelectUI>(GetWorld(), WidgetClass);
+	    if(IsValid(ChartSelectUI))
+	    {
+	        ChartSelectUI->AddToViewport();
+	    	// bind event to list
+	    	ChartSelectUI->ChartList->OnItemSelectionChanged().AddLambda([&](UObject* Item)
+	    	{
+	    		auto chartMeta = Cast<UChartMeta>(Item);
+				if (IsValid(chartMeta))
+				{
+					UE_LOG(LogTemp, Warning, TEXT("ChartMeta: %s"), *chartMeta->BmsPath);
+				}
+	    		// make background of item CACACA of 20% opacity
+	    		auto entry = ChartSelectUI->ChartList->GetEntryWidgetFromItem(Item);
+	    		auto chartListEntry = Cast<UChartListEntry>(entry);
+	    		if (IsValid(chartListEntry))
+	    		{
+	    			chartListEntry->Border->SetBrushColor(FLinearColor(0.79f, 0.79f, 0.79f, 0.2f));
+	    		}
+	    		// restore previous selection
+	    		if(CurrentChartMeta)
+	    		{
+	    			auto prevEntry = ChartSelectUI->ChartList->GetEntryWidgetFromItem(CurrentChartMeta);
+	    			auto prevChartListEntry = Cast<UChartListEntry>(prevEntry);
+	    			if (IsValid(prevChartListEntry))
+	    			{
+	    				prevChartListEntry->Border->SetBrushColor(FLinearColor::Transparent);
+	    			}
+	    		}
+	    		CurrentChartMeta = chartMeta;
+	    		
+	    	});
+	    	// on item bound
+	    	ChartSelectUI->ChartList->OnEntryWidgetGenerated().AddLambda([&](UUserWidget& Widget)
+	    	{
+	    		// get item from widget
+	    		auto chartListEntry = Cast<UChartListEntry>(&Widget);
+	    		auto chartMeta = chartListEntry->EntryData;
+	    		if (IsValid(chartMeta))
+	    		{
+	    			// if item is selected, set background color
+	    			if (chartMeta == CurrentChartMeta)
+	    			{
+	    				chartListEntry->Border->SetBrushColor(FLinearColor(0.79f, 0.79f, 0.79f, 0.2f));
+	    			} else
+	    			{
+	    				chartListEntry->Border->SetBrushColor(FLinearColor::Transparent);
+	    			}
+	    		}
+	    	
+	    	});
+	    } else
+	    {
+		    UE_LOG(LogTemp, Warning, TEXT("ChartSelectUI is not valid"));
+	    }
+	} else
+	{
+	    UE_LOG(LogTemp, Warning, TEXT("WidgetClass is not valid"));
+	}
+	LoadCharts();
+}
+
 
 void ABMSGameModeBase::Logout(AController* Exiting)
 {
