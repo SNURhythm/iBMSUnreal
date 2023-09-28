@@ -5,7 +5,6 @@
 
 FChart::FChart()
 {
-	Meta = NewObject<UChartMeta>();
 }
 
 FChart::~FChart()

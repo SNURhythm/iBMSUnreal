@@ -106,14 +106,14 @@ void ABMSGameModeBase::LoadCharts()
 			auto db = dbHelper.Connect();
 			dbHelper.CreateTable(db);
 	    	auto chartMetas = dbHelper.SelectAll(db);
-	    	chartMetas.Sort([](const UChartMeta& A, const UChartMeta& B) {
+	    	chartMetas.Sort([](const FChartMeta& A, const FChartMeta& B) {
 				return A.Title < B.Title;
 			});
 	    	auto ChartList = ChartSelectUI->ChartList;
-			AsyncTask(ENamedThreads::GameThread, [chartMetas, ChartList]()
+			AsyncTask(ENamedThreads::GameThread, [chartMetas, ChartList, this]()
 			{
 				if (IsValid(ChartList))
-					ChartList->SetListItems(chartMetas);
+					SetChartMetas(chartMetas);
 			});
 	    	
 			// find new charts
@@ -202,13 +202,13 @@ void ABMSGameModeBase::LoadCharts()
 				dbHelper.CommitTransaction(db);
 			}
 	    	chartMetas = dbHelper.SelectAll(db);
-	    	chartMetas.Sort([](const UChartMeta& A, const UChartMeta& B) {
+	    	chartMetas.Sort([](const FChartMeta& A, const FChartMeta& B) {
 				return A.Title < B.Title;
 			});
-	    	AsyncTask(ENamedThreads::GameThread, [chartMetas, ChartList]()
+	    	AsyncTask(ENamedThreads::GameThread, [chartMetas, ChartList, this]()
 			{
 				if (IsValid(ChartList))
-					ChartList->SetListItems(chartMetas);
+					SetChartMetas(chartMetas);
 			});
 	    	
 			const auto Result = FMODSystem->playSound(SuccessSound, nullptr, false, nullptr);
@@ -230,11 +230,11 @@ void ABMSGameModeBase::BeginPlay()
 	    	// bind event to list
 	    	ChartSelectUI->ChartList->OnItemSelectionChanged().AddLambda([&](UObject* Item)
 	    	{
-	    		auto chartMeta = Cast<UChartMeta>(Item);
-				if (IsValid(chartMeta))
-				{
-					UE_LOG(LogTemp, Warning, TEXT("ChartMeta: %s"), *chartMeta->BmsPath);
-				}
+	    		auto EntryData = Cast<UChartListEntryData>(Item);
+	    		if(!IsValid(EntryData)) return;
+				auto chartMeta = EntryData->ChartMeta;
+	    		UE_LOG(LogTemp, Warning, TEXT("ChartMeta: %s"), *chartMeta->BmsPath);
+				
 	    		// make background of item CACACA of 20% opacity
 	    		auto entry = ChartSelectUI->ChartList->GetEntryWidgetFromItem(Item);
 	    		auto chartListEntry = Cast<UChartListEntry>(entry);
@@ -243,16 +243,16 @@ void ABMSGameModeBase::BeginPlay()
 	    			chartListEntry->Border->SetBrushColor(FLinearColor(0.79f, 0.79f, 0.79f, 0.2f));
 	    		}
 	    		// restore previous selection
-	    		if(CurrentChartMeta)
+	    		if(CurrentEntryData)
 	    		{
-	    			auto prevEntry = ChartSelectUI->ChartList->GetEntryWidgetFromItem(CurrentChartMeta);
+	    			auto prevEntry = ChartSelectUI->ChartList->GetEntryWidgetFromItem(CurrentEntryData);
 	    			auto prevChartListEntry = Cast<UChartListEntry>(prevEntry);
 	    			if (IsValid(prevChartListEntry))
 	    			{
 	    				prevChartListEntry->Border->SetBrushColor(FLinearColor::Transparent);
 	    			}
 	    		}
-	    		CurrentChartMeta = chartMeta;
+	    		CurrentEntryData = EntryData;
 	    		
 	    	});
 	    	// on item bound
@@ -264,7 +264,7 @@ void ABMSGameModeBase::BeginPlay()
 	    		if (IsValid(chartMeta))
 	    		{
 	    			// if item is selected, set background color
-	    			if (chartMeta == CurrentChartMeta)
+	    			if (chartMeta == CurrentEntryData)
 	    			{
 	    				chartListEntry->Border->SetBrushColor(FLinearColor(0.79f, 0.79f, 0.79f, 0.2f));
 	    			} else
@@ -288,6 +288,19 @@ void ABMSGameModeBase::BeginPlay()
 	LoadCharts();
 }
 
+void ABMSGameModeBase::SetChartMetas(const TArray<FChartMeta*>& ChartMetas)
+{
+	// convert to UChartListEntryData
+	TArray<UChartListEntryData*> EntryDatas;
+	for (auto& meta : ChartMetas)
+	{
+		auto entryData = NewObject<UChartListEntryData>();
+		entryData->ChartMeta = meta;
+		EntryDatas.Add(entryData);
+	}
+	ChartSelectUI->ChartList->SetListItems(EntryDatas);
+}
+
 void ABMSGameModeBase::OnSearchBoxTextChanged(const FText& Text)
 {
 
@@ -299,7 +312,10 @@ void ABMSGameModeBase::OnSearchBoxTextCommitted(const FText& Text, ETextCommit::
 	auto db = dbHelper.Connect();
 	auto str = Text.ToString();
 	auto chartMetas = dbHelper.Search(db, str);
-	ChartSelectUI->ChartList->SetListItems(chartMetas);
+	chartMetas.Sort([](const FChartMeta& A, const FChartMeta& B) {
+		return A.Title < B.Title;
+	});
+	SetChartMetas(chartMetas);
 }
 
 

@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Chart.h"
+#include "ChartListEntryData.h"
 #include "GameFramework/GameModeBase.h"
 #include "fmod.hpp"
 #include "BMSGameModeBase.generated.h"
@@ -34,8 +35,9 @@ private:
 	std::atomic_bool bCancelled;
 	FMOD::System* FMODSystem;
 	UPROPERTY()
-	TObjectPtr<UChartMeta> CurrentChartMeta;
+	UChartListEntryData* CurrentEntryData;
 
+	void SetChartMetas(const TArray<FChartMeta*>& ChartMetas);
 	// On Search Box Text Changed
 	UFUNCTION()
 	void OnSearchBoxTextChanged(const FText& Text);

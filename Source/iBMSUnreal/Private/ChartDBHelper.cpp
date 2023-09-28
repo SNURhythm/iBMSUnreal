@@ -83,7 +83,7 @@ void ChartDBHelper::CreateTable(sqlite3* db) {
 
 }
 
-void ChartDBHelper::Insert(sqlite3* db, UChartMeta& chartMeta) {
+void ChartDBHelper::Insert(sqlite3* db, FChartMeta& chartMeta) {
 	auto query = "REPLACE INTO chart_meta ("
 		"path,"
 		"md5,"
@@ -187,7 +187,7 @@ void ChartDBHelper::Insert(sqlite3* db, UChartMeta& chartMeta) {
 
 }
 
-TArray<TObjectPtr<UChartMeta>> ChartDBHelper::SelectAll(sqlite3* db) {
+TArray<FChartMeta*> ChartDBHelper::SelectAll(sqlite3* db) {
 	auto query = "SELECT "
 		"path,"
 		"md5,"
@@ -222,9 +222,9 @@ TArray<TObjectPtr<UChartMeta>> ChartDBHelper::SelectAll(sqlite3* db) {
 	if (rc != SQLITE_OK) {
 		UE_LOG(LogTemp, Error, TEXT("SQL error while getting all charts: %s"), UTF8_TO_TCHAR(sqlite3_errmsg(db)));
 		sqlite3_close(db);
-		return TArray<TObjectPtr<UChartMeta>>();
+		return TArray<FChartMeta*>();
 	}
-	TArray<TObjectPtr<UChartMeta>> chartMetas;
+	TArray<FChartMeta*> chartMetas;
 	while (sqlite3_step(stmt) == SQLITE_ROW)
 	{
 		auto chartMeta = ReadChartMeta(stmt);
@@ -234,7 +234,7 @@ TArray<TObjectPtr<UChartMeta>> ChartDBHelper::SelectAll(sqlite3* db) {
 	return chartMetas;
 }
 
-TArray<TObjectPtr<UChartMeta>> ChartDBHelper::Search(sqlite3* db, FString& text) {
+TArray<FChartMeta*> ChartDBHelper::Search(sqlite3* db, FString& text) {
 	auto query = "SELECT "
 		"path,"
 		"md5,"
@@ -269,11 +269,11 @@ TArray<TObjectPtr<UChartMeta>> ChartDBHelper::Search(sqlite3* db, FString& text)
 	if (rc != SQLITE_OK) {
 		UE_LOG(LogTemp, Error, TEXT("SQL error while searching for charts: %s"), UTF8_TO_TCHAR(sqlite3_errmsg(db)));
 		sqlite3_close(db);
-		return TArray<TObjectPtr<UChartMeta>>();
+		return TArray<FChartMeta*>();
 	}
 	sqlite3_bind_text(stmt, 1, TCHAR_TO_UTF8(*("%" + text + "%")), -1, SQLITE_TRANSIENT);
 
-	TArray<TObjectPtr<UChartMeta>> chartMetas;
+	TArray<FChartMeta*> chartMetas;
 	while (sqlite3_step(stmt) == SQLITE_ROW)
 	{
 		auto chartMeta = ReadChartMeta(stmt);
@@ -320,9 +320,9 @@ void ChartDBHelper::Clear(sqlite3* db) {
 	sqlite3_finalize(stmt);
 }
 
-TObjectPtr<UChartMeta> ChartDBHelper::ReadChartMeta(sqlite3_stmt* stmt) {
+FChartMeta* ChartDBHelper::ReadChartMeta(sqlite3_stmt* stmt) {
 	int idx = 0;
-	const TObjectPtr<UChartMeta> chartMeta = NewObject<UChartMeta>();
+	FChartMeta* chartMeta = new FChartMeta();
 	chartMeta->BmsPath = UTF8_TO_TCHAR(sqlite3_column_text(stmt, idx++));
 	chartMeta->MD5 = UTF8_TO_TCHAR(sqlite3_column_text(stmt, idx++));
 	chartMeta->SHA256 = UTF8_TO_TCHAR(sqlite3_column_text(stmt, idx++));

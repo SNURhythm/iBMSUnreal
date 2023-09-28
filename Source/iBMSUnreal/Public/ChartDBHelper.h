@@ -29,14 +29,14 @@ public:
 	void CreateTable(sqlite3* db);
 
 	// Insert ChartMeta
-	void Insert(sqlite3* db, UChartMeta& chartMeta);
-	TArray<TObjectPtr<UChartMeta>> SelectAll(sqlite3* db);
-	TArray<TObjectPtr<UChartMeta>> Search(sqlite3* db, FString& keyword);
+	void Insert(sqlite3* db, FChartMeta& chartMeta);
+	TArray<FChartMeta*> SelectAll(sqlite3* db);
+	TArray<FChartMeta*> Search(sqlite3* db, FString& keyword);
 	void Delete(sqlite3* db, FString& path);
 	void Clear(sqlite3* db);
 	void Close(sqlite3* db);
 	void BeginTransaction(sqlite3* db);
 	void CommitTransaction(sqlite3* db);
 private:
-	TObjectPtr<UChartMeta> ReadChartMeta(sqlite3_stmt* stmt);
+	FChartMeta* ReadChartMeta(sqlite3_stmt* stmt);
 };

@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Chart.h"
+#include "ChartListEntryData.h"
 #include "Blueprint/IUserObjectListEntry.h"
 #include "Blueprint/UserWidget.h"
 #include "Components/Border.h"
@@ -37,10 +38,10 @@ public:
 	UImage* Banner;
 
 	UPROPERTY()
-	TObjectPtr<UChartMeta> EntryData;
+	UChartListEntryData* EntryData;
 	
 	// OnEntryClicked is a delegate that will be bound to the OnClicked event of the button
-	DECLARE_DELEGATE_OneParam(FOnEntryClicked, TObjectPtr<UChartMeta>);
+	DECLARE_DELEGATE_OneParam(FOnEntryClicked, UChartListEntryData*);
 	FOnEntryClicked OnEntryClicked;
 
 	UFUNCTION()

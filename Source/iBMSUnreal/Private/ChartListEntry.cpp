@@ -23,21 +23,22 @@ void UChartListEntry::NativeConstruct()
 
 void UChartListEntry::NativeOnListItemObjectSet(UObject* InObject)
 {
-	EntryData = Cast<UChartMeta>(InObject);
+	EntryData = Cast<UChartListEntryData>(InObject);
 	if (EntryData)
 	{
-		TitleText->SetText(FText::FromString(EntryData->Title));
-		ArtistText->SetText(FText::FromString(EntryData->Artist));
-		KeyModeText->SetText(FText::FromString(EntryData->KeyMode+"k"));
-		auto path = EntryData->Banner;
+		auto ChartMeta = EntryData->ChartMeta;
+		TitleText->SetText(FText::FromString(ChartMeta->Title));
+		ArtistText->SetText(FText::FromString(ChartMeta->Artist));
+		KeyModeText->SetText(FText::FromString(ChartMeta->KeyMode+"k"));
+		auto path = ChartMeta->Banner;
 		if(path.IsEmpty()) {
-			path = EntryData->StageFile;
+			path = ChartMeta->StageFile;
 		}
 		if(path.IsEmpty()) {
-			path = EntryData->BackBmp;
+			path = ChartMeta->BackBmp;
 		}
 		if(path.IsEmpty()) {
-			path = EntryData->Preview;
+			path = ChartMeta->Preview;
 		}
 		if(path.IsEmpty()) {
 			// set to blank, black
@@ -47,7 +48,7 @@ void UChartListEntry::NativeOnListItemObjectSet(UObject* InObject)
 		}
 		Banner->SetBrushTintColor(FLinearColor::White);
 		
-		path = FPaths::Combine(EntryData->Folder, path);
+		path = FPaths::Combine(ChartMeta->Folder, path);
 		IImageWrapperModule& ImageWrapperModule = FModuleManager::LoadModuleChecked<IImageWrapperModule>(FName("ImageWrapper"));
 		TSharedPtr<IImageWrapper> ImageWrapper = ImageWrapperModule.CreateImageWrapper(path.EndsWith(".png") ? EImageFormat::PNG : (path.EndsWith(".bmp")? EImageFormat::BMP : EImageFormat::JPEG));
 		TArray<uint8> RawFileData;

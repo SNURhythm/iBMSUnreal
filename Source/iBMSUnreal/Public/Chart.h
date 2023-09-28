@@ -4,15 +4,15 @@
 
 #include "CoreMinimal.h"
 #include "Measure.h"
-#include "UObject/Object.h"
-#include "Chart.generated.h"
+
+
 /**
  * 
  */
 
-UCLASS()
-class IBMSUNREAL_API UChartMeta: public UObject {
-	GENERATED_BODY()
+
+class IBMSUNREAL_API FChartMeta {
+
 	public:
 	FString SHA256;
 	FString MD5;
@@ -53,7 +53,7 @@ class IBMSUNREAL_API FChart
 public:
 	FChart();
 	~FChart();
-	TObjectPtr<UChartMeta> Meta;
+	FChartMeta* Meta;
 	TArray<FMeasure*> Measures;
 	FString WavTable[36 * 36];
 	FString BmpTable[36 * 36];
