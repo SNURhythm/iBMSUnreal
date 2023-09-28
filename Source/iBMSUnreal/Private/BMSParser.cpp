@@ -295,14 +295,30 @@ void FBMSParser::Parse(const FString& path, FChart** chart, bool addReadyMeasure
 					timeline->BgaLayer = DecodeBase36(val);
 					break;
 				case Channel::BpmChangeExtend:
-					timeline->Bpm = BpmTable[DecodeBase36(val)];
-					// Debug.Log($"BPM_CHANGE_EXTEND: {timeline.Bpm}, on measure {i}, {val}");
-					timeline->BpmChange = true;
-					break;
+					{
+						auto id = DecodeBase36(val);
+						if (!CheckResourceIdRange(id))
+						{
+							UE_LOG(LogTemp, Warning, TEXT("Invalid BPM id: %s"), *val);
+							break;
+						}
+						timeline->Bpm = BpmTable[id];
+						// Debug.Log($"BPM_CHANGE_EXTEND: {timeline.Bpm}, on measure {i}, {val}");
+						timeline->BpmChange = true;
+						break;
+					}
 				case Channel::Stop:
-					timeline->StopLength = StopLengthTable[DecodeBase36(val)];
-					// Debug.Log($"STOP: {timeline.StopLength}, on measure {i}");
-					break;
+					{
+						auto id = DecodeBase36(val);
+						if (!CheckResourceIdRange(id))
+						{
+							UE_LOG(LogTemp, Warning, TEXT("Invalid StopLength id: %s"), *val);
+							break;
+						}
+						timeline->StopLength = StopLengthTable[id];
+						// Debug.Log($"STOP: {timeline.StopLength}, on measure {i}");
+						break;
+					}
 				case Channel::P1KeyBase: {
 					auto ch = DecodeBase36(val);
 					if (ch == Lnobj && lastNote[laneNumber] != nullptr) {
