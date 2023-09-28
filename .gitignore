@@ -1,6 +1,7 @@
 # Visual Studio 2015 user specific files
 BMS/
 BMS
+.db/
 .DS_Store
 **/.DS_Store
 .vs/
