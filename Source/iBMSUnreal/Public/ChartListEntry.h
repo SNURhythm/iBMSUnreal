@@ -8,6 +8,7 @@
 #include "Blueprint/UserWidget.h"
 #include "Components/Border.h"
 #include "Components/Button.h"
+#include "Components/Image.h"
 #include "Components/TextBlock.h"
 
 #include "ChartListEntry.generated.h"
@@ -22,12 +23,18 @@ class IBMSUNREAL_API UChartListEntry : public UUserWidget, public IUserObjectLis
 public:
 	UPROPERTY(meta = (BindWidget))
 	UTextBlock* TitleText;
+	
 	UPROPERTY(meta = (BindWidget))
 	UTextBlock* ArtistText;
+	
 	UPROPERTY(meta = (BindWidget))
 	UTextBlock* KeyModeText;
+	
 	UPROPERTY(meta = (BindWidget))
 	UBorder* Border;
+	
+	UPROPERTY(meta = (BindWidget))
+	UImage* Banner;
 
 	UPROPERTY()
 	TObjectPtr<UChartMeta> EntryData;

@@ -106,6 +106,9 @@ void ABMSGameModeBase::LoadCharts()
 			auto db = dbHelper.Connect();
 			dbHelper.CreateTable(db);
 	    	auto chartMetas = dbHelper.SelectAll(db);
+	    	chartMetas.Sort([](const UChartMeta& A, const UChartMeta& B) {
+				return A.Title < B.Title;
+			});
 	    	auto ChartList = ChartSelectUI->ChartList;
 			AsyncTask(ENamedThreads::GameThread, [chartMetas, ChartList]()
 			{
@@ -199,6 +202,9 @@ void ABMSGameModeBase::LoadCharts()
 				dbHelper.CommitTransaction(db);
 			}
 	    	chartMetas = dbHelper.SelectAll(db);
+	    	chartMetas.Sort([](const UChartMeta& A, const UChartMeta& B) {
+				return A.Title < B.Title;
+			});
 	    	AsyncTask(ENamedThreads::GameThread, [chartMetas, ChartList]()
 			{
 				if (IsValid(ChartList))

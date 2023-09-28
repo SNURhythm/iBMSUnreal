@@ -49,6 +49,7 @@ void FBMSParser::Parse(const FString& path, FChart** chart, bool addReadyMeasure
 	auto Chart = new FChart();
 	*chart = Chart;
 	Chart->Meta->BmsPath = path;
+	Chart->Meta->Folder = FPaths::GetPath(path);
 	FRegexPattern headerRegex = FRegexPattern(TEXT("^#([A-Za-z]+?)(\\d\\d)? +?(.+)?"));
 
 	// implement the same thing as BMSParser.cs
