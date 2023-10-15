@@ -5,12 +5,14 @@
 
 
 #include "BMSParser.h"
-#include <Tasks/Task.h>
+
+#include "BMSGameInstance.h"
 #include "ChartDBHelper.h"
 #include "ChartListEntry.h"
 #include "ChartSelectUI.h"
 #include "Blueprint/UserWidget.h"
 #include "iBMSUnreal/Public/ImageUtils.h"
+#include "Kismet/GameplayStatics.h"
 
 using namespace UE::Tasks;
 enum EDiffType {
@@ -73,17 +75,10 @@ ABMSGameModeBase::ABMSGameModeBase()
 void ABMSGameModeBase::InitGame(const FString& MapName, const FString& Options, FString& ErrorMessage)
 {
 	Super::InitGame(MapName, Options, ErrorMessage);
-    auto result = FMOD::System_Create(&FMODSystem);
-    if (result != FMOD_OK)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("FMOD error! (%d)\n"), result);
-		return;
-	}
-    FMODSystem->setSoftwareChannels(4092);
-    FMODSystem->setSoftwareFormat(48000, FMOD_SPEAKERMODE_DEFAULT, 0);
-    FMODSystem->setDSPBufferSize(256, 4);
-    FMODSystem->init(4092, FMOD_INIT_NORMAL, 0);
+	UBMSGameInstance* GameInstance = Cast<UBMSGameInstance>(UGameplayStatics::GetGameInstance(GetWorld()));
 	
+	FMODSystem = GameInstance->GetFMODSystem();
+	jukebox = new Jukebox(FMODSystem);
 	UE_LOG(LogTemp, Warning, TEXT("InitGame"));
 
 }
@@ -100,7 +95,7 @@ void ABMSGameModeBase::LoadCharts()
 			const FString DocumentsPathRel = FPaths::RootDir();
 			const FString DocumentsPath = IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(*DocumentsPathRel);
 			UE_LOG(LogTemp, Warning, TEXT("BMSGameModeBase DocumentsPath: %s"), *DocumentsPath);
-
+			
 			FMODSystem->createSound(TCHAR_TO_ANSI(*SoundPath), FMOD_DEFAULT, 0, &SuccessSound);
 			UE_LOG(LogTemp, Warning, TEXT("BMSGameModeBase Start Task!!"));
 			auto dbHelper = ChartDBHelper::GetInstance();
@@ -250,6 +245,27 @@ void ABMSGameModeBase::BeginPlay()
 	    		ChartSelectUI->TotalText->SetText(FText::FromString(FString::Printf(TEXT("%.2lf"), chartMeta->Total)));
 	    		ChartSelectUI->NotesText->SetText(FText::FromString(FString::Printf(TEXT("%d"), chartMeta->TotalNotes)));
 	    		ChartSelectUI->JudgementText->SetText(FText::FromString(FString::Printf(TEXT("%d"), chartMeta->Rank)));
+				bJukeboxCancelled = true;
+	    		// full-parse chart
+	    		FTask LoadTask = Launch(UE_SOURCE_LOCATION, [&]()
+	    		{
+	    			
+	    			const auto Parser = new FBMSParser();
+					FChart* Chart;
+					Parser->Parse(chartMeta->BmsPath, &Chart, false, false);
+	    			jukeboxLock.Lock();
+	    			bJukeboxCancelled = false;
+	    			jukebox->LoadChart(Chart, bJukeboxCancelled);
+	    			if (bJukeboxCancelled)
+	    			{
+	    				jukeboxLock.Unlock();
+	    				return;
+	    			}
+	    			jukebox->Start(0, true);
+	    			jukeboxLock.Unlock();
+	    		});
+	    		
+	    		
 	    		
 	    		// make background of item CACACA of 20% opacity
 	    		auto entry = ChartSelectUI->ChartList->GetEntryWidgetFromItem(Item);
@@ -364,6 +380,11 @@ void ABMSGameModeBase::Logout(AController* Exiting)
 	Super::Logout(Exiting);
 	UE_LOG(LogTemp, Warning, TEXT("Logout"));
 	bCancelled = true;
+	bJukeboxCancelled = true;
+	jukeboxLock.Lock();
+	jukebox->Unload();
+	delete jukebox;
+	jukeboxLock.Unlock();
     FMODSystem->release();
     FMODSystem = nullptr;
 }

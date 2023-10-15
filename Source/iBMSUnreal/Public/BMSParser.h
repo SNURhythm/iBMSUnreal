@@ -15,6 +15,8 @@ public:
 	FBMSParser();
 	void Parse(FString path, FChart** Chart, bool addReadyMeasure, bool metaOnly);
 	~FBMSParser();
+	static int NoWav;
+	static int MetronomeWav;
 private:
 	// bpmTable
 	TMap<int, double> BpmTable;

@@ -7,6 +7,8 @@
 #include "ChartListEntryData.h"
 #include "GameFramework/GameModeBase.h"
 #include "fmod.hpp"
+#include "Jukebox.h"
+#include "Tasks/Task.h"
 #include "BMSGameModeBase.generated.h"
 /**
  * 
@@ -32,8 +34,10 @@ protected:
 	virtual void Tick(float DeltaSeconds) override;
 	virtual void BeginPlay() override;
 private:
-	
+	Jukebox* jukebox;
+	FCriticalSection jukeboxLock;
 	std::atomic_bool bCancelled;
+	std::atomic_bool bJukeboxCancelled;
 	FMOD::System* FMODSystem;
 	UPROPERTY()
 	UChartListEntryData* CurrentEntryData;

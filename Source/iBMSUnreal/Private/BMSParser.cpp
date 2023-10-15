@@ -34,15 +34,14 @@ namespace KeyAssign {
 };
 
 const int TempKey = 8;
-constexpr int NoWav = -1;
-constexpr int MetronomeWav = -2;
 const int Scroll = 1020;
 
 FBMSParser::FBMSParser(): BpmTable{}, StopLengthTable{}
 {
 
 }
-
+int FBMSParser::NoWav = -1;
+int FBMSParser::MetronomeWav = -2;
 
 void FBMSParser::Parse(FString path, FChart** chart, bool addReadyMeasure, bool metaOnly)
 {
