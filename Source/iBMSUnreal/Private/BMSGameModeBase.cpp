@@ -70,15 +70,16 @@ static void FindNew(TArray<FDiff>& Diffs, const TSet<FString>& PrevPathSet, cons
 ABMSGameModeBase::ABMSGameModeBase()
 {
 	PrimaryActorTick.bCanEverTick = true;
+	UBMSGameInstance* GameInstance = Cast<UBMSGameInstance>(UGameplayStatics::GetGameInstance(GetWorld()));
+	CurrentEntryData = nullptr;
+	FMODSystem = GameInstance->GetFMODSystem();
+	jukebox = new Jukebox(FMODSystem);
 }
 
 void ABMSGameModeBase::InitGame(const FString& MapName, const FString& Options, FString& ErrorMessage)
 {
 	Super::InitGame(MapName, Options, ErrorMessage);
-	UBMSGameInstance* GameInstance = Cast<UBMSGameInstance>(UGameplayStatics::GetGameInstance(GetWorld()));
-	
-	FMODSystem = GameInstance->GetFMODSystem();
-	jukebox = new Jukebox(FMODSystem);
+
 	UE_LOG(LogTemp, Warning, TEXT("InitGame"));
 
 }
