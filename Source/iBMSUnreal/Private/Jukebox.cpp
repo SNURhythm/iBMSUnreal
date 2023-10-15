@@ -27,8 +27,7 @@ FMOD_RESULT Jukebox::ReadWav(const FString& Path, FMOD::Sound** Sound)
 		UE_LOG(LogTemp, Error, TEXT("File not found: %s"), *Path);
 		return FMOD_ERR_FILE_NOTFOUND;
 	}
-	FMOD_CREATESOUNDEXINFO exinfo;
-	memset(&exinfo, 0, sizeof(FMOD_CREATESOUNDEXINFO));
+	FMOD_CREATESOUNDEXINFO exinfo = {};
 	exinfo.cbsize = sizeof(FMOD_CREATESOUNDEXINFO);
 	exinfo.length = bytes.Num();
 	return System->createSound(reinterpret_cast<const char*>(bytes.GetData()), FMOD_OPENMEMORY | FMOD_CREATESAMPLE | FMOD_ACCURATETIME, &exinfo, Sound);
@@ -108,6 +107,7 @@ void Jukebox::LoadChart(const FChart* chart, std::atomic_bool& bCancelled)
 			
 			FMOD::Sound* sound;
 			FMOD_RESULT result = ReadWav(FPaths::Combine(ChartFolder, wav), &sound);
+			sound->setLoopCount(0);
 			if(result != FMOD_OK)
 			{
 				UE_LOG(LogTemp, Error, TEXT("Failed to load wav: %s"), *wav);

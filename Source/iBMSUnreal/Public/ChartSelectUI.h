@@ -21,6 +21,7 @@ class IBMSUNREAL_API UChartSelectUI : public UUserWidget
 {
 	GENERATED_BODY()
 public:
+	
 	UPROPERTY(meta = (BindWidget))
 	UListView* ChartList;
 	UPROPERTY(meta = (BindWidget))
