@@ -79,6 +79,7 @@ Jukebox::~Jukebox()
 
 void Jukebox::LoadChart(const FChart* chart, std::atomic_bool& bCancelled)
 {
+	Unload();
 	Chart = chart;
 	const bool bSupportMultiThreading = FPlatformProcess::SupportsMultithreading();
 	const int TaskNum = FMath::Max(FPlatformMisc::NumberOfWorkerThreadsToSpawn()/2,1);
@@ -217,6 +218,7 @@ void Jukebox::Stop()
 {
 	ChannelGroup->setPaused(true);
 	ChannelGroup->stop();
+
 	SoundQueueLock.Lock();
 	SoundQueue.Empty();
 	SoundQueueLock.Unlock();

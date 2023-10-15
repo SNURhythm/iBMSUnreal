@@ -21,34 +21,10 @@ public:
 	ABMSGameModeBase();
 
 protected:
-	UPROPERTY(EditAnywhere, Category="Class Types")
-	TSubclassOf<UUserWidget> WidgetClass;
-
-	UPROPERTY(VisibleInstanceOnly, Category="Runtime")
-	class UChartSelectUI* ChartSelectUI;
 	// InitGame
 	virtual void InitGame(const FString& MapName, const FString& Options, FString& ErrorMessage) override;
-	void LoadCharts();
 	// Logout
 	virtual void Logout(AController* Exiting) override;
 	virtual void Tick(float DeltaSeconds) override;
 	virtual void BeginPlay() override;
-private:
-	Jukebox* jukebox;
-	FCriticalSection jukeboxLock;
-	std::atomic_bool bCancelled;
-	std::atomic_bool bJukeboxCancelled;
-	FMOD::System* FMODSystem;
-	UPROPERTY()
-	UChartListEntryData* CurrentEntryData;
-
-	void SetChartMetas(const TArray<FChartMeta*>& ChartMetas);
-	// On Search Box Text Changed
-	UFUNCTION()
-	void OnSearchBoxTextChanged(const FText& Text);
-
-	// On Search Box Text Committed
-	UFUNCTION()
-	void OnSearchBoxTextCommitted(const FText& Text, ETextCommit::Type CommitMethod);
-	
 };

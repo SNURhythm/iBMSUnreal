@@ -3,6 +3,11 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Chart.h"
+#include "ChartListEntryData.h"
+#include "Jukebox.h"
+#include "fmod.hpp"
+#include "Tasks/Task.h"
 #include "GameFramework/Actor.h"
 #include "ChartSelectScreen.generated.h"
 
@@ -14,8 +19,32 @@ class IBMSUNREAL_API AChartSelectScreen : public AActor
 public:	
 	// Sets default values for this actor's properties
 	AChartSelectScreen();
+private:
+	Jukebox* jukebox;
+	FCriticalSection jukeboxLock;
+	std::atomic_bool bCancelled;
+	std::atomic_bool bJukeboxCancelled;
+	FMOD::System* FMODSystem;
+	void LoadCharts();
+	void SetChartMetas(const TArray<FChartMeta*>& ChartMetas);
 
+	// On Search Box Text Changed
+	UFUNCTION()
+	void OnSearchBoxTextChanged(const FText& Text);
+
+	// On Search Box Text Committed
+	UFUNCTION()
+	void OnSearchBoxTextCommitted(const FText& Text, ETextCommit::Type CommitMethod);
+	
+	UPROPERTY()
+	UChartListEntryData* CurrentEntryData;
 protected:
+	UPROPERTY(EditAnywhere, Category="Class Types")
+	TSubclassOf<UUserWidget> WidgetClass;
+
+	UPROPERTY(VisibleInstanceOnly, Category="Runtime")
+	class UChartSelectUI* ChartSelectUI;
+	
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 	// EndPlay
