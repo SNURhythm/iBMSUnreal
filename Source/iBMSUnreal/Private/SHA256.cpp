@@ -118,7 +118,7 @@ void SHA256::final(unsigned char* digest)
     }
 }
 
-FString sha256(TArray<uint8> bytes)
+FString sha256(const TArray<uint8>& bytes)
 {
     unsigned char digest[SHA256::DIGEST_SIZE];
     memset(digest, 0, SHA256::DIGEST_SIZE);

@@ -8,7 +8,7 @@
  * 
  */
 namespace ShiftJISConverter {
-	FString BytesToUTF8(const TArray<uint8>& Bytes);
+	void BytesToUTF8(FString& outString, const uint8* input, int32 size);
 }
 
 // https://stackoverflow.com/questions/33165171/c-shiftjis-to-utf8-conversion

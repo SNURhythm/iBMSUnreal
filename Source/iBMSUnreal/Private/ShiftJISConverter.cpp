@@ -4,16 +4,16 @@
 #include "ShiftJISConverter.h"
 
 
-FString ShiftJISConverter::BytesToUTF8(const TArray<uint8>& input)
+void ShiftJISConverter::BytesToUTF8(FString& outString, const uint8* input, int32 size)
 {
 	//ShiftJis won't give 4byte UTF8, so max. 3 byte per input char are needed
 	TArray<uint8> result;
-	result.SetNumUninitialized(input.Num() * 3);
+	result.SetNumUninitialized(size * 3);
 	size_t indexInput = 0, indexOutput = 0;
 
-	while (indexInput < input.Num())
+	while (indexInput < size)
 	{
-		char arraySection = ((uint8_t)input[indexInput]) >> 4;
+		char arraySection = (input[indexInput]) >> 4;
 
 		size_t arrayOffset;
 		if (arraySection == 0x8) arrayOffset = 0x100; //these are two-byte shiftjis
@@ -24,11 +24,11 @@ FString ShiftJISConverter::BytesToUTF8(const TArray<uint8>& input)
 		//determining real array offset
 		if (arrayOffset)
 		{
-			arrayOffset += (((uint8_t)input[indexInput]) & 0xf) << 8;
+			arrayOffset += ((input[indexInput]) & 0xf) << 8;
 			indexInput++;
-			if (indexInput >= input.Num()) break;
+			if (indexInput >= size) break;
 		}
-		arrayOffset += (uint8_t)input[indexInput++];
+		arrayOffset += input[indexInput++];
 		arrayOffset <<= 1;
 
 		//unicode number is...
@@ -54,5 +54,6 @@ FString ShiftJISConverter::BytesToUTF8(const TArray<uint8>& input)
 
 	result.SetNum(indexOutput);
 
-	return FString(UTF8_TO_TCHAR(reinterpret_cast<const char*>(result.GetData())));
+	FFileHelper::BufferToString(outString, result.GetData(), result.Num());
+	
 }

@@ -44,7 +44,7 @@ FBMSParser::FBMSParser(): BpmTable{}, StopLengthTable{}
 }
 
 
-void FBMSParser::Parse(const FString& path, FChart** chart, bool addReadyMeasure, bool metaOnly)
+void FBMSParser::Parse(FString path, FChart** chart, bool addReadyMeasure, bool metaOnly)
 {
 	auto Chart = new FChart();
 	*chart = Chart;
@@ -55,16 +55,20 @@ void FBMSParser::Parse(const FString& path, FChart** chart, bool addReadyMeasure
 
 	// implement the same thing as BMSParser.cs
 	auto measures = TMap<int, TArray<TPair<int, FString>>>();
-	auto bytes = TArray<uint8>();
+	TArray<uint8> bytes;
 	FFileHelper::LoadFileToArray(bytes, *path);
+	
 	Chart->Meta->MD5 = FMD5::HashBytes(bytes.GetData(), bytes.Num());
 	Chart->Meta->SHA256 = sha256(bytes);
 	// bytes to FString
-	auto content = ShiftJISConverter::BytesToUTF8(bytes);
+	FString content;
+	ShiftJISConverter::BytesToUTF8(content, bytes.GetData(), bytes.Num());
+
 	auto lines = TArray<FString>();
 	content.ParseIntoArrayLines(lines);
 	auto lastMeasure = -1;
-
+	int _channel;
+	FString _value;
 	for (auto& line : lines)
 	{
 		if (!line.StartsWith("#")) continue;
@@ -74,13 +78,13 @@ void FBMSParser::Parse(const FString& path, FChart** chart, bool addReadyMeasure
 			auto measure = FCString::Atoi(*line.Mid(1, 3));
 			lastMeasure = FMath::Max(lastMeasure, measure);
 			FString ch = line.Mid(4, 2);
-			auto channel = DecodeBase36(ch);
-			auto value = line.Mid(7);
+			_channel = DecodeBase36(ch);
+			_value = line.Mid(7);
 			if (!measures.Contains(measure))
 			{
 				measures.Add(measure, TArray<TPair<int, FString>>());
 			}
-			measures[measure].Add(TPair<int, FString>(channel, value));
+			measures[measure].Add(TPair<int, FString>(_channel, _value));
 		}
 		else
 		{
@@ -302,7 +306,10 @@ void FBMSParser::Parse(const FString& path, FChart** chart, bool addReadyMeasure
 							UE_LOG(LogTemp, Warning, TEXT("Invalid BPM id: %s"), *val);
 							break;
 						}
-						timeline->Bpm = BpmTable[id];
+						if(BpmTable.Contains(id))
+							timeline->Bpm = BpmTable[id];
+						else
+							timeline->Bpm = 0;
 						// Debug.Log($"BPM_CHANGE_EXTEND: {timeline.Bpm}, on measure {i}, {val}");
 						timeline->BpmChange = true;
 						break;
@@ -315,7 +322,10 @@ void FBMSParser::Parse(const FString& path, FChart** chart, bool addReadyMeasure
 							UE_LOG(LogTemp, Warning, TEXT("Invalid StopLength id: %s"), *val);
 							break;
 						}
-						timeline->StopLength = StopLengthTable[id];
+						if (StopLengthTable.Contains(id))
+							timeline->StopLength = StopLengthTable[id];
+						else
+							timeline->StopLength = 0;
 						// Debug.Log($"STOP: {timeline.StopLength}, on measure {i}");
 						break;
 					}
@@ -482,7 +492,7 @@ void FBMSParser::Parse(const FString& path, FChart** chart, bool addReadyMeasure
 	Chart->Meta->MaxBpm = maxBpm;
 }
 
-void FBMSParser::ParseHeader(FChart* Chart, FString& Cmd, FString& Xx, FString Value) {
+void FBMSParser::ParseHeader(FChart* Chart, const FString& Cmd, const FString& Xx, FString Value) {
 	// Debug.Log($"cmd: {cmd}, xx: {xx} isXXNull: {xx == null}, value: {value}");
 	const FString CmdUpper = Cmd.ToUpper();
 	if (CmdUpper == "PLAYER")
@@ -530,7 +540,7 @@ void FBMSParser::ParseHeader(FChart* Chart, FString& Cmd, FString& Xx, FString V
 				UE_LOG(LogTemp, Warning, TEXT("Invalid BPM id: %s"), *Xx);
 				return;
 			}
-			BpmTable[id] = FCString::Atod(*Value);
+			BpmTable.Add(id, FCString::Atod(*Value));
 		}
 	}
 	else if (CmdUpper == "STOP")
@@ -542,7 +552,7 @@ void FBMSParser::ParseHeader(FChart* Chart, FString& Cmd, FString& Xx, FString V
 			UE_LOG(LogTemp, Warning, TEXT("Invalid STOP id: %s"), *Xx);
 			return;
 		}
-		StopLengthTable[id] = FCString::Atod(*Value);
+		StopLengthTable.Add(id, FCString::Atod(*Value));
 	}
 	else if (CmdUpper == "MIDIFILE")
 	{
@@ -593,7 +603,7 @@ void FBMSParser::ParseHeader(FChart* Chart, FString& Cmd, FString& Xx, FString V
 			UE_LOG(LogTemp, Warning, TEXT("Invalid WAV id: %s"), *Xx);
 			return;
 		}
-		Chart->WavTable[id] = Value;
+		Chart->WavTable.Add(id, Value);
 	}
 	else if (CmdUpper == "BMP") {
 		if (Xx.IsEmpty() || Value.IsEmpty())
@@ -607,7 +617,7 @@ void FBMSParser::ParseHeader(FChart* Chart, FString& Cmd, FString& Xx, FString V
 			UE_LOG(LogTemp, Warning, TEXT("Invalid BMP id: %s"), *Xx);
 			return;
 		}
-		Chart->BmpTable[id] = Value;
+		Chart->BmpTable.Add(id, Value);
 		if (Xx == "00")
 		{
 			Chart->Meta->BgaPoorDefault = true;
@@ -660,7 +670,7 @@ int FBMSParser::ToWaveId(FChart* Chart, const FString& Wav) {
 		return NoWav;
 	}
 
-	return Chart->WavTable[decoded].IsEmpty() ? NoWav : decoded;
+	return Chart->WavTable.Contains(decoded) ? decoded : NoWav;
 }
 
 int FBMSParser::DecodeBase36(const FString& Str) {

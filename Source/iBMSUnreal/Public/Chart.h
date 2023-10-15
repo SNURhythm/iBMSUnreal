@@ -55,6 +55,6 @@ public:
 	~FChart();
 	FChartMeta* Meta;
 	TArray<FMeasure*> Measures;
-	FString WavTable[36 * 36];
-	FString BmpTable[36 * 36];
+	TMap<int, FString> WavTable;
+	TMap<int, FString> BmpTable;
 };

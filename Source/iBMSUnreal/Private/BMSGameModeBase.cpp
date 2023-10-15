@@ -178,7 +178,7 @@ void ABMSGameModeBase::LoadCharts()
 						{
 							const auto Parser = new FBMSParser();
 							FChart* Chart;
-							Parser->Parse(diff.path, &Chart, false, false);
+							Parser->Parse(diff.path, &Chart, false, true);
 							++SuccessCount;
 							if (SuccessCount % 100 == 0) {
 								UE_LOG(LogTemp, Warning, TEXT("success count: %d"), (int)SuccessCount);

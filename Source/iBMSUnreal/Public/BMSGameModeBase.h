@@ -32,6 +32,7 @@ protected:
 	virtual void Tick(float DeltaSeconds) override;
 	virtual void BeginPlay() override;
 private:
+	
 	std::atomic_bool bCancelled;
 	FMOD::System* FMODSystem;
 	UPROPERTY()

@@ -13,17 +13,17 @@ class IBMSUNREAL_API FBMSParser
 
 public:
 	FBMSParser();
-	void Parse(const FString& path, FChart** Chart, bool addReadyMeasure, bool metaOnly);
+	void Parse(FString path, FChart** Chart, bool addReadyMeasure, bool metaOnly);
 	~FBMSParser();
 private:
 	// bpmTable
-	double BpmTable[36 * 36];
-	double StopLengthTable[36 * 36];
+	TMap<int, double> BpmTable;
+	TMap<int, double> StopLengthTable;
 	
 	int Lnobj = -1;
 	int Lntype = 1;
 	int DecodeBase36(const FString& Str);
-	void ParseHeader(FChart* Chart, FString& Cmd, FString& Xx, FString Value);
+	void ParseHeader(FChart* Chart, const FString& Cmd, const FString& Xx, FString Value);
 
 	static int Gcd(int A, int B);
 	static bool CheckResourceIdRange(int Id);
