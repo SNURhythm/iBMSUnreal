@@ -58,7 +58,7 @@ void Jukebox::ScheduleSound(unsigned long long startDspClock, FMOD::Sound* Sound
 	System->playSound(Sound, ChannelGroup, true, &channel);
 	channel->setDelay(startDspClock, 0, false);
 	channel->setPaused(false);
-	UE_LOG(LogTemp, Warning, TEXT("ScheduleSound: %d"), startDspClock);
+	UE_LOG(LogTemp, Warning, TEXT("ScheduleSound: %llu"), startDspClock);
 }
 
 Jukebox::Jukebox(FMOD::System* System)
@@ -83,7 +83,7 @@ void Jukebox::LoadChart(const FChart* chart, std::atomic_bool& bCancelled)
 	Chart = chart;
 	const bool bSupportMultiThreading = FPlatformProcess::SupportsMultithreading();
 	const int TaskNum = FMath::Max(FPlatformMisc::NumberOfWorkerThreadsToSpawn()/2,1);
-	const int32 WavNum = Chart->WavTable.Num();
+	const int32 WavNum = 36*36;
 	const int TaskSize = WavNum / TaskNum;
 	FString ChartFolder = Chart->Meta->Folder;
 	FCriticalSection SoundTableLock;
@@ -114,6 +114,7 @@ void Jukebox::LoadChart(const FChart* chart, std::atomic_bool& bCancelled)
 				UE_LOG(LogTemp, Error, TEXT("Failed to load wav: %s"), *wav);
 				continue;
 			}
+			UE_LOG(LogTemp, Warning, TEXT("Loaded wav: %s"), *wav);
 			SoundTableLock.Lock();
 			SoundTable.Add(j, sound);
 			SoundTableLock.Unlock();
@@ -141,8 +142,8 @@ void Jukebox::Start(long long PosMicro, bool autoKeysound)
 		for(auto& timeline: measure->TimeLines)
 		{
 			auto timing = timeline->Timing - PosMicro;
-			auto dspClock = currentDspClock + MsToDSPClocks(static_cast<double>(timing)/1000.0);
 			if(timing < 0) continue;
+			auto dspClock = currentDspClock + MsToDSPClocks(static_cast<double>(timing)/1000.0);
 			for(auto& note: timeline->BackgroundNotes)
 			{
 				if(!note) continue;

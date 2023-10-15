@@ -174,7 +174,7 @@ void FBMSParser::Parse(FString path, FChart** chart, bool addReadyMeasure, bool 
 
 		// gcd (int, int)
 		auto measure = new FMeasure();
-		auto timelines = TMap<double, FTimeLine*>();
+		auto timelines = TSortedMap<double, FTimeLine*>();
 
 		for (auto& pair : measures[i])
 		{
