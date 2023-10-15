@@ -242,14 +242,14 @@ void AChartSelectScreen::BeginPlay()
 				ChartSelectUI->NotesText->SetText(FText::FromString(FString::Printf(TEXT("%d"), chartMeta->TotalNotes)));
 				ChartSelectUI->JudgementText->SetText(FText::FromString(FString::Printf(TEXT("%d"), chartMeta->Rank)));
 				bJukeboxCancelled = true;
+				FString BmsPath = chartMeta->BmsPath;
 				// full-parse chart
-				FTask LoadTask = Launch(UE_SOURCE_LOCATION, [&]()
+				FTask LoadTask = Launch(UE_SOURCE_LOCATION, [&, BmsPath]()
 				{
-	    			
+					jukeboxLock.Lock();
 					const auto Parser = new FBMSParser();
 					FChart* Chart;
-					Parser->Parse(chartMeta->BmsPath, &Chart, false, false);
-					jukeboxLock.Lock();
+					Parser->Parse(BmsPath, &Chart, false, false);
 					bJukeboxCancelled = false;
 					jukebox->LoadChart(Chart, bJukeboxCancelled);
 					if (bJukeboxCancelled)
