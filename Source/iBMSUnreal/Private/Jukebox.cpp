@@ -121,7 +121,7 @@ void Jukebox::LoadChart(const FChart* chart, std::atomic_bool& bCancelled)
 
 }
 
-void Jukebox::Start(long PosMicro, bool autoKeysound)
+void Jukebox::Start(long long PosMicro, bool autoKeysound)
 {
 	Stop();
 	if(!Chart)

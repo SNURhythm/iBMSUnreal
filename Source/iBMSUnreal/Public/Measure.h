@@ -11,7 +11,7 @@
 class IBMSUNREAL_API FMeasure {
 public:
 	double Scale = 1;
-	long Timing = 0;
+	long long Timing = 0;
 	double Pos = 0;
 	TArray<FTimeLine*> TimeLines;
 	~FMeasure();

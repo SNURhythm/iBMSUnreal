@@ -27,7 +27,7 @@ public:
 	Jukebox(FMOD::System* System);
 	~Jukebox();		
 	void LoadChart(const FChart* chart, std::atomic_bool& bCancelled);
-	void Start(long PosMicro = 0, bool autoKeysound = false);
+	void Start(long long PosMicro = 0, bool autoKeysound = false);
 	void Unpause();
 	void Pause();
 	void Stop();

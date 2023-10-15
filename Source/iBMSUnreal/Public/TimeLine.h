@@ -26,7 +26,7 @@ public:
 	double StopLength = 0;
 	double Scroll = 1;
 
-	long Timing = 0;
+	long long Timing = 0;
 	double Pos = 0;
 
 	explicit FTimeLine(int lanes, bool metaOnly);

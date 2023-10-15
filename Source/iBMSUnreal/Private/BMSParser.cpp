@@ -446,7 +446,7 @@ void FBMSParser::Parse(FString path, FChart** chart, bool addReadyMeasure, bool 
 
 		auto lastPosition = 0.0;
 
-		measure->Timing = static_cast<long>(timePassed);
+		measure->Timing = static_cast<long long>(timePassed);
 
 		for (auto& pair : timelines)
 		{
@@ -456,7 +456,7 @@ void FBMSParser::Parse(FString path, FChart** chart, bool addReadyMeasure, bool 
 			// Debug.Log($"measure: {i}, position: {position}, lastPosition: {lastPosition} bpm: {bpm} scale: {measure.scale} interval: {240 * 1000 * 1000 * (position - lastPosition) * measure.scale / bpm}");
 			auto interval = 240000000.0 * (position - lastPosition) * measure->Scale / currentBpm;
 			timePassed += interval;
-			timeline->Timing = static_cast<long>(timePassed);
+			timeline->Timing = static_cast<long long>(timePassed);
 			if (timeline->BpmChange)
 			{
 				currentBpm = timeline->Bpm;
@@ -471,14 +471,14 @@ void FBMSParser::Parse(FString path, FChart** chart, bool addReadyMeasure, bool 
 			timePassed += timeline->GetStopDuration();
 			if (!metaOnly) measure->TimeLines.Add(timeline);
 			else delete timeline;
-			Chart->Meta->PlayLength = static_cast<long>(timePassed);
+			Chart->Meta->PlayLength = static_cast<long long>(timePassed);
 
 			lastPosition = position;
 		}
 
 		if (!metaOnly && measure->TimeLines.Num() == 0) {
 			auto timeline = new FTimeLine(TempKey, metaOnly);
-			timeline->Timing = static_cast<long>(timePassed);
+			timeline->Timing = static_cast<long long>(timePassed);
 			timeline->Bpm = currentBpm;
 			measure->TimeLines.Add(timeline);
 		}
@@ -487,7 +487,7 @@ void FBMSParser::Parse(FString path, FChart** chart, bool addReadyMeasure, bool 
 		else delete measure;
 	}
 
-	Chart->Meta->TotalLength = static_cast<long>(timePassed);
+	Chart->Meta->TotalLength = static_cast<long long>(timePassed);
 	Chart->Meta->MinBpm = minBpm;
 	Chart->Meta->MaxBpm = maxBpm;
 }
