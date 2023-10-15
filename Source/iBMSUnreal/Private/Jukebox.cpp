@@ -58,7 +58,6 @@ void Jukebox::ScheduleSound(unsigned long long startDspClock, FMOD::Sound* Sound
 	System->playSound(Sound, ChannelGroup, true, &channel);
 	channel->setDelay(startDspClock, 0, false);
 	channel->setPaused(false);
-	UE_LOG(LogTemp, Warning, TEXT("ScheduleSound: %llu"), startDspClock);
 }
 
 Jukebox::Jukebox(FMOD::System* System)
@@ -114,7 +113,7 @@ void Jukebox::LoadChart(const FChart* chart, std::atomic_bool& bCancelled)
 				UE_LOG(LogTemp, Error, TEXT("Failed to load wav: %s"), *wav);
 				continue;
 			}
-			UE_LOG(LogTemp, Warning, TEXT("Loaded wav: %s"), *wav);
+
 			SoundTableLock.Lock();
 			SoundTable.Add(j, sound);
 			SoundTableLock.Unlock();
