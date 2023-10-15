@@ -66,8 +66,7 @@ void FBMSParser::Parse(FString path, FChart** chart, bool addReadyMeasure, bool 
 	auto lines = TArray<FString>();
 	content.ParseIntoArrayLines(lines);
 	auto lastMeasure = -1;
-	int _channel;
-	FString _value;
+
 	for (auto& line : lines)
 	{
 		if (!line.StartsWith("#")) continue;
@@ -77,13 +76,15 @@ void FBMSParser::Parse(FString path, FChart** chart, bool addReadyMeasure, bool 
 			auto measure = FCString::Atoi(*line.Mid(1, 3));
 			lastMeasure = FMath::Max(lastMeasure, measure);
 			FString ch = line.Mid(4, 2);
-			_channel = DecodeBase36(ch);
-			_value = line.Mid(7);
+			int channel;
+			FString value;
+			channel = DecodeBase36(ch);
+			value = line.Mid(7);
 			if (!measures.Contains(measure))
 			{
 				measures.Add(measure, TArray<TPair<int, FString>>());
 			}
-			measures[measure].Add(TPair<int, FString>(_channel, _value));
+			measures[measure].Add(TPair<int, FString>(channel, value));
 		}
 		else
 		{
