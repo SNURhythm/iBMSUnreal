@@ -56,6 +56,7 @@ void FBMSParser::Parse(FString path, FChart** chart, bool addReadyMeasure, bool 
 	auto measures = TMap<int, TArray<TPair<int, FString>>>();
 	TArray<uint8> bytes;
 	FFileHelper::LoadFileToArray(bytes, *path);
+	if(bCancelled) return;
 	
 	Chart->Meta->MD5 = FMD5::HashBytes(bytes.GetData(), bytes.Num());
 	Chart->Meta->SHA256 = sha256(bytes);
@@ -69,7 +70,7 @@ void FBMSParser::Parse(FString path, FChart** chart, bool addReadyMeasure, bool 
 
 	for (auto& line : lines)
 	{
-		if(bCancelled) break;
+		if(bCancelled) return;
 		if (!line.StartsWith("#")) continue;
 		if (line.Len() < 7) continue;
 		if (FChar::IsDigit(line[1]) && FChar::IsDigit(line[2]) && FChar::IsDigit(line[3]) && line[6] == ':')
@@ -168,7 +169,7 @@ void FBMSParser::Parse(FString path, FChart** chart, bool addReadyMeasure, bool 
 
 	for (auto i = 0; i <= lastMeasure; ++i)
 	{
-		if(bCancelled) break;
+		if(bCancelled) return;
 		if (!measures.Contains(i))
 		{
 			measures.Add(i, TArray<TPair<int, FString>>());
@@ -180,6 +181,7 @@ void FBMSParser::Parse(FString path, FChart** chart, bool addReadyMeasure, bool 
 
 		for (auto& pair : measures[i])
 		{
+			if(bCancelled) break;
 			auto channel = pair.Key;
 			auto& data = pair.Value;
 			if (channel == Channel::SectionRate)
@@ -244,6 +246,7 @@ void FBMSParser::Parse(FString path, FChart** chart, bool addReadyMeasure, bool 
 			auto dataCount = data.Len() / 2;
 			for (auto j = 0; j < dataCount; ++j)
 			{
+				if(bCancelled) break;
 				auto val = data.Mid(j * 2, 2);
 				if (val == "00")
 				{

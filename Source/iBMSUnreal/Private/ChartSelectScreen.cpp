@@ -164,6 +164,7 @@ void AChartSelectScreen::LoadCharts()
 							FBMSParser Parser;
 							FChart* Chart;
 							Parser.Parse(diff.path, &Chart, false, true, bCancelled);
+							if(bCancelled) return;
 							++SuccessCount;
 							if (SuccessCount % 100 == 0) {
 								UE_LOG(LogTemp, Warning, TEXT("success count: %d"), (int)SuccessCount);
