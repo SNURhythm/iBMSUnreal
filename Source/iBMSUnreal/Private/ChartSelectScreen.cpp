@@ -163,7 +163,7 @@ void AChartSelectScreen::LoadCharts()
 						{
 							const auto Parser = new FBMSParser();
 							FChart* Chart;
-							Parser->Parse(diff.path, &Chart, false, true);
+							Parser->Parse(diff.path, &Chart, false, true, bCancelled);
 							++SuccessCount;
 							if (SuccessCount % 100 == 0) {
 								UE_LOG(LogTemp, Warning, TEXT("success count: %d"), (int)SuccessCount);
@@ -249,7 +249,7 @@ void AChartSelectScreen::BeginPlay()
 					jukeboxLock.Lock();
 					const auto Parser = new FBMSParser();
 					FChart* Chart;
-					Parser->Parse(BmsPath, &Chart, false, false);
+					Parser->Parse(BmsPath, &Chart, false, false, bJukeboxCancelled);
 					bJukeboxCancelled = false;
 					jukebox->LoadChart(Chart, bJukeboxCancelled);
 					if (bJukeboxCancelled)

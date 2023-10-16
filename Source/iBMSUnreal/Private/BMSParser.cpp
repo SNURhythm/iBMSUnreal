@@ -43,7 +43,7 @@ FBMSParser::FBMSParser(): BpmTable{}, StopLengthTable{}
 int FBMSParser::NoWav = -1;
 int FBMSParser::MetronomeWav = -2;
 
-void FBMSParser::Parse(FString path, FChart** chart, bool addReadyMeasure, bool metaOnly)
+void FBMSParser::Parse(FString path, FChart** chart, bool addReadyMeasure, bool metaOnly, std::atomic_bool& bCancelled)
 {
 	auto Chart = new FChart();
 	*chart = Chart;
@@ -69,6 +69,7 @@ void FBMSParser::Parse(FString path, FChart** chart, bool addReadyMeasure, bool 
 
 	for (auto& line : lines)
 	{
+		if(bCancelled) break;
 		if (!line.StartsWith("#")) continue;
 		if (line.Len() < 7) continue;
 		if (FChar::IsDigit(line[1]) && FChar::IsDigit(line[2]) && FChar::IsDigit(line[3]) && line[6] == ':')
@@ -167,6 +168,7 @@ void FBMSParser::Parse(FString path, FChart** chart, bool addReadyMeasure, bool 
 
 	for (auto i = 0; i <= lastMeasure; ++i)
 	{
+		if(bCancelled) break;
 		if (!measures.Contains(i))
 		{
 			measures.Add(i, TArray<TPair<int, FString>>());
@@ -450,6 +452,7 @@ void FBMSParser::Parse(FString path, FChart** chart, bool addReadyMeasure, bool 
 
 		for (auto& pair : timelines)
 		{
+			if(bCancelled) break;
 			auto position = pair.Key;
 			auto timeline = pair.Value;
 
@@ -470,10 +473,18 @@ void FBMSParser::Parse(FString path, FChart** chart, bool addReadyMeasure, bool 
 			
 			timePassed += timeline->GetStopDuration();
 			if (!metaOnly) measure->TimeLines.Add(timeline);
-			else delete timeline;
 			Chart->Meta->PlayLength = static_cast<long long>(timePassed);
 
 			lastPosition = position;
+		}
+
+		if(metaOnly)
+		{
+			for(auto& timeline : timelines)
+			{
+				delete timeline.Value;
+			}
+			timelines.Empty();
 		}
 
 		if (!metaOnly && measure->TimeLines.Num() == 0) {

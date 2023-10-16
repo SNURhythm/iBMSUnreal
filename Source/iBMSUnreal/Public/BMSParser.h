@@ -13,7 +13,7 @@ class IBMSUNREAL_API FBMSParser
 
 public:
 	FBMSParser();
-	void Parse(FString path, FChart** Chart, bool addReadyMeasure, bool metaOnly);
+	void Parse(FString path, FChart** Chart, bool addReadyMeasure, bool metaOnly, std::atomic_bool& bCancelled);
 	~FBMSParser();
 	static int NoWav;
 	static int MetronomeWav;
