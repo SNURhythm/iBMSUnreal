@@ -11,6 +11,12 @@
 /**
  * 
  */
+
+struct StartOptions
+{
+	FString BmsPath;
+	unsigned long long StartPosition = 0;
+};
 UCLASS()
 class IBMSUNREAL_API UBMSGameInstance : public UGameInstance
 {
@@ -19,6 +25,9 @@ class IBMSUNREAL_API UBMSGameInstance : public UGameInstance
 	virtual void Init() override;
 	
 	void InitFMOD();
+	StartOptions startOptions;
 public:
 	FMOD::System* GetFMODSystem();
+	void SetStartOptions(StartOptions options);
+	StartOptions GetStartOptions();
 };

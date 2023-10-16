@@ -44,7 +44,9 @@ protected:
 
 	UPROPERTY(VisibleInstanceOnly, Category="Runtime")
 	class UChartSelectUI* ChartSelectUI;
-	
+
+	UFUNCTION()
+	void OnStartButtonClicked();
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 	// EndPlay

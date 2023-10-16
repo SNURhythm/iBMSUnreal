@@ -27,3 +27,13 @@ FMOD::System* UBMSGameInstance::GetFMODSystem()
 {
 	return fmodSystem;
 }
+
+void UBMSGameInstance::SetStartOptions(StartOptions options)
+{
+	startOptions = options;
+}
+
+StartOptions UBMSGameInstance::GetStartOptions()
+{
+	return startOptions;
+}

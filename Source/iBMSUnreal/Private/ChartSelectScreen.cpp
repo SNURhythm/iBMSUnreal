@@ -203,10 +203,25 @@ void AChartSelectScreen::LoadCharts()
 			UE_LOG(LogTemp, Warning, TEXT("success count: %d"), (int)SuccessCount);
 	    });
 }
+
+void AChartSelectScreen::OnStartButtonClicked()
+{
+	if(!CurrentEntryData) return;
+	auto chartMeta = CurrentEntryData->ChartMeta;
+	UE_LOG(LogTemp, Warning, TEXT("ChartMeta: %s"), *chartMeta->BmsPath);
+	auto gameInstance = Cast<UBMSGameInstance>(UGameplayStatics::GetGameInstance(GetWorld()));
+	StartOptions options;
+	options.BmsPath = chartMeta->BmsPath;
+	gameInstance->SetStartOptions(options);
+	// load level
+	UGameplayStatics::OpenLevel(GetWorld(), "RhythmPlay");
+}
+
 // Called when the game starts or when spawned
 void AChartSelectScreen::BeginPlay()
 {
 	Super::BeginPlay();
+	
 	UE_LOG(LogTemp, Warning, TEXT("ChartSelectScreen BeginPlay()!!"));
 	UBMSGameInstance* GameInstance = Cast<UBMSGameInstance>(UGameplayStatics::GetGameInstance(GetWorld()));
 	FMODSystem = GameInstance->GetFMODSystem();
@@ -219,6 +234,7 @@ void AChartSelectScreen::BeginPlay()
 		if(IsValid(ChartSelectUI))
 		{
 			ChartSelectUI->AddToViewport();
+			ChartSelectUI->StartButton->OnClicked.AddDynamic(this, &AChartSelectScreen::OnStartButtonClicked);
 			// bind event to list
 			ChartSelectUI->ChartList->OnItemSelectionChanged().AddLambda([&](UObject* Item)
 			{
