@@ -249,8 +249,8 @@ void AChartSelectScreen::BeginPlay()
 					jukeboxLock.Lock();
 					FBMSParser Parser;
 					FChart* Chart;
-					Parser.Parse(BmsPath, &Chart, false, false, bJukeboxCancelled);
 					bJukeboxCancelled = false;
+					Parser.Parse(BmsPath, &Chart, false, false, bJukeboxCancelled);
 					jukebox->LoadChart(Chart, bJukeboxCancelled);
 					if (bJukeboxCancelled)
 					{
