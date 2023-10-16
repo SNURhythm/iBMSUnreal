@@ -254,10 +254,12 @@ void AChartSelectScreen::BeginPlay()
 					jukebox->LoadChart(Chart, bJukeboxCancelled);
 					if (bJukeboxCancelled)
 					{
+						delete Chart;
 						jukeboxLock.Unlock();
 						return;
 					}
 					jukebox->Start(0, true);
+					delete Chart;
 					jukeboxLock.Unlock();
 				});
 	    		
