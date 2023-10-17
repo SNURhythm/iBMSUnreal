@@ -13,19 +13,12 @@ ANoteActor::ANoteActor()
 	// RootComponent->SetMobility(EComponentMobility::Movable);
 }
 
-void ANoteActor::SetSprite(UPaperSprite* sprite)
-{
-	
-	GetRenderComponent()->SetSprite(sprite);
-	GetRenderComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-	
-}
-
 // Called when the game starts or when spawned
 void ANoteActor::BeginPlay()
 {
 	Super::BeginPlay();
 	GetRenderComponent()->SetMobility(EComponentMobility::Movable);
+	GetRenderComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	
 	
 	

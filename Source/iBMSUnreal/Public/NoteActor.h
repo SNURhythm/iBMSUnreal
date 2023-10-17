@@ -12,12 +12,9 @@ UCLASS()
 class IBMSUNREAL_API ANoteActor : public APaperSpriteActor
 {
 	GENERATED_BODY()
-private:
-	UPaperSprite* Sprite;
 public:	
 	// Sets default values for this actor's properties
 	ANoteActor();
-	void SetSprite(UPaperSprite* sprite);
 
 protected:
 	// Called when the game starts or when spawned

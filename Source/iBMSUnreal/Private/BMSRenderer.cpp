@@ -107,19 +107,29 @@ APaperSpriteActor* UBMSRenderer::GetInstance(EBMSObjectType Type)
 				TypeClass = AMeasureActor::StaticClass();
 				break;
 		}
-		Instance = GetWorld()->SpawnActor<APaperSpriteActor>(TypeClass);		
+		Instance = GetWorld()->SpawnActor<APaperSpriteActor>(TypeClass);
+		Instance->GetRenderComponent()->SetMaterial(0, LoadObject<UMaterialInterface>(NULL, TEXT("/Paper2D/TranslucentUnlitSpriteMaterial")));
 	}
 	Instance->SetActorHiddenInGame(false);
 	if(Type == Note || Type == LongNoteHead || Type == LongNoteTail)
 	{
-		static_cast<ANoteActor*>(Instance)->SetSprite(NoteSprite);
+		Instance->GetRenderComponent()->SetSprite(NoteSprite);
 		Instance->AttachToActor(NoteArea, FAttachmentTransformRules::KeepRelativeTransform);
 		Instance->GetRootComponent()->SetWorldScale3D(FVector(1, 0, 1));
 		Instance->SetActorRelativeRotation(FRotator(0, 0, 0));
 		FVector Scale = Instance->GetActorRelativeScale3D();
 		Scale.X = NoteWidth;
 		Instance->SetActorRelativeScale3D(Scale);
-
+		Instance->GetRenderComponent()->TranslucencySortPriority = 2;
+	}
+	if(Type==MeasureLine)
+	{
+		Instance->GetRenderComponent()->SetSprite(NoteSprite);
+		Instance->AttachToActor(NoteArea, FAttachmentTransformRules::KeepRelativeTransform);
+		Instance->GetRootComponent()->SetWorldScale3D(FVector(1, 0, 0.2));
+		// gray
+		Instance->GetRenderComponent()->SetSpriteColor(FLinearColor(0.02, 0.02, 0.02, 1));
+		Instance->GetRenderComponent()->TranslucencySortPriority = 1;
 	}
 	return Instance;
 }
@@ -133,7 +143,7 @@ void UBMSRenderer::DestroyMeasureLine(FMeasure* Measure)
 
 void UBMSRenderer::DrawMeasureLine(FMeasure* Measure, double Offset)
 {
-	float top = OffsetToTop(Offset);
+	double top = OffsetToTop(Offset);
 	if(State->MeasureActors.Contains(Measure))
 	{
 		APaperSpriteActor* MeasureActor = State->MeasureActors[Measure];
@@ -141,7 +151,9 @@ void UBMSRenderer::DrawMeasureLine(FMeasure* Measure, double Offset)
 	} else
 	{
 		APaperSpriteActor* MeasureActor = GetInstance(EBMSObjectType::MeasureLine);
-		MeasureActor->SetActorScale3D(FVector(NoteAreaWidth, 0, 0.1));
+		FVector Scale = MeasureActor->GetActorRelativeScale3D();
+		Scale.X = 1;
+		MeasureActor->SetActorRelativeScale3D(Scale);
 		MeasureActor->SetActorRelativeLocation(FVector(0, 0, top));
 		State->MeasureActors.Add(Measure, MeasureActor);
 	}
@@ -150,7 +162,7 @@ void UBMSRenderer::DrawMeasureLine(FMeasure* Measure, double Offset)
 void UBMSRenderer::DrawNote(FBMSNote* Note, double Offset)
 {
 	if(Note->IsPlayed) return;
-	float Left = LaneToLeft(Note->Lane);
+	double Left = LaneToLeft(Note->Lane);
 
 	APaperSpriteActor* Actor;
 	if(State->NoteActors.Contains(Note))
@@ -176,9 +188,9 @@ void UBMSRenderer::DrawNote(FBMSNote* Note, double Offset)
 void UBMSRenderer::DrawLongNote(FBMSLongNote* Head, double StartOffset, double EndOffset, bool TailOnly)
 {
 	FBMSLongNote* Tail = Head->Tail;
-	float Left = LaneToLeft(Head->Lane);
-	float StartTop = OffsetToTop(StartOffset);
-	float EndTop = OffsetToTop(EndOffset);
+	double Left = LaneToLeft(Head->Lane);
+	double StartTop = OffsetToTop(StartOffset);
+	double EndTop = OffsetToTop(EndOffset);
 	if(Head->IsPlayed)
 	{
 		if(EndTop < JudgeLineZ)
@@ -188,7 +200,7 @@ void UBMSRenderer::DrawLongNote(FBMSLongNote* Head, double StartOffset, double E
 		}
 		StartTop = FMath::Max(JudgeLineZ, StartTop);
 	}
-	float Height = EndTop - StartTop;
+	double Height = EndTop - StartTop;
 
 	if(!TailOnly)
 	{
@@ -209,7 +221,7 @@ void UBMSRenderer::DrawLongNote(FBMSLongNote* Head, double StartOffset, double E
 			HeadActor->SetActorRelativeRotation(FRotator(0, 270, 0));
 		}
 	}
-	float Alpha = 0.01f;
+	double Alpha = 0.01f;
 	if(Head->IsHolding)
 	{
 		Alpha = 1.0f;
@@ -243,10 +255,10 @@ void UBMSRenderer::DrawLongNote(FBMSLongNote* Head, double StartOffset, double E
 	}
 }
 
-float UBMSRenderer::LaneToLeft(int Lane)
+double UBMSRenderer::LaneToLeft(int Lane)
 {
 	if(IsScratchLane(Lane)) return -1;
-	return (static_cast<float>(Lane+1)/LaneCount) - 1;
+	return (static_cast<double>(Lane+1)/LaneCount) - 1;
 }
 
 bool UBMSRenderer::IsScratchLane(int Lane)
@@ -254,10 +266,10 @@ bool UBMSRenderer::IsScratchLane(int Lane)
 	return Lane == 7;
 }
 
-float UBMSRenderer::OffsetToTop(double Offset)
+double UBMSRenderer::OffsetToTop(double Offset)
 {
 	// TODO: implement
-	return static_cast<float>(JudgeLineZ + Offset * 0.0000007);
+	return static_cast<double>(JudgeLineZ + Offset * 0.0000007);
 }
 
 bool UBMSRenderer::IsOverUpperBound(double Offset)
@@ -400,8 +412,8 @@ void UBMSRenderer::Reset()
 }
 
 
-// float mouseX;
-// float mouseY;
+// double mouseX;
+// double mouseY;
 // UGameplayStatics::GetPlayerController(GetWorld(), 0)->GetMousePosition(mouseX, mouseY);
 // UE_LOG(LogTemp, Warning, TEXT("Mouse Location: %f, %f"), mouseX, mouseY);
 // FVector worldPosition;
