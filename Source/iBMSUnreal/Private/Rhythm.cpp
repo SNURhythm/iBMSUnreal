@@ -74,7 +74,5 @@ void ARhythm::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 	if(!IsLoaded) return;
 	Renderer->Draw(Jukebox->GetPosition());
-	GameInstance->GetFMODSystem()->update();
-
 }
 

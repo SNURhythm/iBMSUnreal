@@ -207,6 +207,10 @@ void FJukebox::Unpause()
 				channel->setPaused(false);
 				
 			}
+			System->update();
+			// sleep for 1ms
+			FPlatformProcess::Sleep(0.001);
+			
 		}
 	});
 }
