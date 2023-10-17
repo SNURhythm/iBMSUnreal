@@ -6,15 +6,13 @@
 #include "PaperSpriteComponent.h"
 #include "Kismet/GameplayStatics.h"
 // Sets default values
-ABMSRenderer::ABMSRenderer()
+UBMSRenderer::UBMSRenderer()
 {
- 	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
-	PrimaryActorTick.bCanEverTick = true;
 
 }
 
 // Called when the game starts or when spawned
-void ABMSRenderer::BeginPlay()
+void UBMSRenderer::BeginPlay()
 {
 	Super::BeginPlay();
 	// spawn note sprite for test
@@ -33,19 +31,24 @@ void ABMSRenderer::BeginPlay()
 	
 }
 
-// Called every frame
-void ABMSRenderer::Tick(float DeltaTime)
-{
-	Super::Tick(DeltaTime);
-	float mouseX;
-	float mouseY;
-	UGameplayStatics::GetPlayerController(GetWorld(), 0)->GetMousePosition(mouseX, mouseY);
-	UE_LOG(LogTemp, Warning, TEXT("Mouse Location: %f, %f"), mouseX, mouseY);
-	FVector worldPosition;
-	FVector worldDirection;
-	UGameplayStatics::GetPlayerController(GetWorld(), 0)->DeprojectScreenPositionToWorld(mouseX, mouseY, worldPosition, worldDirection);
-	worldPosition = worldPosition / GNearClippingPlane * 10;
-	UE_LOG(LogTemp, Warning, TEXT("World Location: %f, %f, %f"), worldPosition.X, worldPosition.Y, worldPosition.Z);
 
+void UBMSRenderer::Draw(unsigned long long CurrentTime)
+{
+	UE_LOG(LogTemp, Warning, TEXT("Draw at %llu"), CurrentTime);
 }
 
+void UBMSRenderer::Init(FChart* chart)
+{
+	this->Chart = chart;
+}
+
+
+// float mouseX;
+// float mouseY;
+// UGameplayStatics::GetPlayerController(GetWorld(), 0)->GetMousePosition(mouseX, mouseY);
+// UE_LOG(LogTemp, Warning, TEXT("Mouse Location: %f, %f"), mouseX, mouseY);
+// FVector worldPosition;
+// FVector worldDirection;
+// UGameplayStatics::GetPlayerController(GetWorld(), 0)->DeprojectScreenPositionToWorld(mouseX, mouseY, worldPosition, worldDirection);
+// worldPosition = worldPosition / GNearClippingPlane * 10;
+// UE_LOG(LogTemp, Warning, TEXT("World Location: %f, %f, %f"), worldPosition.X, worldPosition.Y, worldPosition.Z);

@@ -5,7 +5,7 @@
 #include "CoreMinimal.h"
 #include "Chart.h"
 #include "ChartListEntryData.h"
-#include "Jukebox.h"
+#include "FJukebox.h"
 #include "fmod.hpp"
 #include "Tasks/Task.h"
 #include "GameFramework/Actor.h"
@@ -20,7 +20,7 @@ public:
 	// Sets default values for this actor's properties
 	AChartSelectScreen();
 private:
-	Jukebox* jukebox;
+	FJukebox* jukebox;
 	FCriticalSection jukeboxLock;
 	std::atomic_bool bCancelled;
 	std::atomic_bool bJukeboxCancelled;

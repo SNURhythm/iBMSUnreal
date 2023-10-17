@@ -9,7 +9,7 @@
 /**
  * 
  */
-class IBMSUNREAL_API Jukebox
+class IBMSUNREAL_API FJukebox
 {
 private:
 	TMap<int, FMOD::Sound*> SoundTable;
@@ -22,10 +22,10 @@ private:
 	void ScheduleSound(unsigned long long startDspClock, FMOD::Sound* Sound);
 	const FChart* Chart;
 	FCriticalSection SoundQueueLock;
-
+	unsigned long long StartDspClock;
 public:
-	Jukebox(FMOD::System* System);
-	~Jukebox();		
+	FJukebox(FMOD::System* System);
+	~FJukebox();		
 	void LoadChart(const FChart* chart, std::atomic_bool& bCancelled);
 	void Start(long long PosMicro = 0, bool autoKeysound = false);
 	void Unpause();
@@ -34,4 +34,6 @@ public:
 
 	void PlayKeysound(int id);
 	void Unload();
+
+	unsigned long long GetPosition();
 };

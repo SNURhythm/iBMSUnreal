@@ -23,7 +23,7 @@ class IBMSUNREAL_API UBMSGameInstance : public UGameInstance
 	GENERATED_BODY()
 	FMOD::System *fmodSystem;
 	virtual void Init() override;
-	
+	virtual void BeginDestroy() override;
 	void InitFMOD();
 	StartOptions startOptions;
 public:

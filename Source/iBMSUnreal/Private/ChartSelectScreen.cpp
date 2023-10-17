@@ -259,7 +259,7 @@ void AChartSelectScreen::BeginPlay()
 	UE_LOG(LogTemp, Warning, TEXT("ChartSelectScreen BeginPlay()!!"));
 	UBMSGameInstance* GameInstance = Cast<UBMSGameInstance>(UGameplayStatics::GetGameInstance(GetWorld()));
 	FMODSystem = GameInstance->GetFMODSystem();
-	jukebox = new Jukebox(FMODSystem);
+	jukebox = new FJukebox(FMODSystem);
 	UE_LOG(LogTemp, Warning, TEXT("InitGame"));
     
 	if(IsValid(WidgetClass))
@@ -441,7 +441,5 @@ void AChartSelectScreen::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	jukebox->Unload();
 	delete jukebox;
 	jukeboxLock.Unlock();
-	FMODSystem->release();
-	FMODSystem = nullptr;
 }
 

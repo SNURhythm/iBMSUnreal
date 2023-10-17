@@ -1,12 +1,12 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "Jukebox.h"
+#include "FJukebox.h"
 
 #include "BMSParser.h"
 #include <Tasks/Task.h>
 
-FMOD_RESULT Jukebox::ReadWav(const FString& Path, FMOD::Sound** Sound)
+FMOD_RESULT FJukebox::ReadWav(const FString& Path, FMOD::Sound** Sound)
 {
 	TArray<uint8> bytes;
 	// ignore extension, and try .mp3, .ogg, .wav, .flac
@@ -33,7 +33,7 @@ FMOD_RESULT Jukebox::ReadWav(const FString& Path, FMOD::Sound** Sound)
 	return System->createSound(reinterpret_cast<const char*>(bytes.GetData()), FMOD_OPENMEMORY | FMOD_CREATESAMPLE | FMOD_ACCURATETIME, &exinfo, Sound);
 }
 
-unsigned long long Jukebox::MsToDSPClocks(double Ms)
+unsigned long long FJukebox::MsToDSPClocks(double Ms)
 {
 	int samplerate;
 	
@@ -41,7 +41,7 @@ unsigned long long Jukebox::MsToDSPClocks(double Ms)
 	return Ms * static_cast<unsigned long long>(samplerate) / 1000;
 }
 
-void Jukebox::ScheduleSound(unsigned long long startDspClock, FMOD::Sound* Sound)
+void FJukebox::ScheduleSound(unsigned long long startDspClock, FMOD::Sound* Sound)
 {
 	int channels;
 	int realChannels;
@@ -60,7 +60,7 @@ void Jukebox::ScheduleSound(unsigned long long startDspClock, FMOD::Sound* Sound
 	channel->setPaused(false);
 }
 
-Jukebox::Jukebox(FMOD::System* System)
+FJukebox::FJukebox(FMOD::System* System)
 {
 	this->System = System;
 	int MaxRealChannels;
@@ -69,14 +69,15 @@ Jukebox::Jukebox(FMOD::System* System)
 	System->createChannelGroup("Jukebox", &ChannelGroup);
 	ChannelGroup->setPaused(true);
 	Chart = nullptr;
+	StartDspClock = 0;
 }
 
-Jukebox::~Jukebox()
+FJukebox::~FJukebox()
 {
 	Unload();
 }
 
-void Jukebox::LoadChart(const FChart* chart, std::atomic_bool& bCancelled)
+void FJukebox::LoadChart(const FChart* chart, std::atomic_bool& bCancelled)
 {
 	Unload();
 	Chart = chart;
@@ -110,7 +111,7 @@ void Jukebox::LoadChart(const FChart* chart, std::atomic_bool& bCancelled)
 			sound->setLoopCount(0);
 			if(result != FMOD_OK)
 			{
-				UE_LOG(LogTemp, Error, TEXT("Failed to load wav: %s"), *wav);
+				UE_LOG(LogTemp, Error, TEXT("Failed to load wav: %s, error code: %d"), *wav, result);
 				continue;
 			}
 
@@ -122,7 +123,7 @@ void Jukebox::LoadChart(const FChart* chart, std::atomic_bool& bCancelled)
 
 }
 
-void Jukebox::Start(long long PosMicro, bool autoKeysound)
+void FJukebox::Start(long long PosMicro, bool autoKeysound)
 {
 	Stop();
 	if(!Chart)
@@ -133,8 +134,8 @@ void Jukebox::Start(long long PosMicro, bool autoKeysound)
 	// schedule all sounds
 	ChannelGroup->setPaused(true);
 
-	unsigned long long currentDspClock;
-	ChannelGroup->getDSPClock(&currentDspClock, nullptr);
+
+	ChannelGroup->getDSPClock(&StartDspClock, nullptr);
 	
 	for(auto& measure: Chart->Measures)
 	{
@@ -142,7 +143,7 @@ void Jukebox::Start(long long PosMicro, bool autoKeysound)
 		{
 			auto timing = timeline->Timing - PosMicro;
 			if(timing < 0) continue;
-			auto dspClock = currentDspClock + MsToDSPClocks(static_cast<double>(timing)/1000.0);
+			auto dspClock = StartDspClock + MsToDSPClocks(static_cast<double>(timing)/1000.0);
 			for(auto& note: timeline->BackgroundNotes)
 			{
 				if(!note) continue;
@@ -169,7 +170,7 @@ void Jukebox::Start(long long PosMicro, bool autoKeysound)
 	Unpause();
 }
 
-void Jukebox::Unpause()
+void FJukebox::Unpause()
 {
 	ChannelGroup->setPaused(false);
 	// start Thread to pop SoundQueue
@@ -209,12 +210,12 @@ void Jukebox::Unpause()
 	});
 }
 
-void Jukebox::Pause()
+void FJukebox::Pause()
 {
 	ChannelGroup->setPaused(true);
 }
 
-void Jukebox::Stop()
+void FJukebox::Stop()
 {
 	ChannelGroup->setPaused(true);
 	ChannelGroup->stop();
@@ -224,7 +225,7 @@ void Jukebox::Stop()
 	SoundQueueLock.Unlock();
 }
 
-void Jukebox::PlayKeysound(int id)
+void FJukebox::PlayKeysound(int id)
 {
 	FMOD::Sound* sound = SoundTable.FindRef(id);
 	if(!sound) return;
@@ -232,7 +233,7 @@ void Jukebox::PlayKeysound(int id)
 	System->playSound(sound, ChannelGroup, false, &channel);
 }
 
-void Jukebox::Unload()
+void FJukebox::Unload()
 {
 	Stop();
 	for(auto& pair: SoundTable)
@@ -240,4 +241,14 @@ void Jukebox::Unload()
 		pair.Value->release();
 	}
 	SoundTable.Empty();
+}
+
+unsigned long long FJukebox::GetPosition()
+{
+	if(!ChannelGroup) return 0;
+	unsigned long long dspClock;
+	int samplerate;
+	ChannelGroup->getDSPClock(&dspClock, nullptr);
+	System->getSoftwareFormat(&samplerate, nullptr, nullptr);
+	return (static_cast<double>(dspClock) /samplerate * 1000000 - static_cast<double>(StartDspClock) / samplerate * 1000000);
 }

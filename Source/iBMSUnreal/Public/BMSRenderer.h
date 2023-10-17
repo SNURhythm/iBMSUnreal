@@ -3,17 +3,20 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Chart.h"
 #include "GameFramework/Actor.h"
 #include "BMSRenderer.generated.h"
 
-UCLASS()
-class IBMSUNREAL_API ABMSRenderer : public AActor
+UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
+class IBMSUNREAL_API UBMSRenderer : public UActorComponent
 {
 	GENERATED_BODY()
+private:
+	FChart* Chart;
 	
 public:	
 	// Sets default values for this actor's properties
-	ABMSRenderer();
+	UBMSRenderer();
 
 protected:
 	// Called when the game starts or when spawned
@@ -34,7 +37,6 @@ protected:
 	
 
 public:	
-	// Called every frame
-	virtual void Tick(float DeltaTime) override;
-
+	void Draw(unsigned long long CurrentTime);
+	void Init(FChart* chart);
 };

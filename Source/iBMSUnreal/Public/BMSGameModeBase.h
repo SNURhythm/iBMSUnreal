@@ -7,7 +7,7 @@
 #include "ChartListEntryData.h"
 #include "GameFramework/GameModeBase.h"
 #include "fmod.hpp"
-#include "Jukebox.h"
+#include "FJukebox.h"
 #include "Tasks/Task.h"
 #include "BMSGameModeBase.generated.h"
 /**
