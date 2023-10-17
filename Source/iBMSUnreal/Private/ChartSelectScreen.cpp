@@ -246,6 +246,7 @@ void AChartSelectScreen::OnStartButtonClicked()
 	auto gameInstance = Cast<UBMSGameInstance>(UGameplayStatics::GetGameInstance(GetWorld()));
 	StartOptions options;
 	options.BmsPath = chartMeta->BmsPath;
+	options.AutoKeysound = false;
 	gameInstance->SetStartOptions(options);
 	// load level
 	UGameplayStatics::OpenLevel(GetWorld(), "RhythmPlay");

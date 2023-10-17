@@ -56,8 +56,13 @@ void ARhythm::LoadGame()
 		Parser.Parse(Options.BmsPath, &Chart, true, false, IsLoadCancelled);
 		if(IsLoadCancelled) return;
 		Jukebox->LoadChart(Chart, IsLoadCancelled);
+		Renderer->Init(Chart);
 		UE_LOG(LogTemp, Warning, TEXT("Chart&Jukebox loaded"));
-		if(!IsLoadCancelled) IsLoaded = true;
+		if(!IsLoadCancelled)
+		{
+			IsLoaded = true;
+			Jukebox->Start(Options.StartPosition, Options.AutoKeysound);
+		}
 	});
 }
 

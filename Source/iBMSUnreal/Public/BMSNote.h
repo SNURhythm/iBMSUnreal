@@ -16,8 +16,7 @@ public:
 	bool IsDead = false;
 	long PlayedTime = 0;
 	FTimeLine* Timeline;
-
-	// ����
+	
 	// private Note nextNote;
 
 	FBMSNote(int Wav);
@@ -28,4 +27,6 @@ public:
 
 	void Reset();
 	~FBMSNote();
+
+	virtual bool IsLongNote() { return false; }
 };

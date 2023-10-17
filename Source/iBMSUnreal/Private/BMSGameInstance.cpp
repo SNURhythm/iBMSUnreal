@@ -14,7 +14,6 @@ void UBMSGameInstance::BeginDestroy()
 	Super::BeginDestroy();
 	UE_LOG(LogTemp, Warning, TEXT("Releasing fmod system"));
 	fmodSystem->release();
-	delete fmodSystem;
 }
 
 void UBMSGameInstance::InitFMOD()

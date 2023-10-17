@@ -29,5 +29,5 @@ public:
 
 	void Reset();
 
-
+	virtual bool IsLongNote() override { return true; }
 };
