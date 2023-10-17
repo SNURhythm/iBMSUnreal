@@ -8,6 +8,8 @@
 #include "ChartDBHelper.h"
 #include "ChartSelectUI.h"
 #include "ChartListEntry.h"
+
+#include "DesktopPlatformModule.h"
 #include "Blueprint/UserWidget.h"
 #include "iBMSUnreal/Public/ImageUtils.h"
 #include "Kismet/GameplayStatics.h"
@@ -75,27 +77,65 @@ static void FindNew(TArray<FDiff>& Diffs, const TSet<FString>& PrevPathSet, cons
 
 void AChartSelectScreen::LoadCharts()
 {
-	    FTask LoadTask = Launch(UE_SOURCE_LOCATION, [&]()
+		auto dbHelper = ChartDBHelper::GetInstance();
+		auto db = dbHelper.Connect();
+		dbHelper.CreateChartMetaTable(db);
+	    dbHelper.CreateEntriesTable(db);
+	    auto entries = dbHelper.SelectAllEntries(db);
+	// user home dir
+	FString homeDir = FPlatformProcess::UserHomeDir();
+	UE_LOG(LogTemp, Warning, TEXT("BMSGameModeBase UserHomeDir: %s"), *homeDir);
+	    if(entries.IsEmpty())
+	    {
+#if PLATFORM_DESKTOP
+	    	FString defaultPath;
+#if PLATFORM_MAC
+	    	defaultPath = "~";
+#else
+	    	defaultPath = FPlatformProcess::UserDir();
+#endif
+
+	    	// prompt user to select folder
+			UE_LOG(LogTemp, Warning, TEXT("BMSGameModeBase Select Folder"));
+			FString FolderPath;
+			bool bFolderSelected = FDesktopPlatformModule::Get()->OpenDirectoryDialog(nullptr, TEXT("Select BMS Folder"), defaultPath, FolderPath);
+			if(bFolderSelected)
+			{
+				dbHelper.InsertEntry(db, FolderPath);
+
+			}
+
+#else
+	    	// use iOS Document Directory
+		#if PLATFORM_IOS
+			// mkdir "BMS"
+			FString DirectoryRel = FPaths::Combine(FPaths::RootDir(), "BMS/");
+			FileManager.MakeDirectory(*DirectoryRel);
+		#else
+			// use Project/BMS. Note that this would not work on packaged build, so we need to make it configurable
+			FString DirectoryRel = FPaths::Combine(FPaths::ProjectDir(), "BMS/");
+		#endif
+			FString Directory = IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(*DirectoryRel);
+	    	dbHelper.InsertEntry(db, Directory);
+#endif
+	    	entries = dbHelper.SelectAllEntries(db);
+	    }
+	    FTask LoadTask = Launch(UE_SOURCE_LOCATION, [&, db, entries]()
 	    {
 		    FMOD::Sound* SuccessSound;
 			const FString SoundPathRel = FPaths::Combine(FPaths::ProjectContentDir(), "Sounds/success.wav");
 			const FString SoundPath = IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(*SoundPathRel);
 			UE_LOG(LogTemp, Warning, TEXT("BMSGameModeBase SoundPath: %s"), *SoundPath);
-			// /private/var/containers/Bundle/Application/GUID/iBMSUnreal.app/Documents
-			const FString DocumentsPathRel = FPaths::RootDir();
-			const FString DocumentsPath = IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(*DocumentsPathRel);
-			UE_LOG(LogTemp, Warning, TEXT("BMSGameModeBase DocumentsPath: %s"), *DocumentsPath);
+
 			
 			FMODSystem->createSound(TCHAR_TO_ANSI(*SoundPath), FMOD_DEFAULT, 0, &SuccessSound);
 			UE_LOG(LogTemp, Warning, TEXT("BMSGameModeBase Start Task!!"));
-			auto dbHelper = ChartDBHelper::GetInstance();
-			auto db = dbHelper.Connect();
-			dbHelper.CreateTable(db);
-	    	auto chartMetas = dbHelper.SelectAll(db);
-	    	chartMetas.Sort([](const FChartMeta& A, const FChartMeta& B) {
+			
+			auto chartMetas = dbHelper.SelectAllChartMeta(db);
+			chartMetas.Sort([](const FChartMeta& A, const FChartMeta& B) {
 				return A.Title < B.Title;
 			});
-	    	auto ChartList = ChartSelectUI->ChartList;
+			auto ChartList = ChartSelectUI->ChartList;
 			AsyncTask(ENamedThreads::GameThread, [chartMetas, ChartList, this]()
 			{
 				if (IsValid(ChartList))
@@ -113,21 +153,15 @@ void AChartSelectScreen::LoadCharts()
 				PathSet.Add(path);
 			}
 			IFileManager& FileManager = IFileManager::Get();
-			// use iOS Document Directory
-	#if PLATFORM_IOS
-			// mkdir "BMS"
-			FString DirectoryRel = FPaths::Combine(FPaths::RootDir(), "BMS/");
-			FileManager.MakeDirectory(*DirectoryRel);
-	#else
-			// use Project/BMS. Note that this would not work on packaged build, so we need to make it configurable
-			FString DirectoryRel = FPaths::Combine(FPaths::ProjectDir(), "BMS/");
-	#endif
-			FString Directory = IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(*DirectoryRel);
-			UE_LOG(LogTemp, Warning, TEXT("BMSGameModeBase Directory: %s"), *Directory);
+	    	
 			UE_LOG(LogTemp, Warning, TEXT("BMSGameModeBase FindNew"));
 			// print bCancelled
 			UE_LOG(LogTemp, Warning, TEXT("BMSGameModeBase isCancelled: %d"), (bool)bCancelled);
-			FindNew(Diffs, PathSet, Directory, bCancelled);
+			for(auto& entry : entries)
+			{
+				if(bCancelled) break;
+				FindNew(Diffs, PathSet, entry, bCancelled);
+			}
 			UE_LOG(LogTemp, Warning, TEXT("BMSGameModeBase FindNew Done: %d"), Diffs.Num());
 			// find deleted charts
 			for (auto& path : PathSet) {
@@ -178,7 +212,7 @@ void AChartSelectScreen::LoadCharts()
                             
 							// UE_LOG(LogTemp,Warning,TEXT("TITLE: %s"), *Chart->Meta->Title);
 
-							dbHelper.Insert(db, *Chart->Meta);
+							dbHelper.InsertChartMeta(db, *Chart->Meta);
 							// close db
 							delete Chart;
 						}
@@ -187,11 +221,11 @@ void AChartSelectScreen::LoadCharts()
 					}, !bSupportMultithreading);
 				dbHelper.CommitTransaction(db);
 			}
-	    	chartMetas = dbHelper.SelectAll(db);
-	    	chartMetas.Sort([](const FChartMeta& A, const FChartMeta& B) {
+			chartMetas = dbHelper.SelectAllChartMeta(db);
+			chartMetas.Sort([](const FChartMeta& A, const FChartMeta& B) {
 				return A.Title < B.Title;
 			});
-	    	AsyncTask(ENamedThreads::GameThread, [chartMetas, ChartList, this]()
+			AsyncTask(ENamedThreads::GameThread, [chartMetas, ChartList, this]()
 			{
 				if (IsValid(ChartList))
 					SetChartMetas(chartMetas);
@@ -381,7 +415,7 @@ void AChartSelectScreen::OnSearchBoxTextCommitted(const FText& Text, ETextCommit
 	auto dbHelper = ChartDBHelper::GetInstance();
 	auto db = dbHelper.Connect();
 	auto str = Text.ToString();
-	auto chartMetas = dbHelper.Search(db, str);
+	auto chartMetas = dbHelper.SearchChartMeta(db, str);
 	chartMetas.Sort([](const FChartMeta& A, const FChartMeta& B) {
 		return A.Title < B.Title;
 	});

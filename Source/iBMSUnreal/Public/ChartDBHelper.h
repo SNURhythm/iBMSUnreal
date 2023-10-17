@@ -26,17 +26,23 @@ public:
 	sqlite3* Connect();
 
 	// CreateTable
-	void CreateTable(sqlite3* db);
+	bool CreateChartMetaTable(sqlite3* db);
 
 	// Insert ChartMeta
-	void Insert(sqlite3* db, FChartMeta& chartMeta);
-	TArray<FChartMeta*> SelectAll(sqlite3* db);
-	TArray<FChartMeta*> Search(sqlite3* db, FString& keyword);
-	void Delete(sqlite3* db, FString& path);
-	void Clear(sqlite3* db);
+	bool InsertChartMeta(sqlite3* db, FChartMeta& chartMeta);
+	TArray<FChartMeta*> SelectAllChartMeta(sqlite3* db);
+	TArray<FChartMeta*> SearchChartMeta(sqlite3* db, FString& keyword);
+	bool DeleteChartMeta(sqlite3* db, FString& path);
+	bool ClearChartMeta(sqlite3* db);
 	void Close(sqlite3* db);
 	void BeginTransaction(sqlite3* db);
 	void CommitTransaction(sqlite3* db);
+	bool CreateEntriesTable(sqlite3* db);
+	bool InsertEntry(sqlite3* db, FString& path);
+	TArray<FString> SelectAllEntries(sqlite3* db);
+	bool DeleteEntry(sqlite3* db, FString& path);
+	bool ClearEntries(sqlite3* db);
 private:
 	FChartMeta* ReadChartMeta(sqlite3_stmt* stmt);
+
 };

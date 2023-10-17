@@ -10,15 +10,21 @@ sqlite3* ChartDBHelper::Connect() {
 #if PLATFORM_IOS
 	// mkdir "BMS"
 	FString Directory = FPaths::Combine(FPaths::RootDir(), ".db/");
-	FileManager.MakeDirectory(*Directory);
+#elif PLATFORM_MAC
+	// for macOS, ~/Library/Containers/com.package.name/Data/Documents/
+	FString Directory = FPaths::Combine(FPlatformProcess::UserDir(), "SNURhythm/iBMSUnreal/.db/");
+	
+#elif PLATFORM_WINDOWS
+	// for Windows, AppData/Local/SNURhythm/iBMSUnreal
+	FString Directory = FPaths::Combine(FPlatformProcess::UserDir(), "SNURhythm/iBMSUnreal/.db/");
 #else
-	// use Project/BMS. Note that this would not work on packaged build, so we need to make it configurable
-	FString Directory = FPaths::Combine(FPaths::ProjectDir(), ".db/");
-	FileManager.MakeDirectory(*Directory);
+    	// for other platforms, use Documents
+	FString Directory = FPaths::Combine(FPlatformProcess::UserDir(), "SNURhythm/iBMSUnreal/.db/");
 #endif
+	FileManager.MakeDirectory(*Directory);
 	
 	FString pathRel = FPaths::Combine(Directory, "chart.db");
-	FString path = IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(*pathRel);
+	FString path = IFileManager::Get().ConvertToAbsolutePathForExternalAppForWrite(*pathRel);
 	UE_LOG(LogTemp, Log, TEXT("DB Path: %s"), *path);
 	UE_LOG(LogTemp, Log, TEXT("DB PathRel: %s"), *pathRel);
 	sqlite3* db;
@@ -43,7 +49,7 @@ void ChartDBHelper::CommitTransaction(sqlite3* db)
 {
 	sqlite3_exec(db, "COMMIT", nullptr, nullptr, nullptr);
 }
-void ChartDBHelper::CreateTable(sqlite3* db) {
+bool ChartDBHelper::CreateChartMetaTable(sqlite3* db) {
 	auto query = "CREATE TABLE IF NOT EXISTS chart_meta ("
 		"path       TEXT primary key,"
 		"md5        TEXT not null,"
@@ -76,14 +82,14 @@ void ChartDBHelper::CreateTable(sqlite3* db) {
 	char* errMsg;
 	int rc = sqlite3_exec(db, query, nullptr, nullptr, &errMsg);
 	if (rc != SQLITE_OK) {
-		UE_LOG(LogTemp, Error, TEXT("SQL error while creating table: %s"), UTF8_TO_TCHAR(errMsg));
+		UE_LOG(LogTemp, Error, TEXT("SQL error while creating chart meta table: %s"), UTF8_TO_TCHAR(errMsg));
 		sqlite3_free(errMsg);
+		return false;
 	}
-
-
+	return true;
 }
 
-void ChartDBHelper::Insert(sqlite3* db, FChartMeta& chartMeta) {
+bool ChartDBHelper::InsertChartMeta(sqlite3* db, FChartMeta& chartMeta) {
 	auto query = "REPLACE INTO chart_meta ("
 		"path,"
 		"md5,"
@@ -146,7 +152,7 @@ void ChartDBHelper::Insert(sqlite3* db, FChartMeta& chartMeta) {
 	if (rc != SQLITE_OK) {
 		UE_LOG(LogTemp, Error, TEXT("SQL error while preparing statement to insert a chart: %s"), UTF8_TO_TCHAR(sqlite3_errmsg(db)));
 		sqlite3_close(db);
-		return;
+		return false;
 	}
 	sqlite3_bind_text(stmt, 1, TCHAR_TO_UTF8(*chartMeta.BmsPath), -1, SQLITE_TRANSIENT);
 	sqlite3_bind_text(stmt, 2, TCHAR_TO_UTF8(*chartMeta.MD5), -1, SQLITE_TRANSIENT);
@@ -178,16 +184,14 @@ void ChartDBHelper::Insert(sqlite3* db, FChartMeta& chartMeta) {
 	rc = sqlite3_step(stmt);
 	if (rc != SQLITE_DONE) {
 		UE_LOG(LogTemp, Error, TEXT("SQL error while inserting a chart: %s"), UTF8_TO_TCHAR(sqlite3_errmsg(db)));
-		sqlite3_close(db);
-		return;
+		sqlite3_free(stmt);
+		return false;
 	}
 	sqlite3_finalize(stmt);
-
-
-
+	return true;
 }
 
-TArray<FChartMeta*> ChartDBHelper::SelectAll(sqlite3* db) {
+TArray<FChartMeta*> ChartDBHelper::SelectAllChartMeta(sqlite3* db) {
 	auto query = "SELECT "
 		"path,"
 		"md5,"
@@ -221,7 +225,7 @@ TArray<FChartMeta*> ChartDBHelper::SelectAll(sqlite3* db) {
 	int rc = sqlite3_prepare_v2(db, query, -1, &stmt, nullptr);
 	if (rc != SQLITE_OK) {
 		UE_LOG(LogTemp, Error, TEXT("SQL error while getting all charts: %s"), UTF8_TO_TCHAR(sqlite3_errmsg(db)));
-		sqlite3_close(db);
+		sqlite3_free(stmt);
 		return TArray<FChartMeta*>();
 	}
 	TArray<FChartMeta*> chartMetas;
@@ -234,7 +238,7 @@ TArray<FChartMeta*> ChartDBHelper::SelectAll(sqlite3* db) {
 	return chartMetas;
 }
 
-TArray<FChartMeta*> ChartDBHelper::Search(sqlite3* db, FString& text) {
+TArray<FChartMeta*> ChartDBHelper::SearchChartMeta(sqlite3* db, FString& text) {
 	auto query = "SELECT "
 		"path,"
 		"md5,"
@@ -268,7 +272,7 @@ TArray<FChartMeta*> ChartDBHelper::Search(sqlite3* db, FString& text) {
 	int rc = sqlite3_prepare_v2(db, query, -1, &stmt, nullptr);
 	if (rc != SQLITE_OK) {
 		UE_LOG(LogTemp, Error, TEXT("SQL error while searching for charts: %s"), UTF8_TO_TCHAR(sqlite3_errmsg(db)));
-		sqlite3_close(db);
+		sqlite3_free(stmt);
 		return TArray<FChartMeta*>();
 	}
 	sqlite3_bind_text(stmt, 1, TCHAR_TO_UTF8(*("%" + text + "%")), -1, SQLITE_TRANSIENT);
@@ -283,41 +287,43 @@ TArray<FChartMeta*> ChartDBHelper::Search(sqlite3* db, FString& text) {
 	return chartMetas;
 }
 
-void ChartDBHelper::Delete(sqlite3* db, FString& path) {
+bool ChartDBHelper::DeleteChartMeta(sqlite3* db, FString& path) {
 	auto query = "DELETE FROM chart_meta WHERE path = @path";
 	sqlite3_stmt* stmt;
 	int rc = sqlite3_prepare_v2(db, query, -1, &stmt, nullptr);
 	if (rc != SQLITE_OK) {
 		UE_LOG(LogTemp, Error, TEXT("SQL error while preparing statement to delete a chart: %s"), UTF8_TO_TCHAR(sqlite3_errmsg(db)));
-		sqlite3_close(db);
-		return;
+		sqlite3_free(stmt);
+		return false;
 	}
 	sqlite3_bind_text(stmt, 1, TCHAR_TO_UTF8(*path), -1, SQLITE_TRANSIENT);
 	rc = sqlite3_step(stmt);
 	if (rc != SQLITE_DONE) {
 		UE_LOG(LogTemp, Error, TEXT("SQL error while deleting a chart: %s"), UTF8_TO_TCHAR(sqlite3_errmsg(db)));
 		sqlite3_close(db);
-		return;
+		return false;
 	}
 	sqlite3_finalize(stmt);
+	return true;
 }
 
-void ChartDBHelper::Clear(sqlite3* db) {
+bool ChartDBHelper::ClearChartMeta(sqlite3* db) {
 	auto query = "DELETE FROM chart_meta";
 	sqlite3_stmt* stmt;
 	int rc = sqlite3_prepare_v2(db, query, -1, &stmt, nullptr);
 	if (rc != SQLITE_OK) {
 		UE_LOG(LogTemp, Error, TEXT("SQL error while clearing: %s"), UTF8_TO_TCHAR(sqlite3_errmsg(db)));
-		sqlite3_close(db);
-		return;
+		sqlite3_free(stmt);
+		return false;
 	}
 	rc = sqlite3_step(stmt);
 	if (rc != SQLITE_DONE) {
 		UE_LOG(LogTemp, Error, TEXT("SQL error while clearing: %s"), UTF8_TO_TCHAR(sqlite3_errmsg(db)));
-		sqlite3_close(db);
-		return;
+		sqlite3_free(stmt);
+		return false;
 	}
 	sqlite3_finalize(stmt);
+	return true;
 }
 
 FChartMeta* ChartDBHelper::ReadChartMeta(sqlite3_stmt* stmt) {
@@ -351,4 +357,109 @@ FChartMeta* ChartDBHelper::ReadChartMeta(sqlite3_stmt* stmt) {
 	chartMeta->TotalScratchNotes = sqlite3_column_int(stmt, idx++);
 	chartMeta->TotalBackSpinNotes = sqlite3_column_int(stmt, idx++);
 	return chartMeta;
+}
+
+bool ChartDBHelper::CreateEntriesTable(sqlite3* db)
+{
+	// save paths to search for charts
+	auto query = "CREATE TABLE IF NOT EXISTS entries ("
+		"path       TEXT primary key"
+		")";
+
+	char* errMsg;
+	int rc = sqlite3_exec(db, query, nullptr, nullptr, &errMsg);
+	if (rc != SQLITE_OK) {
+		UE_LOG(LogTemp, Error, TEXT("SQL error while creating entries table: %s"), UTF8_TO_TCHAR(errMsg));
+		sqlite3_free(errMsg);
+		return false;
+	}
+	return true;
+}
+
+bool ChartDBHelper::InsertEntry(sqlite3* db, FString& path)
+{
+	auto query = "REPLACE INTO entries ("
+		"path"
+		") VALUES("
+		"@path"
+		")";
+	sqlite3_stmt* stmt;
+	int rc = sqlite3_prepare_v2(db, query, -1, &stmt, nullptr);
+	if (rc != SQLITE_OK) {
+		UE_LOG(LogTemp, Error, TEXT("SQL error while preparing statement to insert an entry: %s"), UTF8_TO_TCHAR(sqlite3_errmsg(db)));
+		sqlite3_close(db);
+		return false;
+	}
+	sqlite3_bind_text(stmt, 1, TCHAR_TO_UTF8(*path), -1, SQLITE_TRANSIENT);
+	rc = sqlite3_step(stmt);
+	if (rc != SQLITE_DONE) {
+		UE_LOG(LogTemp, Error, TEXT("SQL error while inserting an entry: %s"), UTF8_TO_TCHAR(sqlite3_errmsg(db)));
+		sqlite3_free(stmt);
+		return false;
+	}
+	sqlite3_finalize(stmt);
+	return true;
+}
+
+TArray<FString> ChartDBHelper::SelectAllEntries(sqlite3* db)
+{
+	auto query = "SELECT "
+		"path"
+		" FROM entries";
+	sqlite3_stmt* stmt;
+	int rc = sqlite3_prepare_v2(db, query, -1, &stmt, nullptr);
+	if (rc != SQLITE_OK) {
+		UE_LOG(LogTemp, Error, TEXT("SQL error while getting all entries: %s"), UTF8_TO_TCHAR(sqlite3_errmsg(db)));
+		sqlite3_free(stmt);
+		return TArray<FString>();
+	}
+	TArray<FString> entries;
+	while (sqlite3_step(stmt) == SQLITE_ROW)
+	{
+		FString entry = UTF8_TO_TCHAR(sqlite3_column_text(stmt, 0));
+		entries.Add(entry);
+	}
+	sqlite3_finalize(stmt);
+	return entries;
+}
+
+bool ChartDBHelper::DeleteEntry(sqlite3* db, FString& path)
+{
+	auto query = "DELETE FROM entries WHERE path = @path";
+	sqlite3_stmt* stmt;
+	int rc = sqlite3_prepare_v2(db, query, -1, &stmt, nullptr);
+	if (rc != SQLITE_OK) {
+		UE_LOG(LogTemp, Error, TEXT("SQL error while preparing statement to delete an entry: %s"), UTF8_TO_TCHAR(sqlite3_errmsg(db)));
+		sqlite3_free(stmt);
+		return false;
+	}
+	sqlite3_bind_text(stmt, 1, TCHAR_TO_UTF8(*path), -1, SQLITE_TRANSIENT);
+	rc = sqlite3_step(stmt);
+	if (rc != SQLITE_DONE) {
+		UE_LOG(LogTemp, Error, TEXT("SQL error while deleting an entry: %s"), UTF8_TO_TCHAR(sqlite3_errmsg(db)));
+		sqlite3_close(db);
+		return false;
+	}
+	sqlite3_finalize(stmt);
+	return true;
+}
+
+bool ChartDBHelper::ClearEntries(sqlite3* db)
+{
+	auto query = "DELETE FROM entries";
+	sqlite3_stmt* stmt;
+	int rc = sqlite3_prepare_v2(db, query, -1, &stmt, nullptr);
+	if (rc != SQLITE_OK) {
+		UE_LOG(LogTemp, Error, TEXT("SQL error while clearing: %s"), UTF8_TO_TCHAR(sqlite3_errmsg(db)));
+		sqlite3_free(stmt);
+		return false;
+	}
+	rc = sqlite3_step(stmt);
+	if (rc != SQLITE_DONE) {
+		UE_LOG(LogTemp, Error, TEXT("SQL error while clearing: %s"), UTF8_TO_TCHAR(sqlite3_errmsg(db)));
+		sqlite3_free(stmt);
+		return false;
+	}
+	sqlite3_finalize(stmt);
+	return true;
 }
