@@ -352,7 +352,7 @@ void FBMSParser::Parse(FString path, FChart** chart, bool addReadyMeasure, bool 
 
 						auto lastTimeline = last->Timeline;
 						auto ln = new FBMSLongNote{ last->Wav };
-
+						delete last;
 						ln->Tail = new FBMSLongNote{ NoWav };
 						ln->Tail->Head = ln;
 						lastTimeline->SetNote(

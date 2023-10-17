@@ -97,11 +97,11 @@ void AChartSelectScreen::LoadCharts()
 
 	    	// prompt user to select folder
 			UE_LOG(LogTemp, Warning, TEXT("BMSGameModeBase Select Folder"));
-			FString FolderPath;
-			bool bFolderSelected = FDesktopPlatformModule::Get()->OpenDirectoryDialog(nullptr, TEXT("Select BMS Folder"), defaultPath, FolderPath);
+			FString EntryPath;
+			bool bFolderSelected = FDesktopPlatformModule::Get()->OpenDirectoryDialog(nullptr, TEXT("Select BMS Folder"), defaultPath, EntryPath);
 			if(bFolderSelected)
 			{
-				dbHelper.InsertEntry(db, FolderPath);
+				dbHelper.InsertEntry(db, EntryPath);
 
 			}
 

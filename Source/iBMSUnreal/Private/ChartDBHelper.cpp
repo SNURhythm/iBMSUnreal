@@ -21,7 +21,7 @@ sqlite3* ChartDBHelper::Connect() {
     	// for other platforms, use Documents
 	FString Directory = FPaths::Combine(FPlatformProcess::UserDir(), "SNURhythm/iBMSUnreal/.db/");
 #endif
-	FileManager.MakeDirectory(*Directory);
+	FileManager.MakeDirectory(*Directory, true);
 	
 	FString pathRel = FPaths::Combine(Directory, "chart.db");
 	FString path = IFileManager::Get().ConvertToAbsolutePathForExternalAppForWrite(*pathRel);
@@ -82,7 +82,8 @@ bool ChartDBHelper::CreateChartMetaTable(sqlite3* db) {
 	char* errMsg;
 	int rc = sqlite3_exec(db, query, nullptr, nullptr, &errMsg);
 	if (rc != SQLITE_OK) {
-		UE_LOG(LogTemp, Error, TEXT("SQL error while creating chart meta table: %s"), UTF8_TO_TCHAR(errMsg));
+		FString err = UTF8_TO_TCHAR(errMsg);
+		UE_LOG(LogTemp, Error, TEXT("SQL error while creating chart meta table: %s"), *err);
 		sqlite3_free(errMsg);
 		return false;
 	}
@@ -150,7 +151,8 @@ bool ChartDBHelper::InsertChartMeta(sqlite3* db, FChartMeta& chartMeta) {
 	sqlite3_stmt* stmt;
 	int rc = sqlite3_prepare_v2(db, query, -1, &stmt, nullptr);
 	if (rc != SQLITE_OK) {
-		UE_LOG(LogTemp, Error, TEXT("SQL error while preparing statement to insert a chart: %s"), UTF8_TO_TCHAR(sqlite3_errmsg(db)));
+		FString err = UTF8_TO_TCHAR(sqlite3_errmsg(db));
+		UE_LOG(LogTemp, Error, TEXT("SQL error while preparing statement to insert a chart: %s"), *err);
 		sqlite3_close(db);
 		return false;
 	}
@@ -183,7 +185,8 @@ bool ChartDBHelper::InsertChartMeta(sqlite3* db, FChartMeta& chartMeta) {
 	sqlite3_bind_int(stmt, 27, chartMeta.TotalBackSpinNotes);
 	rc = sqlite3_step(stmt);
 	if (rc != SQLITE_DONE) {
-		UE_LOG(LogTemp, Error, TEXT("SQL error while inserting a chart: %s"), UTF8_TO_TCHAR(sqlite3_errmsg(db)));
+		FString err = UTF8_TO_TCHAR(sqlite3_errmsg(db));
+		UE_LOG(LogTemp, Error, TEXT("SQL error while inserting a chart: %s"), *err);
 		sqlite3_free(stmt);
 		return false;
 	}
@@ -224,7 +227,8 @@ TArray<FChartMeta*> ChartDBHelper::SelectAllChartMeta(sqlite3* db) {
 	sqlite3_stmt* stmt;
 	int rc = sqlite3_prepare_v2(db, query, -1, &stmt, nullptr);
 	if (rc != SQLITE_OK) {
-		UE_LOG(LogTemp, Error, TEXT("SQL error while getting all charts: %s"), UTF8_TO_TCHAR(sqlite3_errmsg(db)));
+		FString err = UTF8_TO_TCHAR(sqlite3_errmsg(db));
+		UE_LOG(LogTemp, Error, TEXT("SQL error while getting all charts: %s"), *err);
 		sqlite3_free(stmt);
 		return TArray<FChartMeta*>();
 	}
@@ -271,7 +275,8 @@ TArray<FChartMeta*> ChartDBHelper::SearchChartMeta(sqlite3* db, FString& text) {
 	sqlite3_stmt* stmt;
 	int rc = sqlite3_prepare_v2(db, query, -1, &stmt, nullptr);
 	if (rc != SQLITE_OK) {
-		UE_LOG(LogTemp, Error, TEXT("SQL error while searching for charts: %s"), UTF8_TO_TCHAR(sqlite3_errmsg(db)));
+		FString err = UTF8_TO_TCHAR(sqlite3_errmsg(db));
+		UE_LOG(LogTemp, Error, TEXT("SQL error while searching for charts: %s"), *err);
 		sqlite3_free(stmt);
 		return TArray<FChartMeta*>();
 	}
@@ -292,14 +297,16 @@ bool ChartDBHelper::DeleteChartMeta(sqlite3* db, FString& path) {
 	sqlite3_stmt* stmt;
 	int rc = sqlite3_prepare_v2(db, query, -1, &stmt, nullptr);
 	if (rc != SQLITE_OK) {
-		UE_LOG(LogTemp, Error, TEXT("SQL error while preparing statement to delete a chart: %s"), UTF8_TO_TCHAR(sqlite3_errmsg(db)));
+		FString err = UTF8_TO_TCHAR(sqlite3_errmsg(db));
+		UE_LOG(LogTemp, Error, TEXT("SQL error while preparing statement to delete a chart: %s"), *err);
 		sqlite3_free(stmt);
 		return false;
 	}
 	sqlite3_bind_text(stmt, 1, TCHAR_TO_UTF8(*path), -1, SQLITE_TRANSIENT);
 	rc = sqlite3_step(stmt);
 	if (rc != SQLITE_DONE) {
-		UE_LOG(LogTemp, Error, TEXT("SQL error while deleting a chart: %s"), UTF8_TO_TCHAR(sqlite3_errmsg(db)));
+		FString err = UTF8_TO_TCHAR(sqlite3_errmsg(db));
+		UE_LOG(LogTemp, Error, TEXT("SQL error while deleting a chart: %s"), *err);
 		sqlite3_close(db);
 		return false;
 	}
@@ -312,13 +319,15 @@ bool ChartDBHelper::ClearChartMeta(sqlite3* db) {
 	sqlite3_stmt* stmt;
 	int rc = sqlite3_prepare_v2(db, query, -1, &stmt, nullptr);
 	if (rc != SQLITE_OK) {
-		UE_LOG(LogTemp, Error, TEXT("SQL error while clearing: %s"), UTF8_TO_TCHAR(sqlite3_errmsg(db)));
+		FString err = UTF8_TO_TCHAR(sqlite3_errmsg(db));
+		UE_LOG(LogTemp, Error, TEXT("SQL error while clearing: %s"), *err);
 		sqlite3_free(stmt);
 		return false;
 	}
 	rc = sqlite3_step(stmt);
 	if (rc != SQLITE_DONE) {
-		UE_LOG(LogTemp, Error, TEXT("SQL error while clearing: %s"), UTF8_TO_TCHAR(sqlite3_errmsg(db)));
+		FString err = UTF8_TO_TCHAR(sqlite3_errmsg(db));
+		UE_LOG(LogTemp, Error, TEXT("SQL error while clearing: %s"), *err);
 		sqlite3_free(stmt);
 		return false;
 	}
@@ -369,7 +378,8 @@ bool ChartDBHelper::CreateEntriesTable(sqlite3* db)
 	char* errMsg;
 	int rc = sqlite3_exec(db, query, nullptr, nullptr, &errMsg);
 	if (rc != SQLITE_OK) {
-		UE_LOG(LogTemp, Error, TEXT("SQL error while creating entries table: %s"), UTF8_TO_TCHAR(errMsg));
+		FString err = UTF8_TO_TCHAR(sqlite3_errmsg(db));
+		UE_LOG(LogTemp, Error, TEXT("SQL error while creating entries table: %s"), *err);
 		sqlite3_free(errMsg);
 		return false;
 	}
@@ -386,14 +396,16 @@ bool ChartDBHelper::InsertEntry(sqlite3* db, FString& path)
 	sqlite3_stmt* stmt;
 	int rc = sqlite3_prepare_v2(db, query, -1, &stmt, nullptr);
 	if (rc != SQLITE_OK) {
-		UE_LOG(LogTemp, Error, TEXT("SQL error while preparing statement to insert an entry: %s"), UTF8_TO_TCHAR(sqlite3_errmsg(db)));
+		FString err = UTF8_TO_TCHAR(sqlite3_errmsg(db));
+		UE_LOG(LogTemp, Error, TEXT("SQL error while preparing statement to insert an entry: %s"), *err);
 		sqlite3_close(db);
 		return false;
 	}
 	sqlite3_bind_text(stmt, 1, TCHAR_TO_UTF8(*path), -1, SQLITE_TRANSIENT);
 	rc = sqlite3_step(stmt);
 	if (rc != SQLITE_DONE) {
-		UE_LOG(LogTemp, Error, TEXT("SQL error while inserting an entry: %s"), UTF8_TO_TCHAR(sqlite3_errmsg(db)));
+		FString err = UTF8_TO_TCHAR(sqlite3_errmsg(db));
+		UE_LOG(LogTemp, Error, TEXT("SQL error while inserting an entry: %s"), *err);
 		sqlite3_free(stmt);
 		return false;
 	}
@@ -409,7 +421,8 @@ TArray<FString> ChartDBHelper::SelectAllEntries(sqlite3* db)
 	sqlite3_stmt* stmt;
 	int rc = sqlite3_prepare_v2(db, query, -1, &stmt, nullptr);
 	if (rc != SQLITE_OK) {
-		UE_LOG(LogTemp, Error, TEXT("SQL error while getting all entries: %s"), UTF8_TO_TCHAR(sqlite3_errmsg(db)));
+		FString err = UTF8_TO_TCHAR(sqlite3_errmsg(db));
+		UE_LOG(LogTemp, Error, TEXT("SQL error while getting all entries: %s"), *err);
 		sqlite3_free(stmt);
 		return TArray<FString>();
 	}
@@ -429,14 +442,16 @@ bool ChartDBHelper::DeleteEntry(sqlite3* db, FString& path)
 	sqlite3_stmt* stmt;
 	int rc = sqlite3_prepare_v2(db, query, -1, &stmt, nullptr);
 	if (rc != SQLITE_OK) {
-		UE_LOG(LogTemp, Error, TEXT("SQL error while preparing statement to delete an entry: %s"), UTF8_TO_TCHAR(sqlite3_errmsg(db)));
+		FString err = UTF8_TO_TCHAR(sqlite3_errmsg(db));
+		UE_LOG(LogTemp, Error, TEXT("SQL error while preparing statement to delete an entry: %s"), *err);
 		sqlite3_free(stmt);
 		return false;
 	}
 	sqlite3_bind_text(stmt, 1, TCHAR_TO_UTF8(*path), -1, SQLITE_TRANSIENT);
 	rc = sqlite3_step(stmt);
 	if (rc != SQLITE_DONE) {
-		UE_LOG(LogTemp, Error, TEXT("SQL error while deleting an entry: %s"), UTF8_TO_TCHAR(sqlite3_errmsg(db)));
+		FString err = UTF8_TO_TCHAR(sqlite3_errmsg(db));
+		UE_LOG(LogTemp, Error, TEXT("SQL error while deleting an entry: %s"), *err);
 		sqlite3_close(db);
 		return false;
 	}
@@ -450,13 +465,15 @@ bool ChartDBHelper::ClearEntries(sqlite3* db)
 	sqlite3_stmt* stmt;
 	int rc = sqlite3_prepare_v2(db, query, -1, &stmt, nullptr);
 	if (rc != SQLITE_OK) {
-		UE_LOG(LogTemp, Error, TEXT("SQL error while clearing: %s"), UTF8_TO_TCHAR(sqlite3_errmsg(db)));
+		FString err = UTF8_TO_TCHAR(sqlite3_errmsg(db));
+		UE_LOG(LogTemp, Error, TEXT("SQL error while clearing: %s"), *err);
 		sqlite3_free(stmt);
 		return false;
 	}
 	rc = sqlite3_step(stmt);
 	if (rc != SQLITE_DONE) {
-		UE_LOG(LogTemp, Error, TEXT("SQL error while clearing: %s"), UTF8_TO_TCHAR(sqlite3_errmsg(db)));
+		FString err = UTF8_TO_TCHAR(sqlite3_errmsg(db));
+		UE_LOG(LogTemp, Error, TEXT("SQL error while clearing: %s"), *err);
 		sqlite3_free(stmt);
 		return false;
 	}

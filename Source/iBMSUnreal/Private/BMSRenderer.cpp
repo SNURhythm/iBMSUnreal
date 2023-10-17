@@ -23,7 +23,7 @@ void FRendererState::Dispose()
 	{
 		while(!item.Value->IsEmpty())
 		{
-			AActor* Instance;
+			APaperSpriteActor* Instance;
 			item.Value->Dequeue(Instance);
 			if(Instance->IsHidden())
 			{
@@ -73,28 +73,28 @@ void UBMSRenderer::DestroyNote(FBMSNote* Note)
 	State->NoteActors.Remove(Note);
 }
 
-void UBMSRenderer::RecycleInstance(EBMSObjectType Type, AActor* Instance)
+void UBMSRenderer::RecycleInstance(EBMSObjectType Type, APaperSpriteActor* Instance)
 {
 	Instance->SetActorHiddenInGame(true);
 	if(!State->ObjectPool.Contains(Type))
 	{
-		State->ObjectPool.Add(Type, new TQueue<AActor*>());
+		State->ObjectPool.Add(Type, new TQueue<APaperSpriteActor*>());
 	}
 	State->ObjectPool[Type]->Enqueue(Instance);
 }
 
-AActor* UBMSRenderer::GetInstance(EBMSObjectType Type)
+APaperSpriteActor* UBMSRenderer::GetInstance(EBMSObjectType Type)
 {
 	if(State->ObjectPool.Contains(Type) && !State->ObjectPool[Type]->IsEmpty())
 	{
-		AActor* Instance;
+		APaperSpriteActor* Instance;
 		State->ObjectPool[Type]->Dequeue(Instance);
 		Instance->SetActorHiddenInGame(false);
 		return Instance;
 	} else
 	{
 		// Spawn inside NoteArea
-		TSubclassOf<AActor> TypeClass;
+		TSubclassOf<APaperSpriteActor> TypeClass;
 		switch(Type)
 		{
 			case EBMSObjectType::Note:
@@ -110,7 +110,7 @@ AActor* UBMSRenderer::GetInstance(EBMSObjectType Type)
 				TypeClass = AMeasureActor::StaticClass();
 				break;
 		}
-		AActor* Instance = GetWorld()->SpawnActor<AActor>(TypeClass);
+		APaperSpriteActor* Instance = GetWorld()->SpawnActor<APaperSpriteActor>(TypeClass);
 		Instance->SetActorHiddenInGame(false);
 		if(Type == Note || Type == LongNoteHead || Type == LongNoteTail)
 		{
@@ -135,11 +135,11 @@ void UBMSRenderer::DrawMeasureLine(FMeasure* Measure, double Offset)
 	float top = OffsetToTop(Offset);
 	if(State->MeasureActors.Contains(Measure))
 	{
-		AActor* MeasureActor = State->MeasureActors[Measure];
+		APaperSpriteActor* MeasureActor = State->MeasureActors[Measure];
 		MeasureActor->SetActorRelativeLocation(FVector(0, 0, top));
 	} else
 	{
-		AActor* MeasureActor = GetInstance(EBMSObjectType::MeasureLine);
+		APaperSpriteActor* MeasureActor = GetInstance(EBMSObjectType::MeasureLine);
 		MeasureActor->SetActorScale3D(FVector(NoteAreaWidth, 0.1, 0.1));
 		MeasureActor->SetActorRelativeLocation(FVector(0, 0, top));
 		State->MeasureActors.Add(Measure, MeasureActor);
@@ -153,11 +153,11 @@ void UBMSRenderer::DrawNote(FBMSNote* Note, double Offset)
 
 	if(State->NoteActors.Contains(Note))
 	{
-		AActor* Actor = State->NoteActors[Note];
+		APaperSpriteActor* Actor = State->NoteActors[Note];
 		Actor->SetActorRelativeLocation(FVector(Left, 0, OffsetToTop(Offset)));
 	} else
 	{
-		AActor* Actor = GetInstance(EBMSObjectType::Note);
+		APaperSpriteActor* Actor = GetInstance(EBMSObjectType::Note);
 		Actor->SetActorRelativeLocation(FVector(Left, 0, OffsetToTop(Offset)));
 		State->NoteActors.Add(Note, Actor);
 	}
@@ -184,16 +184,16 @@ void UBMSRenderer::DrawLongNote(FBMSLongNote* Head, double StartOffset, double E
 	{
 		if(State->NoteActors.Contains(Head))
 		{
-			AActor* Actor = State->NoteActors[Head];
+			APaperSpriteActor* Actor = State->NoteActors[Head];
 			Actor->SetActorRelativeLocation(FVector(Left, 0, StartTop));
 		} else
 		{
-			AActor* Actor = GetInstance(EBMSObjectType::LongNoteHead);
+			APaperSpriteActor* Actor = GetInstance(EBMSObjectType::LongNoteHead);
 			Actor->SetActorRelativeLocation(FVector(Left, 0, StartTop));
 			State->NoteActors.Add(Head, Actor);
 		}
 	}
-	float Alpha = 1.0f;
+	float Alpha = 0.01f;
 	if(Head->IsHolding)
 	{
 		Alpha = 1.0f;
@@ -204,15 +204,19 @@ void UBMSRenderer::DrawLongNote(FBMSLongNote* Head, double StartOffset, double E
 
 	if(State->NoteActors.Contains(Tail))
 	{
-		AActor* Actor = State->NoteActors[Tail];
+		APaperSpriteActor* Actor = State->NoteActors[Tail];
 		Actor->SetActorRelativeLocation(FVector(Left, 0, StartTop));
-		// scale
-		Actor->SetActorRelativeScale3D(FVector(1, 1, Height));
-		// TODO: set alpha
+		// scale sprite
+		FVector Scale = Actor->GetActorRelativeScale3D();
+		Scale.Z = Height;
+		Actor->SetActorRelativeScale3D(Scale);
+		Actor->GetRenderComponent()->SetSpriteColor(FLinearColor(1, 1, 1, Alpha));
 	} else
 	{
-		AActor* Actor = GetInstance(EBMSObjectType::LongNoteTail);
-		Actor->SetActorRelativeScale3D(FVector(1, 1, Height));
+		APaperSpriteActor* Actor = GetInstance(EBMSObjectType::LongNoteTail);
+		FVector Scale = Actor->GetActorRelativeScale3D();
+		Scale.Z = Height;
+		Actor->SetActorRelativeScale3D(Scale);
 		Actor->SetActorRelativeLocation(FVector(Left, 0, StartTop));
 		State->NoteActors.Add(Tail, Actor);
 	}
@@ -226,7 +230,7 @@ float UBMSRenderer::LaneToLeft(int Lane)
 float UBMSRenderer::OffsetToTop(double Offset)
 {
 	// TODO: implement
-	return static_cast<float>(JudgeLineZ + Offset * 0.000007);
+	return static_cast<float>(JudgeLineZ + Offset * 0.0000007);
 }
 
 bool UBMSRenderer::IsOverUpperBound(double Offset)
@@ -239,7 +243,7 @@ bool UBMSRenderer::IsUnderLowerBound(double Offset)
 	return OffsetToTop(Offset) < -1;
 }
 
-void UBMSRenderer::Draw(unsigned long long CurrentTime)
+void UBMSRenderer::Draw(long long CurrentTime)
 {
 	if(!State) return;
 
@@ -291,7 +295,7 @@ void UBMSRenderer::Draw(unsigned long long CurrentTime)
 					if(Note->IsLongNote())
 					{
 						FBMSLongNote* LongNote = static_cast<FBMSLongNote*>(Note);
-						if(LongNote->IsTail)
+						if(LongNote->IsTail())
 						{
 							if(ShouldDestroyTimeLine)
 							{
@@ -302,6 +306,7 @@ void UBMSRenderer::Draw(unsigned long long CurrentTime)
 							}
 						} else
 						{
+							UE_LOG(LogTemp, Warning, TEXT("Orphan Long Note: %d"), LongNote->Lane);
 							State->OrphanLongNotes.Add(LongNote);
 						}
 					}
@@ -316,7 +321,7 @@ void UBMSRenderer::Draw(unsigned long long CurrentTime)
 				if(Note->IsLongNote())
 				{
 					FBMSLongNote* LongNote = static_cast<FBMSLongNote*>(Note);
-					if(!LongNote->IsTail) DrawLongNote(LongNote, Offset, LongNote->Tail->Timeline->Pos - CurrentPos);
+					if(!LongNote->IsTail()) DrawLongNote(LongNote, Offset, LongNote->Tail->Timeline->Pos - CurrentPos);
 				} else
 				{
 					DrawNote(Note, Offset);

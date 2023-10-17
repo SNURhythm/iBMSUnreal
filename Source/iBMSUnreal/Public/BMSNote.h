@@ -23,10 +23,10 @@ public:
 
 	void Play(long Time);
 
-	void Press(long Time);
+	virtual void Press(long Time);
 
-	void Reset();
-	~FBMSNote();
+	virtual void Reset();
+	virtual ~FBMSNote();
 
 	virtual bool IsLongNote() { return false; }
 };

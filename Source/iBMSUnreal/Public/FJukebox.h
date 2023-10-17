@@ -35,5 +35,5 @@ public:
 	void PlayKeysound(int id);
 	void Unload();
 
-	unsigned long long GetPosition();
+	long long GetPosition();
 };

@@ -3,8 +3,14 @@
 
 #include "BMSLongNote.h"
 
+bool FBMSLongNote::IsTail()
+{
+	return Tail == nullptr;
+}
+
 FBMSLongNote::FBMSLongNote(int Wav) : FBMSNote(Wav)
 {
+	Tail = nullptr;
 }
 
 void FBMSLongNote::Press(long Time)

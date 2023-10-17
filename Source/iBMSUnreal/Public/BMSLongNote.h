@@ -16,18 +16,18 @@ public:
 	FBMSLongNote* Tail;
 	FBMSLongNote* Head;
 	bool IsHolding;
-	bool IsTail;
+	bool IsTail();
 	long ReleaseTime;
 	
 	FBMSLongNote(int Wav);
 
-	void Press(long Time);
+	virtual void Press(long Time) override;
 
 	void Release(long Time);
 
 	void MissPress(long Time);
 
-	void Reset();
+	virtual void Reset() override;
 
 	virtual bool IsLongNote() override { return true; }
 };

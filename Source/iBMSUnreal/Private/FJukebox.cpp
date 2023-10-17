@@ -243,12 +243,12 @@ void FJukebox::Unload()
 	SoundTable.Empty();
 }
 
-unsigned long long FJukebox::GetPosition()
+long long FJukebox::GetPosition()
 {
 	if(!ChannelGroup) return 0;
 	unsigned long long dspClock;
 	int samplerate;
 	ChannelGroup->getDSPClock(&dspClock, nullptr);
 	System->getSoftwareFormat(&samplerate, nullptr, nullptr);
-	return (static_cast<double>(dspClock) /samplerate * 1000000 - static_cast<double>(StartDspClock) / samplerate * 1000000);
+	return (static_cast<double>(dspClock) / samplerate * 1000000 - static_cast<double>(StartDspClock) / samplerate * 1000000);
 }

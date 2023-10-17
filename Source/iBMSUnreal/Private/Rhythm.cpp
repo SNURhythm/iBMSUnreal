@@ -61,7 +61,7 @@ void ARhythm::LoadGame()
 		if(!IsLoadCancelled)
 		{
 			IsLoaded = true;
-			Jukebox->Start(Options.StartPosition, Options.AutoKeysound);
+			Jukebox->Start(Options.StartPosition, true);
 		}
 	});
 }

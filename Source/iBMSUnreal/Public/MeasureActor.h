@@ -3,11 +3,12 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "PaperSpriteActor.h"
 #include "GameFramework/Actor.h"
 #include "MeasureActor.generated.h"
 
 UCLASS()
-class IBMSUNREAL_API AMeasureActor : public AActor
+class IBMSUNREAL_API AMeasureActor : public APaperSpriteActor
 {
 	GENERATED_BODY()
 	

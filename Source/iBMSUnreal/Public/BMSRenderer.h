@@ -7,6 +7,7 @@
 #include "BMSLongNote.h"
 #include "TimeLine.h"
 #include "Chart.h"
+#include "PaperSpriteActor.h"
 #include "GameFramework/Actor.h"
 #include "BMSRenderer.generated.h"
 
@@ -22,10 +23,10 @@ enum EBMSObjectType
 class FRendererState
 {
 public:
-	TMap<FBMSNote*, AActor*> NoteActors;
-	TMap<FMeasure*, AActor*> MeasureActors;
+	TMap<FBMSNote*, APaperSpriteActor*> NoteActors;
+	TMap<FMeasure*, APaperSpriteActor*> MeasureActors;
 	// object pool per type
-	TMap<EBMSObjectType, TQueue<AActor*>*> ObjectPool;
+	TMap<EBMSObjectType, TQueue<APaperSpriteActor*>*> ObjectPool;
 	int PassedTimelineCount = 0;
 	int PassedMeasureCount = 0;
 	TArray<FBMSLongNote*> OrphanLongNotes;
@@ -66,9 +67,9 @@ protected:
 
 public:
 	void DestroyNote(FBMSNote* Note);
-	void RecycleInstance(EBMSObjectType Type, AActor* Instance);
+	void RecycleInstance(EBMSObjectType Type, APaperSpriteActor* Instance);
 
-	AActor* GetInstance(EBMSObjectType Type);
+	APaperSpriteActor* GetInstance(EBMSObjectType Type);
 	void DestroyMeasureLine(FMeasure* Measure);
 	void DrawMeasureLine(FMeasure* Measure, double Offset);
 	void DrawLongNote(FBMSLongNote* Head, double StartOffset, double EndOffset, bool TailOnly = false);
@@ -77,7 +78,7 @@ public:
 	bool IsOverUpperBound(double Offset);
 	bool IsUnderLowerBound(double Offset);
 	void DrawNote(FBMSNote* Note, double Offset);
-	void Draw(unsigned long long CurrentTime);
+	void Draw(long long CurrentTime);
 	void Init(FChart* chart);
 	void Reset();
 };
