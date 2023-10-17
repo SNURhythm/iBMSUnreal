@@ -44,6 +44,7 @@ UBMSRenderer::UBMSRenderer()
 void UBMSRenderer::BeginPlay()
 {
 	Super::BeginPlay();
+	SetComponentTickEnabled(false);
 	// spawn note sprite for test
 	// auto note = GetWorld()->SpawnActor<APaperSpriteActor>();
 	// note->GetRenderComponent()->Mobility = EComponentMobility::Movable;
@@ -279,7 +280,7 @@ bool UBMSRenderer::IsOverUpperBound(double Offset)
 
 bool UBMSRenderer::IsUnderLowerBound(double Offset)
 {
-	return OffsetToTop(Offset) < -1;
+	return OffsetToTop(Offset) < -0.1;
 }
 
 void UBMSRenderer::Draw(long long CurrentTime)

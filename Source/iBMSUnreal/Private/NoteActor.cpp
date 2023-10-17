@@ -19,7 +19,8 @@ void ANoteActor::BeginPlay()
 	Super::BeginPlay();
 	GetRenderComponent()->SetMobility(EComponentMobility::Movable);
 	GetRenderComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-	
+	GetRenderComponent()->SetComponentTickEnabled(false);
+
 	
 	
 }

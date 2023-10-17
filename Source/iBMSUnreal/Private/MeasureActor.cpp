@@ -18,7 +18,8 @@ void AMeasureActor::BeginPlay()
 {
 	Super::BeginPlay();
 	GetRenderComponent()->SetMobility(EComponentMobility::Movable);
-	
+	GetRenderComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	GetRenderComponent()->SetComponentTickEnabled(false);
 }
 
 // Called every frame
