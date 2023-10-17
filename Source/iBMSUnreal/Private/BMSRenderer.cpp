@@ -110,12 +110,13 @@ APaperSpriteActor* UBMSRenderer::GetInstance(EBMSObjectType Type)
 		}
 		Instance = GetWorld()->SpawnActor<APaperSpriteActor>(TypeClass);
 		Instance->GetRenderComponent()->SetMaterial(0, LoadObject<UMaterialInterface>(NULL, TEXT("/Paper2D/TranslucentUnlitSpriteMaterial")));
+		Instance->AttachToActor(NoteArea, FAttachmentTransformRules::KeepRelativeTransform);
 	}
 	Instance->SetActorHiddenInGame(false);
 	if(Type == Note || Type == LongNoteHead || Type == LongNoteTail)
 	{
 		Instance->GetRenderComponent()->SetSprite(NoteSprite);
-		Instance->AttachToActor(NoteArea, FAttachmentTransformRules::KeepRelativeTransform);
+		
 		Instance->GetRootComponent()->SetWorldScale3D(FVector(1, 0, 1));
 		Instance->SetActorRelativeRotation(FRotator(0, 0, 0));
 		FVector Scale = Instance->GetActorRelativeScale3D();
@@ -126,7 +127,6 @@ APaperSpriteActor* UBMSRenderer::GetInstance(EBMSObjectType Type)
 	if(Type==MeasureLine)
 	{
 		Instance->GetRenderComponent()->SetSprite(NoteSprite);
-		Instance->AttachToActor(NoteArea, FAttachmentTransformRules::KeepRelativeTransform);
 		Instance->GetRootComponent()->SetWorldScale3D(FVector(1, 0, 0.2));
 		// gray
 		Instance->GetRenderComponent()->SetSpriteColor(FLinearColor(0.02, 0.02, 0.02, 1));
@@ -270,7 +270,7 @@ bool UBMSRenderer::IsScratchLane(int Lane)
 double UBMSRenderer::OffsetToTop(double Offset)
 {
 	// TODO: implement
-	return static_cast<double>(JudgeLineZ + Offset * 0.0000007);
+	return JudgeLineZ + Offset * 0.0000007;
 }
 
 bool UBMSRenderer::IsOverUpperBound(double Offset)
