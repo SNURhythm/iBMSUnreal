@@ -7,7 +7,7 @@
 ANoteActor::ANoteActor()
 {
  	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
-	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.bCanEverTick = false;
 	// init root component
 	// RootComponent = CreateDefaultSubobject<USceneComponent>(TEXT("RenderComponent"));
 	// RootComponent->SetMobility(EComponentMobility::Movable);
