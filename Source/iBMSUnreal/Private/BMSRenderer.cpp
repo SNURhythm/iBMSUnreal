@@ -85,14 +85,11 @@ void UBMSRenderer::RecycleInstance(EBMSObjectType Type, APaperSpriteActor* Insta
 
 APaperSpriteActor* UBMSRenderer::GetInstance(EBMSObjectType Type)
 {
+	APaperSpriteActor* Instance;
 	if(State->ObjectPool.Contains(Type) && !State->ObjectPool[Type]->IsEmpty())
 	{
-		APaperSpriteActor* Instance;
 		State->ObjectPool[Type]->Dequeue(Instance);
-		Instance->SetActorHiddenInGame(false);
-		return Instance;
-	} else
-	{
+	} else {
 		// Spawn inside NoteArea
 		TSubclassOf<APaperSpriteActor> TypeClass;
 		switch(Type)
@@ -110,17 +107,17 @@ APaperSpriteActor* UBMSRenderer::GetInstance(EBMSObjectType Type)
 				TypeClass = AMeasureActor::StaticClass();
 				break;
 		}
-		APaperSpriteActor* Instance = GetWorld()->SpawnActor<APaperSpriteActor>(TypeClass);
-		Instance->SetActorHiddenInGame(false);
-		if(Type == Note || Type == LongNoteHead || Type == LongNoteTail)
-		{
-			static_cast<ANoteActor*>(Instance)->SetSprite(NoteSprite);
-			Instance->AttachToActor(NoteArea, FAttachmentTransformRules::KeepRelativeTransform);
-			Instance->GetRootComponent()->SetWorldScale3D(FVector(NoteWidth, 0.1, 1));
-
-		}
-		return Instance;
+		Instance = GetWorld()->SpawnActor<APaperSpriteActor>(TypeClass);		
 	}
+	Instance->SetActorHiddenInGame(false);
+	if(Type == Note || Type == LongNoteHead || Type == LongNoteTail)
+	{
+		static_cast<ANoteActor*>(Instance)->SetSprite(NoteSprite);
+		Instance->AttachToActor(NoteArea, FAttachmentTransformRules::KeepRelativeTransform);
+		Instance->GetRootComponent()->SetWorldScale3D(FVector(NoteWidth, 0.1, 1));
+
+	}
+	return Instance;
 }
 
 void UBMSRenderer::DestroyMeasureLine(FMeasure* Measure)
