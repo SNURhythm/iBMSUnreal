@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "BMSGameInstance.h"
 #include "BMSRenderer.h"
 #include "FJukebox.h"
 #include "GameFramework/Actor.h"
@@ -16,11 +17,13 @@ class IBMSUNREAL_API ARhythm : public AActor
 	GENERATED_BODY()
 private:
 	void LoadGame();
+	UBMSGameInstance* GameInstance;
 public:	
 	// Sets default values for this actor's properties
 	ARhythm();
 	std::atomic_bool IsLoaded;
 	std::atomic_bool IsLoadCancelled;
+	
 	FJukebox* Jukebox;
 
 protected:

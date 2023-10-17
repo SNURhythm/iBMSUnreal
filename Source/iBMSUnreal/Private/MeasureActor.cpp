@@ -3,6 +3,8 @@
 
 #include "MeasureActor.h"
 
+#include "PaperSpriteComponent.h"
+
 // Sets default values
 AMeasureActor::AMeasureActor()
 {
@@ -15,6 +17,7 @@ AMeasureActor::AMeasureActor()
 void AMeasureActor::BeginPlay()
 {
 	Super::BeginPlay();
+	GetRenderComponent()->SetMobility(EComponentMobility::Movable);
 	
 }
 

@@ -15,7 +15,7 @@ ANoteActor::ANoteActor()
 
 void ANoteActor::SetSprite(UPaperSprite* sprite)
 {
-	GetRenderComponent()->SetMobility(EComponentMobility::Movable);
+	
 	GetRenderComponent()->SetSprite(sprite);
 	GetRenderComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	
@@ -25,6 +25,7 @@ void ANoteActor::SetSprite(UPaperSprite* sprite)
 void ANoteActor::BeginPlay()
 {
 	Super::BeginPlay();
+	GetRenderComponent()->SetMobility(EComponentMobility::Movable);
 	
 	
 	

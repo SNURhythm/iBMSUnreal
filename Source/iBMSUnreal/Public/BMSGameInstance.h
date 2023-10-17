@@ -28,7 +28,7 @@ class IBMSUNREAL_API UBMSGameInstance : public UGameInstance
 	void InitFMOD();
 	StartOptions startOptions;
 public:
-	FMOD::System* GetFMODSystem();
+	inline FMOD::System* GetFMODSystem();
 	void SetStartOptions(StartOptions options);
 	StartOptions GetStartOptions();
 };

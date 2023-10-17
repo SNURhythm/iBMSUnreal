@@ -56,7 +56,7 @@ void FJukebox::ScheduleSound(unsigned long long startDspClock, FMOD::Sound* Soun
 	}
 	FMOD::Channel* channel;
 	System->playSound(Sound, ChannelGroup, true, &channel);
-	channel->setDelay(startDspClock, 0, false);
+	channel->setDelay(startDspClock, 0, true);
 	channel->setPaused(false);
 }
 
@@ -198,11 +198,12 @@ void FJukebox::Unpause()
 					SoundQueueLock.Unlock();
 					break;
 				}
+				SoundQueueLock.Unlock();
 				
 				FMOD::Channel* channel;
 				System->playSound(pair.Value, ChannelGroup, true, &channel);
-				channel->setDelay(pair.Key, 0, false);
-				SoundQueueLock.Unlock();
+				channel->setDelay(pair.Key, 0, true);
+
 				channel->setPaused(false);
 				
 			}

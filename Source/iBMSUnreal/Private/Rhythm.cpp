@@ -22,8 +22,8 @@ void ARhythm::BeginPlay()
 	Super::BeginPlay();
 	UE_LOG(LogTemp, Warning, TEXT("Rhythm BeginPlay"));
 	// get BMSRenderer actor component
+	GameInstance = Cast<UBMSGameInstance>(GetGameInstance());
 	Renderer = Cast<UBMSRenderer>(GetComponentByClass(UBMSRenderer::StaticClass()));
-	const auto GameInstance = Cast<UBMSGameInstance>(GetGameInstance());
 	Jukebox = new FJukebox(GameInstance->GetFMODSystem());
 	LoadGame();
 }
@@ -46,14 +46,13 @@ void ARhythm::EndPlay(const EEndPlayReason::Type EndPlayReason)
 void ARhythm::LoadGame()
 {
 	UE_LOG(LogTemp, Warning, TEXT("Loading Game"));
-	const auto GameInstance = Cast<UBMSGameInstance>(GetGameInstance());
 	auto Options = GameInstance->GetStartOptions();
 	
 	UE::Tasks::FTask LoadTask = UE::Tasks::Launch(UE_SOURCE_LOCATION, [&, Options]()
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Loading Chart&Jukebox"));
 		FBMSParser Parser;
-		Parser.Parse(Options.BmsPath, &Chart, true, false, IsLoadCancelled);
+		Parser.Parse(Options.BmsPath, &Chart, false, false, IsLoadCancelled);
 		if(IsLoadCancelled) return;
 		Jukebox->LoadChart(Chart, IsLoadCancelled);
 		Renderer->Init(Chart);
@@ -73,6 +72,7 @@ void ARhythm::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 	if(!IsLoaded) return;
 	Renderer->Draw(Jukebox->GetPosition());
+	GameInstance->GetFMODSystem()->update();
 
 }
 

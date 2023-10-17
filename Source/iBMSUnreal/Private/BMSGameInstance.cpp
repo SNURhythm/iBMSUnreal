@@ -30,7 +30,7 @@ void UBMSGameInstance::InitFMOD()
 	fmodSystem->init(4092, FMOD_INIT_NORMAL, 0);
 }
 
-FMOD::System* UBMSGameInstance::GetFMODSystem()
+inline FMOD::System* UBMSGameInstance::GetFMODSystem()
 {
 	return fmodSystem;
 }
