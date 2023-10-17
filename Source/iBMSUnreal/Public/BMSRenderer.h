@@ -74,6 +74,7 @@ public:
 	void DrawMeasureLine(FMeasure* Measure, double Offset);
 	void DrawLongNote(FBMSLongNote* Head, double StartOffset, double EndOffset, bool TailOnly = false);
 	float LaneToLeft(int Lane);
+	bool IsScratchLane(int Lane);
 	float OffsetToTop(double Offset);
 	bool IsOverUpperBound(double Offset);
 	bool IsUnderLowerBound(double Offset);

@@ -114,7 +114,11 @@ APaperSpriteActor* UBMSRenderer::GetInstance(EBMSObjectType Type)
 	{
 		static_cast<ANoteActor*>(Instance)->SetSprite(NoteSprite);
 		Instance->AttachToActor(NoteArea, FAttachmentTransformRules::KeepRelativeTransform);
-		Instance->GetRootComponent()->SetWorldScale3D(FVector(NoteWidth, 0.1, 1));
+		Instance->GetRootComponent()->SetWorldScale3D(FVector(1, 0, 1));
+		Instance->SetActorRelativeRotation(FRotator(0, 0, 0));
+		FVector Scale = Instance->GetActorRelativeScale3D();
+		Scale.X = NoteWidth;
+		Instance->SetActorRelativeScale3D(Scale);
 
 	}
 	return Instance;
@@ -137,7 +141,7 @@ void UBMSRenderer::DrawMeasureLine(FMeasure* Measure, double Offset)
 	} else
 	{
 		APaperSpriteActor* MeasureActor = GetInstance(EBMSObjectType::MeasureLine);
-		MeasureActor->SetActorScale3D(FVector(NoteAreaWidth, 0.1, 0.1));
+		MeasureActor->SetActorScale3D(FVector(NoteAreaWidth, 0, 0.1));
 		MeasureActor->SetActorRelativeLocation(FVector(0, 0, top));
 		State->MeasureActors.Add(Measure, MeasureActor);
 	}
@@ -148,16 +152,25 @@ void UBMSRenderer::DrawNote(FBMSNote* Note, double Offset)
 	if(Note->IsPlayed) return;
 	float Left = LaneToLeft(Note->Lane);
 
+	APaperSpriteActor* Actor;
 	if(State->NoteActors.Contains(Note))
 	{
-		APaperSpriteActor* Actor = State->NoteActors[Note];
+		Actor = State->NoteActors[Note];
 		Actor->SetActorRelativeLocation(FVector(Left, 0, OffsetToTop(Offset)));
 	} else
 	{
-		APaperSpriteActor* Actor = GetInstance(EBMSObjectType::Note);
+		Actor = GetInstance(EBMSObjectType::Note);
 		Actor->SetActorRelativeLocation(FVector(Left, 0, OffsetToTop(Offset)));
 		State->NoteActors.Add(Note, Actor);
 	}
+
+	if(IsScratchLane(Note->Lane))
+	{
+		// tilt 90 degrees on Z
+		Actor->SetActorRelativeRotation(FRotator(0, 270, 0));
+	}
+
+	
 }
 
 void UBMSRenderer::DrawLongNote(FBMSLongNote* Head, double StartOffset, double EndOffset, bool TailOnly)
@@ -179,15 +192,21 @@ void UBMSRenderer::DrawLongNote(FBMSLongNote* Head, double StartOffset, double E
 
 	if(!TailOnly)
 	{
+		APaperSpriteActor* HeadActor;
 		if(State->NoteActors.Contains(Head))
 		{
-			APaperSpriteActor* Actor = State->NoteActors[Head];
-			Actor->SetActorRelativeLocation(FVector(Left, 0, StartTop));
+			HeadActor = State->NoteActors[Head];
+			HeadActor->SetActorRelativeLocation(FVector(Left, 0, StartTop));
 		} else
 		{
-			APaperSpriteActor* Actor = GetInstance(EBMSObjectType::LongNoteHead);
-			Actor->SetActorRelativeLocation(FVector(Left, 0, StartTop));
-			State->NoteActors.Add(Head, Actor);
+			HeadActor = GetInstance(EBMSObjectType::LongNoteHead);
+			HeadActor->SetActorRelativeLocation(FVector(Left, 0, StartTop));
+			State->NoteActors.Add(Head, HeadActor);
+		}
+		if(IsScratchLane(Head->Lane))
+		{
+			// tilt 90 degrees on Z
+			HeadActor->SetActorRelativeRotation(FRotator(0, 270, 0));
 		}
 	}
 	float Alpha = 0.01f;
@@ -198,30 +217,41 @@ void UBMSRenderer::DrawLongNote(FBMSLongNote* Head, double StartOffset, double E
 	{
 		Alpha = Head->IsPlayed? 0.2f : 0.5f;
 	}
-
+	APaperSpriteActor* TailActor;
 	if(State->NoteActors.Contains(Tail))
 	{
-		APaperSpriteActor* Actor = State->NoteActors[Tail];
-		Actor->SetActorRelativeLocation(FVector(Left, 0, StartTop));
+		TailActor = State->NoteActors[Tail];
+		TailActor->SetActorRelativeLocation(FVector(Left, 0, StartTop));
 		// scale sprite
-		FVector Scale = Actor->GetActorRelativeScale3D();
+		FVector Scale = TailActor->GetActorRelativeScale3D();
 		Scale.Z = Height;
-		Actor->SetActorRelativeScale3D(Scale);
-		Actor->GetRenderComponent()->SetSpriteColor(FLinearColor(1, 1, 1, Alpha));
+		TailActor->SetActorRelativeScale3D(Scale);
+		TailActor->GetRenderComponent()->SetSpriteColor(FLinearColor(1, 1, 1, Alpha));
 	} else
 	{
-		APaperSpriteActor* Actor = GetInstance(EBMSObjectType::LongNoteTail);
-		FVector Scale = Actor->GetActorRelativeScale3D();
+		TailActor = GetInstance(EBMSObjectType::LongNoteTail);
+		FVector Scale = TailActor->GetActorRelativeScale3D();
 		Scale.Z = Height;
-		Actor->SetActorRelativeScale3D(Scale);
-		Actor->SetActorRelativeLocation(FVector(Left, 0, StartTop));
-		State->NoteActors.Add(Tail, Actor);
+		TailActor->SetActorRelativeScale3D(Scale);
+		TailActor->SetActorRelativeLocation(FVector(Left, 0, StartTop));
+		State->NoteActors.Add(Tail, TailActor);
+	}
+	if(IsScratchLane(Tail->Lane))
+	{
+		// tilt 90 degrees on Z
+		TailActor->SetActorRelativeRotation(FRotator(0, 270, 0));
 	}
 }
 
 float UBMSRenderer::LaneToLeft(int Lane)
 {
-	return (static_cast<float>(Lane)/LaneCount) - 1;
+	if(IsScratchLane(Lane)) return -1;
+	return (static_cast<float>(Lane+1)/LaneCount) - 1;
+}
+
+bool UBMSRenderer::IsScratchLane(int Lane)
+{
+	return Lane == 7;
 }
 
 float UBMSRenderer::OffsetToTop(double Offset)
@@ -345,7 +375,7 @@ void UBMSRenderer::Init(FChart* chart)
 	this->Chart = chart;
 	State = new FRendererState();
 	LaneCount = chart->Meta->KeyMode; // main line count except for scratch
-	NoteWidth = NoteAreaWidth / LaneCount;
+	NoteWidth = 1.0f / LaneCount;
 
 	LastTimeLine = chart->Measures[0]->TimeLines[0];
 
