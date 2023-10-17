@@ -20,6 +20,7 @@ void AMeasureActor::BeginPlay()
 	GetRenderComponent()->SetMobility(EComponentMobility::Movable);
 	GetRenderComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	GetRenderComponent()->SetComponentTickEnabled(false);
+	SetActorEnableCollision(false);
 }
 
 // Called every frame

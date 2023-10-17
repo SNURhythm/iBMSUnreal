@@ -270,7 +270,7 @@ bool UBMSRenderer::IsScratchLane(int Lane)
 double UBMSRenderer::OffsetToTop(double Offset)
 {
 	// TODO: implement
-	return JudgeLineZ + Offset * 0.0000007;
+	return JudgeLineZ + Offset * 0.0000014;
 }
 
 bool UBMSRenderer::IsOverUpperBound(double Offset)
