@@ -20,6 +20,8 @@ ARhythm::ARhythm()
 void ARhythm::BeginPlay()
 {
 	Super::BeginPlay();
+	// force garbage collection
+	CollectGarbage(GARBAGE_COLLECTION_KEEPFLAGS);
 	UE_LOG(LogTemp, Warning, TEXT("Rhythm BeginPlay"));
 	// get BMSRenderer actor component
 	GameInstance = Cast<UBMSGameInstance>(GetGameInstance());
