@@ -138,6 +138,7 @@ void AChartSelectScreen::LoadCharts()
 			auto ChartList = ChartSelectUI->ChartList;
 			AsyncTask(ENamedThreads::GameThread, [chartMetas, ChartList, this]()
 			{
+				if (bCancelled) return;
 				if (IsValid(ChartList))
 					SetChartMetas(chartMetas);
 			});
@@ -221,20 +222,24 @@ void AChartSelectScreen::LoadCharts()
 					}, !bSupportMultithreading);
 				dbHelper.CommitTransaction(db);
 			}
+	    	if (bCancelled) return;
 			chartMetas = dbHelper.SelectAllChartMeta(db);
 			chartMetas.Sort([](const FChartMeta& A, const FChartMeta& B) {
 				return A.Title < B.Title;
 			});
 			AsyncTask(ENamedThreads::GameThread, [chartMetas, ChartList, this]()
 			{
+				if (bCancelled) return;
 				if (IsValid(ChartList))
 					SetChartMetas(chartMetas);
 			});
-	    	
+
+	    	UE_LOG(LogTemp, Warning, TEXT("BMSGameModeBase End Task"));
+			UE_LOG(LogTemp, Warning, TEXT("success count: %d"), (int)SuccessCount);
+	    	if (bCancelled) return;
 			const auto Result = FMODSystem->playSound(SuccessSound, nullptr, false, nullptr);
 			UE_LOG(LogTemp, Warning, TEXT("FMODSystem->playSound: %d"), Result);
-			UE_LOG(LogTemp, Warning, TEXT("BMSGameModeBase End Task"));
-			UE_LOG(LogTemp, Warning, TEXT("success count: %d"), (int)SuccessCount);
+			
 	    });
 }
 
