@@ -33,7 +33,7 @@ namespace KeyAssign {
 	int PopN[] = { 0, 1, 2, 3, 4, -1, -1, -1, -1, -1, 5, 6, 7, 8, -1, -1, -1, -1 };
 };
 
-const int TempKey = 8;
+const int TempKey = 16;
 const int Scroll = 1020;
 
 FBMSParser::FBMSParser(): BpmTable{}, StopLengthTable{}
@@ -190,7 +190,7 @@ void FBMSParser::Parse(FString path, FChart** chart, bool addReadyMeasure, bool 
 				continue;
 			}
 
-			auto laneNumber = 0;
+			auto laneNumber = 0; // NOTE: This is intentionally set to 0, not -1!
 			if (channel >= Channel::P1KeyBase && channel < Channel::P1KeyBase + 9)
 			{
 				laneNumber = KeyAssign::Beat7[channel - Channel::P1KeyBase];
@@ -236,11 +236,12 @@ void FBMSParser::Parse(FString path, FChart** chart, bool addReadyMeasure, bool 
 			auto isScratch = laneNumber == 7 || laneNumber == 15;
 			if (laneNumber == 5 || laneNumber == 6 || laneNumber == 13 || laneNumber == 14)
 			{
-				Chart->Meta->KeyMode = 7;
+				if(Chart->Meta->KeyMode == 5) Chart->Meta->KeyMode = 7;
+				else if(Chart->Meta->KeyMode == 10) Chart->Meta->KeyMode = 14;
 			}
-			if (laneNumber >= TempKey) {
-				// skip DP/PMS for now
-				continue;
+			if (laneNumber >= 8) {
+				if(Chart->Meta->KeyMode == 7) Chart->Meta->KeyMode = 14;
+				else if(Chart->Meta->KeyMode == 5)Chart->Meta->KeyMode = 10;
 			}
 
 			auto dataCount = data.Len() / 2;

@@ -75,6 +75,8 @@ public:
 	void DrawLongNote(FBMSLongNote* Head, double StartOffset, double EndOffset, bool TailOnly = false);
 	double LaneToLeft(int Lane);
 	bool IsScratchLane(int Lane);
+	bool IsLeftScratchLane(int Lane);
+    bool IsRightScratchLane(int Lane);
 	double OffsetToTop(double Offset);
 	bool IsOverUpperBound(double Offset);
 	bool IsUnderLowerBound(double Offset);

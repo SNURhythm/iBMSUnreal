@@ -258,13 +258,25 @@ void UBMSRenderer::DrawLongNote(FBMSLongNote* Head, double StartOffset, double E
 
 double UBMSRenderer::LaneToLeft(int Lane)
 {
-	if(IsScratchLane(Lane)) return -1;
+	if(IsLeftScratchLane(Lane)) return -1;
+	if(IsRightScratchLane(Lane)) return 0; // Right Scratch
+	if(Lane >= 8) Lane -= LaneCount == 14 ? 1 : 3; // DP or 2P
 	return (static_cast<double>(Lane+1)/LaneCount) - 1;
 }
 
 bool UBMSRenderer::IsScratchLane(int Lane)
 {
+	return IsLeftScratchLane(Lane) || IsRightScratchLane(Lane);
+}
+
+bool UBMSRenderer::IsLeftScratchLane(int Lane)
+{
 	return Lane == 7;
+}
+
+bool UBMSRenderer::IsRightScratchLane(int Lane)
+{
+	return Lane == 15;
 }
 
 double UBMSRenderer::OffsetToTop(double Offset)
