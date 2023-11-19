@@ -252,7 +252,7 @@ void AChartSelectScreen::OnStartButtonClicked()
 	auto gameInstance = Cast<UBMSGameInstance>(UGameplayStatics::GetGameInstance(GetWorld()));
 	StartOptions options;
 	options.BmsPath = chartMeta->BmsPath;
-	options.AutoKeysound = true;
+	options.AutoKeysound = false;
 	options.AutoPlay = true;
 	gameInstance->SetStartOptions(options);
 	// load level
