@@ -222,13 +222,13 @@ void UBMSRenderer::DrawLongNote(FBMSLongNote* Head, const double StartOffset, co
 			HeadActor->SetActorRelativeRotation(FRotator(0, 270, 0));
 		}
 	}
-	double Alpha = 0.01f;
+	float Alpha = 0.01f;
 	if(Head->IsHolding)
 	{
 		Alpha = 1.0f;
 	} else
 	{
-		Alpha = Head->IsPlayed? 0.2f : 0.5f;
+		Alpha = Head->IsPlayed? 0.2f : 0.3f;
 	}
 	APaperSpriteActor* TailActor;
 	if(State->NoteActors.Contains(Tail))
@@ -247,6 +247,7 @@ void UBMSRenderer::DrawLongNote(FBMSLongNote* Head, const double StartOffset, co
 		Scale.Z = Height;
 		TailActor->SetActorRelativeScale3D(Scale);
 		TailActor->SetActorRelativeLocation(FVector(Left, 0, StartTop));
+		TailActor->GetRenderComponent()->SetSpriteColor(FLinearColor(1, 1, 1, Alpha));
 		State->NoteActors.Add(Tail, TailActor);
 	}
 	if(IsScratchLane(Tail->Lane))
@@ -358,7 +359,6 @@ void UBMSRenderer::Draw(const long long CurrentTime)
 							}
 						} else
 						{
-							UE_LOG(LogTemp, Warning, TEXT("Orphan Long Note: %d"), LongNote->Lane);
 							State->OrphanLongNotes.Add(LongNote);
 						}
 					}

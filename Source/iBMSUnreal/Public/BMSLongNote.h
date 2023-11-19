@@ -15,9 +15,9 @@ public:
 	~FBMSLongNote();
 	FBMSLongNote* Tail;
 	FBMSLongNote* Head;
-	bool IsHolding;
+	bool IsHolding = false;
 	bool IsTail();
-	long ReleaseTime;
+	long long ReleaseTime;
 	
 	FBMSLongNote(int Wav);
 
