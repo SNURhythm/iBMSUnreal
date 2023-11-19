@@ -13,14 +13,14 @@ FBMSLongNote::FBMSLongNote(int Wav) : FBMSNote(Wav)
 	Tail = nullptr;
 }
 
-void FBMSLongNote::Press(long Time)
+void FBMSLongNote::Press(long long Time)
 {
 	Play(Time);
 	IsHolding = true;
 	Tail->IsHolding = true;
 }
 
-void FBMSLongNote::Release(long Time)
+void FBMSLongNote::Release(long long Time)
 {
 	Play(Time);
 	IsHolding = false;
@@ -28,7 +28,7 @@ void FBMSLongNote::Release(long Time)
 	ReleaseTime = Time;
 }
 
-void FBMSLongNote::MissPress(long Time)
+void FBMSLongNote::MissPress(long long Time)
 {
 
 }

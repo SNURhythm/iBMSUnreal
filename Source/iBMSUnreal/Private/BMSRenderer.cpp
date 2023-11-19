@@ -260,8 +260,8 @@ double UBMSRenderer::LaneToLeft(int Lane)
 {
 	if(IsLeftScratchLane(Lane)) return -1;
 	if(IsRightScratchLane(Lane)) return 0; // Right Scratch
-	if(Lane >= 8) Lane -= LaneCount == 14 ? 1 : 3; // DP or 2P
-	return (static_cast<double>(Lane+1)/LaneCount) - 1;
+	if(Lane >= 8) Lane -= KeyLaneCount == 14 ? 1 : 3; // DP or 2P
+	return (static_cast<double>(Lane+1)/KeyLaneCount) - 1;
 }
 
 bool UBMSRenderer::IsScratchLane(int Lane)
@@ -395,23 +395,23 @@ void UBMSRenderer::Draw(const long long CurrentTime)
 	
 }
 
-void UBMSRenderer::Init(FChart* Chart)
+void UBMSRenderer::Init(FChart* ChartInit)
 {
-	this->Chart = Chart;
+	this->Chart = ChartInit;
 	State = new FRendererState();
-	LaneCount = Chart->Meta->KeyMode; // main line count except for scratch
-	NoteWidth = 1.0f / LaneCount;
+	KeyLaneCount = ChartInit->Meta->GetKeyLaneCount(); // main line count except for scratch
+	NoteWidth = 1.0f / KeyLaneCount;
 
-	LastTimeLine = Chart->Measures[0]->TimeLines[0];
+	LastTimeLine = ChartInit->Measures[0]->TimeLines[0];
 
-	FTimeLine* _lastTimeLine = Chart->Measures[0]->TimeLines[0];
+	FTimeLine* _lastTimeLine = ChartInit->Measures[0]->TimeLines[0];
 	_lastTimeLine->Pos = 0.0;
-	for(const auto& Measure: Chart->Measures)
+	for(const auto& Measure: ChartInit->Measures)
 	{
-		Measure->Pos = _lastTimeLine->Pos + (Measure->Timing - (_lastTimeLine->Timing + _lastTimeLine->GetStopDuration())) * _lastTimeLine->Bpm / Chart->Meta->Bpm;
+		Measure->Pos = _lastTimeLine->Pos + (Measure->Timing - (_lastTimeLine->Timing + _lastTimeLine->GetStopDuration())) * _lastTimeLine->Bpm / ChartInit->Meta->Bpm;
 		for(const auto& Timeline: Measure->TimeLines)
 		{
-			Timeline->Pos = _lastTimeLine->Pos + (Timeline->Timing - (_lastTimeLine->Timing + _lastTimeLine->GetStopDuration())) * _lastTimeLine->Bpm / Chart->Meta->Bpm;
+			Timeline->Pos = _lastTimeLine->Pos + (Timeline->Timing - (_lastTimeLine->Timing + _lastTimeLine->GetStopDuration())) * _lastTimeLine->Bpm / ChartInit->Meta->Bpm;
 			_lastTimeLine = Timeline;
 		}
 	}

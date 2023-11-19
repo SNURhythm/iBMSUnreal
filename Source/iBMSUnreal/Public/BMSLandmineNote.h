@@ -13,4 +13,6 @@ public:
 	float Damage;
 	FBMSLandmineNote(float Damage);
 	~FBMSLandmineNote();
+
+	virtual bool IsLandmineNote() override { return true; }
 };

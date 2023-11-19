@@ -242,6 +242,7 @@ void FBMSParser::Parse(FString path, FChart** chart, bool addReadyMeasure, bool 
 			if (laneNumber >= 8) {
 				if(Chart->Meta->KeyMode == 7) Chart->Meta->KeyMode = 14;
 				else if(Chart->Meta->KeyMode == 5)Chart->Meta->KeyMode = 10;
+				Chart->Meta->IsDP = true;
 			}
 
 			auto dataCount = data.Len() / 2;

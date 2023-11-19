@@ -39,11 +39,44 @@ class IBMSUNREAL_API FChartMeta {
 	double MaxBpm;
 	int Player = 1;
 	int KeyMode = 5;
+	bool IsDP = false;
 	int TotalNotes;
 	int TotalLongNotes;
 	int TotalScratchNotes;
 	int TotalBackSpinNotes;
 	int LnMode = 0; // 0: user decides, 1: LN, 2: CN, 3: HCN
+
+	int GetKeyLaneCount() const { return KeyMode; }
+	int GetScratchLaneCount() const { return IsDP? 2 : 1; }
+	int GetTotalLaneCount() const { return KeyMode + GetScratchLaneCount(); }
+	TArray<int> GetKeyLaneIndices() const
+	{
+		if(KeyMode == 5)
+		{
+			if(IsDP) return { 0, 1, 2, 3, 4, 8, 9, 10, 11, 12};
+			return { 0, 1, 2, 3, 4 };
+		}
+		if(KeyMode == 7)
+		{
+			if(IsDP) return { 0, 1, 2, 3, 4, 5, 6, 8, 9, 10, 11, 12, 13, 14};
+			return { 0, 1, 2, 3, 4, 5, 6 };
+		}
+		return {};
+	}
+
+	TArray<int> GetScratchLaneIndices() const
+	{
+		if(IsDP) return { 7, 15 };
+		return { 5 };
+	}
+
+	TArray<int> GetTotalLaneIndices() const
+	{
+		TArray<int> Result;
+		Result.Append(GetKeyLaneIndices());
+		Result.Append(GetScratchLaneIndices());
+		return Result;
+	}
 
 };
 

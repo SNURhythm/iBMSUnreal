@@ -21,11 +21,11 @@ public:
 	
 	FBMSLongNote(int Wav);
 
-	virtual void Press(long Time) override;
+	virtual void Press(long long Time) override;
 
-	void Release(long Time);
+	void Release(long long Time);
 
-	void MissPress(long Time);
+	void MissPress(long long Time);
 
 	virtual void Reset() override;
 

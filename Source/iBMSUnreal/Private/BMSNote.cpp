@@ -8,13 +8,13 @@ FBMSNote::FBMSNote(int wav)
 	Wav = wav;
 }
 
-void FBMSNote::Play(long Time)
+void FBMSNote::Play(long long Time)
 {
 	IsPlayed = true;
 	PlayedTime = Time;
 }
 
-void FBMSNote::Press(long Time)
+void FBMSNote::Press(long long Time)
 {
 	Play(Time);
 }

@@ -14,19 +14,20 @@ public:
 
 	bool IsPlayed = false;
 	bool IsDead = false;
-	long PlayedTime = 0;
+	long long PlayedTime = 0;
 	FTimeLine* Timeline;
 	
 	// private Note nextNote;
 
 	FBMSNote(int Wav);
 
-	void Play(long Time);
+	void Play(long long Time);
 
-	virtual void Press(long Time);
+	virtual void Press(long long Time);
 
 	virtual void Reset();
 	virtual ~FBMSNote();
 
 	virtual bool IsLongNote() { return false; }
+	virtual bool IsLandmineNote() { return false; }
 };

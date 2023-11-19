@@ -16,7 +16,8 @@ struct StartOptions
 {
 	FString BmsPath;
 	unsigned long long StartPosition = 0;
-	bool AutoKeysound;
+	bool AutoKeysound = false;
+	bool AutoPlay = false;
 };
 UCLASS()
 class IBMSUNREAL_API UBMSGameInstance : public UGameInstance

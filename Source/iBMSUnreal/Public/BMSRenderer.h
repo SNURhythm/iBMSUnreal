@@ -61,7 +61,7 @@ protected:
 	float NoteAreaHeight;
 	float NoteAreaWidth;
 	float JudgeLineZ;
-	int LaneCount;
+	int KeyLaneCount;
 	float NoteWidth;
 	
 
@@ -82,6 +82,6 @@ public:
 	bool IsUnderLowerBound(double Offset) const;
 	void DrawNote(FBMSNote* Note, double Offset);
 	void Draw(long long CurrentTime);
-	void Init(FChart* Chart);
+	void Init(FChart* ChartInit);
 	void Reset();
 };

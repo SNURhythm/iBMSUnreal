@@ -248,7 +248,7 @@ void FJukebox::Unload()
 	SoundTable.Empty();
 }
 
-long long FJukebox::GetPosition()
+long long FJukebox::GetPositionMicro() const
 {
 	if(!ChannelGroup) return 0;
 	unsigned long long dspClock;
