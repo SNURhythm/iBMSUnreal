@@ -10,6 +10,7 @@
 #include "ChartListEntry.h"
 
 #include "DesktopPlatformModule.h"
+#include "Judge.h"
 #include "Blueprint/UserWidget.h"
 #include "iBMSUnreal/Public/ImageUtils.h"
 #include "Kismet/GameplayStatics.h"
@@ -251,7 +252,7 @@ void AChartSelectScreen::OnStartButtonClicked()
 	auto gameInstance = Cast<UBMSGameInstance>(UGameplayStatics::GetGameInstance(GetWorld()));
 	StartOptions options;
 	options.BmsPath = chartMeta->BmsPath;
-	options.AutoKeysound = false;
+	options.AutoKeysound = true;
 	options.AutoPlay = true;
 	gameInstance->SetStartOptions(options);
 	// load level
@@ -297,7 +298,8 @@ void AChartSelectScreen::BeginPlay()
 				}
 				ChartSelectUI->TotalText->SetText(FText::FromString(FString::Printf(TEXT("%.2lf"), chartMeta->Total)));
 				ChartSelectUI->NotesText->SetText(FText::FromString(FString::Printf(TEXT("%d"), chartMeta->TotalNotes)));
-				ChartSelectUI->JudgementText->SetText(FText::FromString(FString::Printf(TEXT("%d"), chartMeta->Rank)));
+				ChartSelectUI->JudgementText->SetText(
+					FText::FromString(FString::Printf(TEXT("%s"), *FJudge::GetRankDescription(chartMeta->Rank))));
 				bJukeboxCancelled = true;
 				FString BmsPath = chartMeta->BmsPath;
 				// full-parse chart
