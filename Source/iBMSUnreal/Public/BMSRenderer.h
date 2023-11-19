@@ -66,22 +66,22 @@ protected:
 	
 
 public:
-	void DestroyNote(FBMSNote* Note);
-	void RecycleInstance(EBMSObjectType Type, APaperSpriteActor* Instance);
+	void DestroyNote(const FBMSNote* Note);
+	void RecycleInstance(EBMSObjectType Type, APaperSpriteActor* Instance) const;
 
-	APaperSpriteActor* GetInstance(EBMSObjectType Type);
-	void DestroyMeasureLine(FMeasure* Measure);
+	APaperSpriteActor* GetInstance(EBMSObjectType Type) const;
+	void DestroyMeasureLine(const FMeasure* Measure) const;
 	void DrawMeasureLine(FMeasure* Measure, double Offset);
 	void DrawLongNote(FBMSLongNote* Head, double StartOffset, double EndOffset, bool TailOnly = false);
 	double LaneToLeft(int Lane);
 	bool IsScratchLane(int Lane);
-	bool IsLeftScratchLane(int Lane);
-    bool IsRightScratchLane(int Lane);
-	double OffsetToTop(double Offset);
-	bool IsOverUpperBound(double Offset);
-	bool IsUnderLowerBound(double Offset);
+	static bool IsLeftScratchLane(int Lane);
+	static bool IsRightScratchLane(int Lane);
+	double OffsetToTop(double Offset) const;
+	bool IsOverUpperBound(double Offset) const;
+	bool IsUnderLowerBound(double Offset) const;
 	void DrawNote(FBMSNote* Note, double Offset);
 	void Draw(long long CurrentTime);
-	void Init(FChart* chart);
+	void Init(FChart* Chart);
 	void Reset();
 };

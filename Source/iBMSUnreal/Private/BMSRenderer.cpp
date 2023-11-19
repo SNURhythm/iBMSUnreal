@@ -67,14 +67,14 @@ void UBMSRenderer::BeginPlay()
 }
 
 
-void UBMSRenderer::DestroyNote(FBMSNote* Note)
+void UBMSRenderer::DestroyNote(const FBMSNote* Note)
 {
 	if(!State->NoteActors.Contains(Note)) return;
 	RecycleInstance(EBMSObjectType::Note, State->NoteActors[Note]);
 	State->NoteActors.Remove(Note);
 }
 
-void UBMSRenderer::RecycleInstance(EBMSObjectType Type, APaperSpriteActor* Instance)
+void UBMSRenderer::RecycleInstance(const EBMSObjectType Type, APaperSpriteActor* Instance) const
 {
 	Instance->SetActorHiddenInGame(true);
 	if(!State->ObjectPool.Contains(Type))
@@ -84,7 +84,7 @@ void UBMSRenderer::RecycleInstance(EBMSObjectType Type, APaperSpriteActor* Insta
 	State->ObjectPool[Type]->Enqueue(Instance);
 }
 
-APaperSpriteActor* UBMSRenderer::GetInstance(EBMSObjectType Type)
+APaperSpriteActor* UBMSRenderer::GetInstance(const EBMSObjectType Type) const
 {
 	APaperSpriteActor* Instance;
 	if(State->ObjectPool.Contains(Type) && !State->ObjectPool[Type]->IsEmpty())
@@ -109,7 +109,7 @@ APaperSpriteActor* UBMSRenderer::GetInstance(EBMSObjectType Type)
 				break;
 		}
 		Instance = GetWorld()->SpawnActor<APaperSpriteActor>(TypeClass);
-		Instance->GetRenderComponent()->SetMaterial(0, LoadObject<UMaterialInterface>(NULL, TEXT("/Paper2D/TranslucentUnlitSpriteMaterial")));
+		Instance->GetRenderComponent()->SetMaterial(0, LoadObject<UMaterialInterface>(nullptr, TEXT("/Paper2D/TranslucentUnlitSpriteMaterial")));
 		Instance->AttachToActor(NoteArea, FAttachmentTransformRules::KeepRelativeTransform);
 	}
 	Instance->SetActorHiddenInGame(false);
@@ -135,35 +135,35 @@ APaperSpriteActor* UBMSRenderer::GetInstance(EBMSObjectType Type)
 	return Instance;
 }
 
-void UBMSRenderer::DestroyMeasureLine(FMeasure* Measure)
+void UBMSRenderer::DestroyMeasureLine(const FMeasure* Measure) const
 {
 	if(!State->MeasureActors.Contains(Measure)) return;
 	RecycleInstance(EBMSObjectType::MeasureLine, State->MeasureActors[Measure]);
 	State->MeasureActors.Remove(Measure);
 }
 
-void UBMSRenderer::DrawMeasureLine(FMeasure* Measure, double Offset)
+void UBMSRenderer::DrawMeasureLine(FMeasure* Measure, const double Offset)
 {
-	double top = OffsetToTop(Offset);
+	const double Top = OffsetToTop(Offset);
 	if(State->MeasureActors.Contains(Measure))
 	{
 		APaperSpriteActor* MeasureActor = State->MeasureActors[Measure];
-		MeasureActor->SetActorRelativeLocation(FVector(0, 0, top));
+		MeasureActor->SetActorRelativeLocation(FVector(0, 0, Top));
 	} else
 	{
 		APaperSpriteActor* MeasureActor = GetInstance(EBMSObjectType::MeasureLine);
 		FVector Scale = MeasureActor->GetActorRelativeScale3D();
 		Scale.X = 1;
 		MeasureActor->SetActorRelativeScale3D(Scale);
-		MeasureActor->SetActorRelativeLocation(FVector(0, 0, top));
+		MeasureActor->SetActorRelativeLocation(FVector(0, 0, Top));
 		State->MeasureActors.Add(Measure, MeasureActor);
 	}
 }
 
-void UBMSRenderer::DrawNote(FBMSNote* Note, double Offset)
+void UBMSRenderer::DrawNote(FBMSNote* Note, const double Offset)
 {
 	if(Note->IsPlayed) return;
-	double Left = LaneToLeft(Note->Lane);
+	const double Left = LaneToLeft(Note->Lane);
 
 	APaperSpriteActor* Actor;
 	if(State->NoteActors.Contains(Note))
@@ -186,12 +186,12 @@ void UBMSRenderer::DrawNote(FBMSNote* Note, double Offset)
 	
 }
 
-void UBMSRenderer::DrawLongNote(FBMSLongNote* Head, double StartOffset, double EndOffset, bool TailOnly)
+void UBMSRenderer::DrawLongNote(FBMSLongNote* Head, const double StartOffset, const double EndOffset, const bool TailOnly)
 {
 	FBMSLongNote* Tail = Head->Tail;
-	double Left = LaneToLeft(Head->Lane);
+	const double Left = LaneToLeft(Head->Lane);
 	double StartTop = OffsetToTop(StartOffset);
-	double EndTop = OffsetToTop(EndOffset);
+	const double EndTop = OffsetToTop(EndOffset);
 	if(Head->IsPlayed)
 	{
 		if(EndTop < JudgeLineZ)
@@ -201,7 +201,7 @@ void UBMSRenderer::DrawLongNote(FBMSLongNote* Head, double StartOffset, double E
 		}
 		StartTop = FMath::Max(JudgeLineZ, StartTop);
 	}
-	double Height = EndTop - StartTop;
+	const double Height = EndTop - StartTop;
 
 	if(!TailOnly)
 	{
@@ -269,75 +269,75 @@ bool UBMSRenderer::IsScratchLane(int Lane)
 	return IsLeftScratchLane(Lane) || IsRightScratchLane(Lane);
 }
 
-bool UBMSRenderer::IsLeftScratchLane(int Lane)
+bool UBMSRenderer::IsLeftScratchLane(const int Lane)
 {
 	return Lane == 7;
 }
 
-bool UBMSRenderer::IsRightScratchLane(int Lane)
+bool UBMSRenderer::IsRightScratchLane(const int Lane)
 {
 	return Lane == 15;
 }
 
-double UBMSRenderer::OffsetToTop(double Offset)
+double UBMSRenderer::OffsetToTop(const double Offset) const
 {
 	// TODO: implement
 	return JudgeLineZ + Offset * 0.0000014;
 }
 
-bool UBMSRenderer::IsOverUpperBound(double Offset)
+bool UBMSRenderer::IsOverUpperBound(const double Offset) const
 {
 	return OffsetToTop(Offset) > 1;
 }
 
-bool UBMSRenderer::IsUnderLowerBound(double Offset)
+bool UBMSRenderer::IsUnderLowerBound(const double Offset) const
 {
 	return OffsetToTop(Offset) < -0.1;
 }
 
-void UBMSRenderer::Draw(long long CurrentTime)
+void UBMSRenderer::Draw(const long long CurrentTime)
 {
 	if(!State) return;
 
 	for(int i = State->PassedMeasureCount; i < Chart->Measures.Num(); i++)
 	{
-		bool IsFirstMeasure = i == State->PassedMeasureCount;
-		auto& Measure = Chart->Measures[i];
+		const bool IsFirstMeasure = i == State->PassedMeasureCount;
+		const auto& Measure = Chart->Measures[i];
 		if(Measure->Timing > CurrentTime) break;
 
 		for(int j = IsFirstMeasure ? State->PassedTimelineCount : 0; j < Measure->TimeLines.Num(); j++)
 		{
-			auto& TimeLine = Measure->TimeLines[j];
+			const auto& TimeLine = Measure->TimeLines[j];
 			if (TimeLine->Timing > CurrentTime) break;
 			LastTimeLine = TimeLine;
 		}
 	}
 
 	// draw notes
-	double CurrentPos = (CurrentTime < LastTimeLine->Timing + LastTimeLine->GetStopDuration()) ? LastTimeLine->Pos :
-						LastTimeLine->Pos + (CurrentTime - (LastTimeLine->Timing + LastTimeLine->GetStopDuration())) * LastTimeLine->Bpm / Chart->Meta->Bpm;
+	const double CurrentPos = (CurrentTime < LastTimeLine->Timing + LastTimeLine->GetStopDuration()) ? LastTimeLine->Pos :
+		                          LastTimeLine->Pos + (CurrentTime - (LastTimeLine->Timing + LastTimeLine->GetStopDuration())) * LastTimeLine->Bpm / Chart->Meta->Bpm;
 
 	for (int i = State->PassedMeasureCount; i < Chart->Measures.Num(); i++)
 	{
-		bool IsFirstMeasure = i == State->PassedMeasureCount;
-		auto& Measure = Chart->Measures[i];
+		const bool IsFirstMeasure = i == State->PassedMeasureCount;
+		const auto& Measure = Chart->Measures[i];
 
 		for (int j = IsFirstMeasure ? State->PassedTimelineCount : 0; j < Measure->TimeLines.Num(); j++)
 		{
-			auto& TimeLine = Measure->TimeLines[j];
-			double Offset = TimeLine->Pos - CurrentPos;
+			const auto& TimeLine = Measure->TimeLines[j];
+			const double Offset = TimeLine->Pos - CurrentPos;
 			if(IsOverUpperBound(Offset)) break;
 
 			if(j==0) DrawMeasureLine(Measure, Measure->Pos - CurrentPos);
 
-			bool ShouldDestroyTimeLine = IsUnderLowerBound(Offset);
+			const bool ShouldDestroyTimeLine = IsUnderLowerBound(Offset);
 
 			if(ShouldDestroyTimeLine && IsFirstMeasure)
 			{
 				State->PassedTimelineCount++;
 			}
 
-			for(auto& Note : TimeLine->Notes)
+			for(const auto& Note : TimeLine->Notes)
 			{
 				if(!Note) continue;
 				if(Note->IsDead) continue;
@@ -388,31 +388,31 @@ void UBMSRenderer::Draw(long long CurrentTime)
 		}
 	}
 
-	for(auto& OrphanLongNote : State->OrphanLongNotes)
+	for(const auto& OrphanLongNote : State->OrphanLongNotes)
 	{
 		DrawLongNote(OrphanLongNote, OrphanLongNote->Timeline->Pos - CurrentPos, OrphanLongNote->Tail->Timeline->Pos - CurrentPos, true);
 	}
 	
 }
 
-void UBMSRenderer::Init(FChart* chart)
+void UBMSRenderer::Init(FChart* Chart)
 {
-	this->Chart = chart;
+	this->Chart = Chart;
 	State = new FRendererState();
-	LaneCount = chart->Meta->KeyMode; // main line count except for scratch
+	LaneCount = Chart->Meta->KeyMode; // main line count except for scratch
 	NoteWidth = 1.0f / LaneCount;
 
-	LastTimeLine = chart->Measures[0]->TimeLines[0];
+	LastTimeLine = Chart->Measures[0]->TimeLines[0];
 
-	FTimeLine* _lastTimeLine = chart->Measures[0]->TimeLines[0];
+	FTimeLine* _lastTimeLine = Chart->Measures[0]->TimeLines[0];
 	_lastTimeLine->Pos = 0.0;
-	for(auto& measure: chart->Measures)
+	for(const auto& Measure: Chart->Measures)
 	{
-		measure->Pos = _lastTimeLine->Pos + (measure->Timing - (_lastTimeLine->Timing + _lastTimeLine->GetStopDuration())) * _lastTimeLine->Bpm / chart->Meta->Bpm;
-		for(auto& timeline: measure->TimeLines)
+		Measure->Pos = _lastTimeLine->Pos + (Measure->Timing - (_lastTimeLine->Timing + _lastTimeLine->GetStopDuration())) * _lastTimeLine->Bpm / Chart->Meta->Bpm;
+		for(const auto& Timeline: Measure->TimeLines)
 		{
-			timeline->Pos = _lastTimeLine->Pos + (timeline->Timing - (_lastTimeLine->Timing + _lastTimeLine->GetStopDuration())) * _lastTimeLine->Bpm / chart->Meta->Bpm;
-			_lastTimeLine = timeline;
+			Timeline->Pos = _lastTimeLine->Pos + (Timeline->Timing - (_lastTimeLine->Timing + _lastTimeLine->GetStopDuration())) * _lastTimeLine->Bpm / Chart->Meta->Bpm;
+			_lastTimeLine = Timeline;
 		}
 	}
 }
