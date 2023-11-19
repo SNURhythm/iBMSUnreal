@@ -38,7 +38,7 @@ int FJudge::ClampRank(const int Rank)
 
 FString FJudge::GetRankDescription(const int Rank)
 {
-	switch(Rank)
+	switch(ClampRank(Rank))
 	{
 	case 0:
 		return "VERY HARD";
