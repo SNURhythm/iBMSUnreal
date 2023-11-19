@@ -5,7 +5,7 @@
 #include "CoreMinimal.h"
 #include "BMSGameInstance.h"
 #include "BMSRenderer.h"
-#include "FJukebox.h"
+#include "Jukebox.h"
 #include "Judge.h"
 #include "GameFramework/Actor.h"
 #include "Tasks/Task.h"

@@ -5,7 +5,7 @@
 #include "CoreMinimal.h"
 #include "Chart.h"
 #include "ChartListEntryData.h"
-#include "FJukebox.h"
+#include "Jukebox.h"
 #include "fmod.hpp"
 #include "Tasks/Task.h"
 #include "GameFramework/Actor.h"
