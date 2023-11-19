@@ -1,7 +1,7 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "..\Public\Jukebox.h"
+#include "Jukebox.h"
 
 #include "BMSParser.h"
 #include <Tasks/Task.h>
