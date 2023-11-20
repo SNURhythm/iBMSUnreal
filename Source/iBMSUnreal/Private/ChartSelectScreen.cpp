@@ -12,6 +12,7 @@
 #include "DesktopPlatformModule.h"
 #include "FilePicker.h"
 #include "Judge.h"
+#include "tinyfiledialogs.h"
 #include "Blueprint/UserWidget.h"
 #include "iBMSUnreal/Public/ImageUtils.h"
 #include "Kismet/GameplayStatics.h"
@@ -83,6 +84,7 @@ static void FindNew(TArray<FDiff>& Diffs, const TSet<FString>& PrevPathSet, cons
 
 void AChartSelectScreen::LoadCharts()
 {
+
 	auto dbHelper = ChartDBHelper::GetInstance();
 	auto db = dbHelper.Connect();
 	dbHelper.CreateChartMetaTable(db);
@@ -101,8 +103,13 @@ void AChartSelectScreen::LoadCharts()
 		defaultPath = FPlatformProcess::UserDir();
 #endif
 		// prompt user to select folder
-		FFilePicker Picker;
-		FString Directory = Picker.PickDirectory("Select BMS Folder");
+
+		FString Directory = tinyfd_selectFolderDialogW(
+			TEXT("Select BMS Folder"),
+			*defaultPath
+		);
+		// normalize path
+		Directory = IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(*Directory);
 		if (!Directory.IsEmpty())
 		{
 			// insert entry
