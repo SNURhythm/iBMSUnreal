@@ -111,26 +111,40 @@ APaperSpriteActor* UBMSRenderer::GetInstance(const EBMSObjectType Type) const
 		Instance = GetWorld()->SpawnActor<APaperSpriteActor>(TypeClass);
 		Instance->GetRenderComponent()->SetMaterial(0, LoadObject<UMaterialInterface>(nullptr, TEXT("/Paper2D/TranslucentUnlitSpriteMaterial")));
 		Instance->AttachToActor(NoteArea, FAttachmentTransformRules::KeepRelativeTransform);
+		switch(Type)
+		{
+		case EBMSObjectType::Note:
+		case EBMSObjectType::LongNoteHead:
+		case EBMSObjectType::LongNoteTail:
+			{
+				Instance->GetRenderComponent()->SetSprite(NoteSprite);
+		
+				Instance->GetRootComponent()->SetWorldScale3D(FVector(1, 0, 1));
+				FVector Scale = Instance->GetActorRelativeScale3D();
+				Scale.X = NoteWidth;
+				Instance->SetActorRelativeScale3D(Scale);
+				Instance->GetRenderComponent()->TranslucencySortPriority = 2;
+				break;
+			}
+		case EBMSObjectType::MeasureLine:
+			{
+				Instance->GetRenderComponent()->SetSprite(NoteSprite);
+				Instance->GetRootComponent()->SetWorldScale3D(FVector(1, 0, 0.2));
+				// gray
+				Instance->GetRenderComponent()->SetSpriteColor(FLinearColor(0.02, 0.02, 0.02, 1));
+				Instance->GetRenderComponent()->TranslucencySortPriority = 1;
+				break;
+			}
+		}
 	}
 	Instance->SetActorHiddenInGame(false);
 	if(Type == Note || Type == LongNoteHead || Type == LongNoteTail)
 	{
-		Instance->GetRenderComponent()->SetSprite(NoteSprite);
-		
-		Instance->GetRootComponent()->SetWorldScale3D(FVector(1, 0, 1));
 		Instance->SetActorRelativeRotation(FRotator(0, 0, 0));
-		FVector Scale = Instance->GetActorRelativeScale3D();
-		Scale.X = NoteWidth;
-		Instance->SetActorRelativeScale3D(Scale);
-		Instance->GetRenderComponent()->TranslucencySortPriority = 2;
 	}
 	if(Type==MeasureLine)
 	{
-		Instance->GetRenderComponent()->SetSprite(NoteSprite);
-		Instance->GetRootComponent()->SetWorldScale3D(FVector(1, 0, 0.2));
-		// gray
-		Instance->GetRenderComponent()->SetSpriteColor(FLinearColor(0.02, 0.02, 0.02, 1));
-		Instance->GetRenderComponent()->TranslucencySortPriority = 1;
+
 	}
 	return Instance;
 }
