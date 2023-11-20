@@ -9,8 +9,6 @@
 #include "ChartSelectUI.h"
 #include "ChartListEntry.h"
 
-#include "DesktopPlatformModule.h"
-#include "FilePicker.h"
 #include "Judge.h"
 #include "tinyfiledialogs.h"
 #include "Blueprint/UserWidget.h"
@@ -98,16 +96,14 @@ void AChartSelectScreen::LoadCharts()
 #if PLATFORM_DESKTOP
 		FString defaultPath;
 #if PLATFORM_MAC
-	    	defaultPath = "~";
+	    	defaultPath = homeDir;
 #else
 		defaultPath = FPlatformProcess::UserDir();
 #endif
 		// prompt user to select folder
 
-		FString Directory = tinyfd_selectFolderDialogW(
-			TEXT("Select BMS Folder"),
-			*defaultPath
-		);
+		FString Directory = tinyfd_selectFolderDialog("Select BMS Folder", TCHAR_TO_ANSI(*defaultPath));
+		UE_LOG(LogTemp, Warning, TEXT("BMSGameModeBase Directory: %s"), *Directory);
 		// normalize path
 		Directory = IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(*Directory);
 		if (!Directory.IsEmpty())
