@@ -10,10 +10,12 @@
 #include "ChartListEntry.h"
 
 #include "DesktopPlatformModule.h"
+#include "FilePicker.h"
 #include "Judge.h"
 #include "Blueprint/UserWidget.h"
 #include "iBMSUnreal/Public/ImageUtils.h"
 #include "Kismet/GameplayStatics.h"
+
 
 using namespace UE::Tasks;
 enum EDiffType {
@@ -78,11 +80,11 @@ static void FindNew(TArray<FDiff>& Diffs, const TSet<FString>& PrevPathSet, cons
 
 void AChartSelectScreen::LoadCharts()
 {
-		auto dbHelper = ChartDBHelper::GetInstance();
-		auto db = dbHelper.Connect();
-		dbHelper.CreateChartMetaTable(db);
-	    dbHelper.CreateEntriesTable(db);
-	    auto entries = dbHelper.SelectAllEntries(db);
+	auto dbHelper = ChartDBHelper::GetInstance();
+	auto db = dbHelper.Connect();
+	dbHelper.CreateChartMetaTable(db);
+    dbHelper.CreateEntriesTable(db);
+    auto entries = dbHelper.SelectAllEntries(db);
 	// user home dir
 	FString homeDir = FPlatformProcess::UserHomeDir();
 	UE_LOG(LogTemp, Warning, TEXT("BMSGameModeBase UserHomeDir: %s"), *homeDir);
@@ -95,16 +97,14 @@ void AChartSelectScreen::LoadCharts()
 #else
 	    	defaultPath = FPlatformProcess::UserDir();
 #endif
-
 	    	// prompt user to select folder
-			UE_LOG(LogTemp, Warning, TEXT("BMSGameModeBase Select Folder"));
-			FString EntryPath;
-			bool bFolderSelected = FDesktopPlatformModule::Get()->OpenDirectoryDialog(nullptr, TEXT("Select BMS Folder"), defaultPath, EntryPath);
-			if(bFolderSelected)
-			{
-				dbHelper.InsertEntry(db, EntryPath);
-
-			}
+	    	FFilePicker Picker;
+	    	FString Directory = Picker.PickDirectory("Select BMS Folder");
+	    	if(!Directory.IsEmpty())
+	    	{
+	    		// insert entry
+	    		dbHelper.InsertEntry(db, Directory);
+	    	}
 
 #else
 	    	// use iOS Document Directory
