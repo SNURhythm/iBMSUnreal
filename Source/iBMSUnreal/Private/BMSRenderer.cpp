@@ -118,11 +118,6 @@ APaperSpriteActor* UBMSRenderer::GetInstance(const EBMSObjectType Type) const
 		case EBMSObjectType::LongNoteTail:
 			{
 				Instance->GetRenderComponent()->SetSprite(NoteSprite);
-		
-				Instance->GetRootComponent()->SetWorldScale3D(FVector(1, 0, 1));
-				FVector Scale = Instance->GetActorRelativeScale3D();
-				Scale.X = NoteWidth;
-				Instance->SetActorRelativeScale3D(Scale);
 				Instance->GetRenderComponent()->TranslucencySortPriority = 2;
 				break;
 			}
@@ -140,6 +135,11 @@ APaperSpriteActor* UBMSRenderer::GetInstance(const EBMSObjectType Type) const
 	Instance->SetActorHiddenInGame(false);
 	if(Type == Note || Type == LongNoteHead || Type == LongNoteTail)
 	{
+		Instance->GetRenderComponent()->SetSpriteColor(FLinearColor(1, 1, 1, 1));
+		Instance->GetRootComponent()->SetWorldScale3D(FVector(1, 0, 1));
+		FVector Scale = Instance->GetActorRelativeScale3D();
+		Scale.X = NoteWidth;
+		Instance->SetActorRelativeScale3D(Scale);
 		Instance->SetActorRelativeRotation(FRotator(0, 0, 0));
 	}
 	if(Type==MeasureLine)
