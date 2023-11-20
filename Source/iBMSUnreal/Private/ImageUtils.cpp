@@ -70,9 +70,9 @@ void ImageUtils::LoadTexture2D(const FString& ImagePath, bool& IsValid, int32 Ta
 						}
 					}
 					// copy
-					void* TextureData = OutTexture->PlatformData->Mips[0].BulkData.Lock(LOCK_READ_WRITE);
+					void* TextureData = OutTexture->GetPlatformData()->Mips[0].BulkData.Lock(LOCK_READ_WRITE);
 					FMemory::Memcpy(TextureData, ResizedBGRA.GetData(), ResizedBGRA.Num());
-					OutTexture->PlatformData->Mips[0].BulkData.Unlock();
+					OutTexture->GetPlatformData()->Mips[0].BulkData.Unlock();
 					OutTexture->UpdateResource();
 					IsValid = true;
 				}
