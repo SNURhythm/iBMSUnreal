@@ -19,7 +19,7 @@ void ARhythm::OnJudge(const FJudgeResult& JudgeResult) const
 	{
 		State->Combo++;
 	}
-	UE_LOG(LogTemp, Warning, TEXT("Judge: %s, Combo: %d"), *JudgeResult.ToString(), State->Combo);
+	UE_LOG(LogTemp, Warning, TEXT("Judge: %s, Combo: %d, Diff: %lld"), *JudgeResult.ToString(), State->Combo, JudgeResult.Diff);
 }
 
 void ARhythm::CheckPassedTimeline(const long long Time)

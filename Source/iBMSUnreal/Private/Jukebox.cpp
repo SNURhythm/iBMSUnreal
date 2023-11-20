@@ -234,8 +234,11 @@ void FJukebox::PlayKeysound(int id)
 {
 	FMOD::Sound* sound = SoundTable.FindRef(id);
 	if(!sound) return;
-	FMOD::Channel* channel;
-	System->playSound(sound, ChannelGroup, false, &channel);
+	UE::Tasks::Launch(UE_SOURCE_LOCATION, [this, sound](){
+		FMOD::Channel* channel;
+		if(!ChannelGroup) return;
+		System->playSound(sound, ChannelGroup, false, &channel);
+	});
 }
 
 void FJukebox::Unload()
