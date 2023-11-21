@@ -5,10 +5,7 @@
 
 #include "BMSGameInstance.h"
 #include "BMSParser.h"
-#include "CanvasItem.h"
 #include "RhythmHUD.h"
-#include "Engine/Canvas.h"
-#include "Kismet/GameplayStatics.h"
 #include "Tasks/Task.h"
 
 
@@ -24,7 +21,7 @@ void ARhythmControl::OnJudge(const FJudgeResult& JudgeResult) const
 		State->Combo++;
 	}
 	CurrentHUD->OnJudge(JudgeResult, State->Combo);
-	UE_LOG(LogTemp, Warning, TEXT("Judge: %s, Combo: %d, Diff: %lld"), *JudgeResult.ToString(), State->Combo, JudgeResult.Diff);
+	// UE_LOG(LogTemp, Warning, TEXT("Judge: %s, Combo: %d, Diff: %lld"), *JudgeResult.ToString(), State->Combo, JudgeResult.Diff);
 }
 
 void ARhythmControl::CheckPassedTimeline(const long long Time)
@@ -155,7 +152,11 @@ void ARhythmControl::ReleaseNote(FBMSNote* Note, long long ReleasedTime)
 
 void ARhythmControl::PressLane(int Lane, double InputDelay)
 {
-	if(IsLanePressed[Lane]) return;
+	if(!IsLanePressed.Contains(Lane) || IsLanePressed[Lane])
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Ignoring %d"), Lane);
+		return;
+	}
 	IsLanePressed[Lane] = true;
 	if(State == nullptr) return;
 	if(!State->IsPlaying) return;
@@ -184,7 +185,7 @@ void ARhythmControl::PressLane(int Lane, double InputDelay)
 
 void ARhythmControl::ReleaseLane(int Lane, double InputDelay)
 {
-	if(!IsLanePressed[Lane]) return;
+	if(!IsLanePressed.Contains(Lane) || !IsLanePressed[Lane]) return;
 	IsLanePressed[Lane] = false;
 	if(State == nullptr) return;
 	if(!State->IsPlaying) return;
@@ -279,6 +280,7 @@ void ARhythmControl::LoadGame()
 		// init IsLanePressed
 		for (const auto& Lane : Chart->Meta->GetTotalLaneIndices())
 		{
+			UE_LOG(LogTemp, Warning, TEXT("Lane: %d"), Lane);
 			IsLanePressed.Add(Lane, false);
 		}
 		State = new FRhythmState(Chart, false);

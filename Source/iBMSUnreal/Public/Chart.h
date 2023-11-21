@@ -51,17 +51,19 @@ class IBMSUNREAL_API FChartMeta {
 	int GetTotalLaneCount() const { return KeyMode + GetScratchLaneCount(); }
 	TArray<int> GetKeyLaneIndices() const
 	{
-		if(KeyMode == 5)
+		switch(KeyMode)
 		{
-			if(IsDP) return { 0, 1, 2, 3, 4, 8, 9, 10, 11, 12};
+		case 5:
 			return { 0, 1, 2, 3, 4 };
-		}
-		if(KeyMode == 7)
-		{
-			if(IsDP) return { 0, 1, 2, 3, 4, 5, 6, 8, 9, 10, 11, 12, 13, 14};
+		case 7:
 			return { 0, 1, 2, 3, 4, 5, 6 };
+		case 10:
+			return { 0, 1, 2, 3, 4, 8, 9, 10, 11, 12};
+		case 14:
+			return { 0, 1, 2, 3, 4, 5, 6, 8, 9, 10, 11, 12, 13, 14};
+		default:
+			return {};
 		}
-		return {};
 	}
 
 	TArray<int> GetScratchLaneIndices() const

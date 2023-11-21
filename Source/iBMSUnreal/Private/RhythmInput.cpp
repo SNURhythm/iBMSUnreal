@@ -6,15 +6,52 @@
 
 #include "Chart.h"
 
-TMap<int, int> FRhythmInput::DefaultKeyMap = {
-	// keys: SDF, SPACE, JKL
-	{0x53, 0}, {0x44, 1}, {0x46, 2}, {0x20, 3}, {0x4A, 4}, {0x4B, 5}, {0x4C, 6},
-	// scratch: LS, RS
-	{0x10, 7}
-};
+
 FRhythmInput::FRhythmInput(IRhythmControl* RhythmControlInit, const FChartMeta& Meta):RhythmControl(RhythmControlInit){
 	// TODO: load keymap from config
-	KeyMap = DefaultKeyMap;
+	const TMap<int, TMap<int, int>> DefaultKeyMap = {
+		{
+			7,{
+				// keys: SDF, SPACE, JKL
+				{0x53, 0}, {0x44, 1}, {0x46, 2}, {0x20, 3}, {0x4A, 4}, {0x4B, 5}, {0x4C, 6},
+				// scratch: LShift, RShift
+				{0xA0, 7},
+				{0xA1, 7}
+			}
+		},
+		{
+			5,{
+				// keys: DF, SPACE, JK
+				{0x44, 0}, {0x46, 1}, {0x20, 2}, {0x4A, 3}, {0x4B, 4}, {0x4C, 5},
+				// scratch: LShift, RShift
+				{0xA0, 7},
+				{0xA1, 7}
+			}
+		},
+		{
+		14,{
+				// keys: ZSXDCFV and MK,L.;/
+				{0x5A, 0}, {0x53, 1}, {0x58, 2}, {0x44, 3}, {0x43, 4}, {0x46, 5}, {0x56, 6},
+				{0x4D, 8}, {0x4B, 9}, {0xBC, 10}, {0x4C, 11}, {0xBE, 12}, {0xBA, 13}, {0xBF, 14},
+				// Lscratch: LShift
+				{0xA0, 7},
+				// Rscratch: RShift
+				{0xA1, 15}
+			}
+		},
+		{
+			10,{
+				// keys: ZSXDC and ,l.;/
+				{0x5A, 0}, {0x53, 1}, {0x58, 2}, {0x44, 3}, {0x43, 4},
+				{0xBC, 8}, {0x4C, 9}, {0xBE, 10}, {0xBA, 11}, {0xBF, 12},
+				// Lscratch: LShift
+				{0xA0, 7},
+				// Rscratch: RShift
+				{0xA1, 15}
+			}
+		}
+	};
+	KeyMap = DefaultKeyMap[Meta.KeyMode];
 }
 
 FRhythmInput::~FRhythmInput()
@@ -28,11 +65,26 @@ LRESULT FRhythmInput::WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 		UINT dwSize = 40;
 		std::vector<uint8> lpb(dwSize);
 		GetRawInputData((HRAWINPUT)lParam, RID_INPUT, lpb.data(), &dwSize, sizeof(RAWINPUTHEADER));
-		const int rawInput = lpb[30];
+		int rawInput = lpb[30];
 		const bool IsKeyDown = (lpb[26] & 0x01) != 1;
 		if(rawInput != 0){
 			UE_LOG(LogTemp, Warning, TEXT("Raw input: %d, %d"), rawInput, IsKeyDown);
 			if(!IsListening) return DefWindowProc(hwnd, msg, wParam, lParam);
+			if (rawInput == 0x10)
+			{
+				// LShift
+				switch(lpb[24])
+				{
+				case 42:
+					rawInput = 0xA0; // LShift
+					break;
+				case 54:
+					rawInput = 0xA1; // RShift
+					break;
+				default:
+					break;
+				}
+			}
 			if(IsKeyDown){
 				OnKeyDown(rawInput);
 			} else {
@@ -109,15 +161,17 @@ void FRhythmInput::StopListen()
 void FRhythmInput::OnKeyDown(int KeyCode)
 {
 	UE_LOG(LogTemp, Warning, TEXT("Key %d pressed"), KeyCode);
-	if(DefaultKeyMap.Contains(KeyCode)){
-		RhythmControl->PressLane(DefaultKeyMap[KeyCode]);
+	if(KeyMap.Contains(KeyCode)){
+		UE_LOG(LogTemp, Warning, TEXT("Key %d mapped to %d"), KeyCode, KeyMap[KeyCode]);
+		RhythmControl->PressLane(KeyMap[KeyCode]);
 	}
 }
 
 void FRhythmInput::OnKeyUp(int KeyCode)
 {
 	UE_LOG(LogTemp, Warning, TEXT("Key %d released"), KeyCode);
-	if(DefaultKeyMap.Contains(KeyCode)){
-		RhythmControl->ReleaseLane(DefaultKeyMap[KeyCode]);
+	if(KeyMap.Contains(KeyCode)){
+		UE_LOG(LogTemp, Warning, TEXT("Key %d mapped to %d"), KeyCode, KeyMap[KeyCode]);
+		RhythmControl->ReleaseLane(KeyMap[KeyCode]);
 	}
 }

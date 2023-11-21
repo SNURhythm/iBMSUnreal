@@ -22,7 +22,6 @@ class IBMSUNREAL_API FRhythmInput
 {
 
 public:
-	static TMap<int, int> DefaultKeyMap;
 	FRhythmInput(IRhythmControl* RhythmControlInit, const FChartMeta& Meta);
 	~FRhythmInput();
 	
