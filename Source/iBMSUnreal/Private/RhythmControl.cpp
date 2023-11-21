@@ -1,14 +1,14 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 
-#include "Rhythm.h"
+#include "RhythmControl.h"
 
 #include "BMSGameInstance.h"
 #include "BMSParser.h"
 #include "Tasks/Task.h"
 
 
-void ARhythm::OnJudge(const FJudgeResult& JudgeResult) const
+void ARhythmControl::OnJudge(const FJudgeResult& JudgeResult) const
 {
 	State->LatestJudgement = JudgeResult.Judgement;
 	State->JudgeCount[JudgeResult.Judgement]++;
@@ -22,7 +22,7 @@ void ARhythm::OnJudge(const FJudgeResult& JudgeResult) const
 	UE_LOG(LogTemp, Warning, TEXT("Judge: %s, Combo: %d, Diff: %lld"), *JudgeResult.ToString(), State->Combo, JudgeResult.Diff);
 }
 
-void ARhythm::CheckPassedTimeline(const long long Time)
+void ARhythmControl::CheckPassedTimeline(const long long Time)
 {
 	auto Measures = Chart->Measures;
 	if(State == nullptr) return;
@@ -101,14 +101,14 @@ void ARhythm::CheckPassedTimeline(const long long Time)
 }
 
 // Sets default values
-ARhythm::ARhythm()
+ARhythmControl::ARhythmControl()
 {
 
  	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 }
 
-void ARhythm::PressNote(FBMSNote* Note, long long PressedTime)
+void ARhythmControl::PressNote(FBMSNote* Note, long long PressedTime)
 {
 	if(Note->Wav != FBMSParser::NoWav && !Options.AutoKeysound) Jukebox->PlayKeysound(Note->Wav);
 	const auto JudgeResult = State->Judge->JudgeNow(Note, PressedTime);
@@ -129,7 +129,7 @@ void ARhythm::PressNote(FBMSNote* Note, long long PressedTime)
 	}
 }
 
-void ARhythm::ReleaseNote(FBMSNote* Note, long long ReleasedTime)
+void ARhythmControl::ReleaseNote(FBMSNote* Note, long long ReleasedTime)
 {
 	if(!Note->IsLongNote()) return;
 	const auto& LongNote = static_cast<FBMSLongNote*>(Note);
@@ -148,7 +148,7 @@ void ARhythm::ReleaseNote(FBMSNote* Note, long long ReleasedTime)
 	OnJudge(HeadJudgeResult);
 }
 
-void ARhythm::PressLane(int Lane, double InputDelay)
+void ARhythmControl::PressLane(int Lane, double InputDelay)
 {
 	IsLanePressed[Lane] = true;
 	if(State == nullptr) return;
@@ -176,7 +176,7 @@ void ARhythm::PressLane(int Lane, double InputDelay)
 	
 }
 
-void ARhythm::ReleaseLane(int Lane, double InputDelay)
+void ARhythmControl::ReleaseLane(int Lane, double InputDelay)
 {
 	IsLanePressed[Lane] = false;
 	if(State == nullptr) return;
@@ -202,7 +202,7 @@ void ARhythm::ReleaseLane(int Lane, double InputDelay)
 	}
 }
 // Called when the game starts or when spawned
-void ARhythm::BeginPlay()
+void ARhythmControl::BeginPlay()
 {
 	Super::BeginPlay();
 	// force garbage collection
@@ -227,7 +227,7 @@ void ARhythm::BeginPlay()
 	});
 }
 
-void ARhythm::EndPlay(const EEndPlayReason::Type EndPlayReason)
+void ARhythmControl::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
 	Super::EndPlay(EndPlayReason);
 	UE_LOG(LogTemp, Warning, TEXT("Rhythm EndPlay"));
@@ -251,7 +251,7 @@ void ARhythm::EndPlay(const EEndPlayReason::Type EndPlayReason)
 
 }
 
-void ARhythm::LoadGame()
+void ARhythmControl::LoadGame()
 {
 	UE_LOG(LogTemp, Warning, TEXT("Loading Game"));
 	
@@ -283,7 +283,7 @@ void ARhythm::LoadGame()
 
 
 // Called every frame
-void ARhythm::Tick(float DeltaTime)
+void ARhythmControl::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 	if(!IsLoaded) return;

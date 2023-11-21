@@ -9,7 +9,7 @@
 #include "Judge.h"
 #include "GameFramework/Actor.h"
 #include "Tasks/Task.h"
-#include "Rhythm.generated.h"
+#include "RhythmControl.generated.h"
 
 class FRhythmState
 {
@@ -39,7 +39,7 @@ private:
 };
 
 UCLASS()
-class IBMSUNREAL_API ARhythm : public AActor
+class IBMSUNREAL_API ARhythmControl : public AActor
 {
 	GENERATED_BODY()
 private:
@@ -55,7 +55,7 @@ private:
 	TMap<int, bool> IsLanePressed;
 public:	
 	// Sets default values for this actor's properties
-	ARhythm();
+	ARhythmControl();
 	std::atomic_bool IsLoaded;
 	std::atomic_bool IsLoadCancelled;
 	std::atomic_bool IsMainLoopCancelled;
