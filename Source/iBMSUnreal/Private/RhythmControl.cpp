@@ -141,14 +141,14 @@ void ARhythmControl::ReleaseNote(FBMSNote* Note, long long ReleasedTime)
 	if(!LongNote->IsTail()) return;
 	if(!LongNote->IsHolding) return;
 	LongNote->Release(ReleasedTime);
-	const auto JudgeResult = State->Judge->JudgeNow(LongNote->Head, LongNote->Head->PlayedTime);
-	// if judgement is not good/great/pgreat, make it bad
+	const auto JudgeResult = State->Judge->JudgeNow(LongNote, ReleasedTime);
+	// if tail judgement is not good/great/pgreat, make it bad
 	if(JudgeResult.Judgement == None || JudgeResult.Judgement == Kpoor || JudgeResult.Judgement == Poor)
 	{
 		OnJudge(FJudgeResult(Bad, JudgeResult.Diff));
 		return;
 	}
-	// or, follow the head's judgement
+	// otherwise, follow the head's judgement
 	const auto HeadJudgeResult = State->Judge->JudgeNow(LongNote->Head, LongNote->Head->PlayedTime);
 	OnJudge(HeadJudgeResult);
 }
@@ -241,6 +241,7 @@ void ARhythmControl::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
 	Super::EndPlay(EndPlayReason);
 	UE_LOG(LogTemp, Warning, TEXT("Rhythm EndPlay"));
+	RhythmInput->StopListen();
 	IsLoadCancelled = true;
 	IsLoaded = false;
 	IsMainLoopCancelled = true;
@@ -248,8 +249,7 @@ void ARhythmControl::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	LoadTask.Wait();
 	// ReSharper disable once CppExpressionWithoutSideEffects
 	MainLoopTask.Wait();
-	RhythmInput->StopListen();
-	delete RhythmInput;
+	
 	Jukebox->Unload();
 	delete Jukebox;
 	Jukebox = nullptr;

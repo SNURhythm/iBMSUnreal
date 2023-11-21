@@ -34,6 +34,7 @@ private:
 	void OnKeyUp(int KeyCode);
 #if PLATFORM_WINDOWS
 	LRESULT WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
+	HWND CurrentHwnd;
 #endif
 	IRhythmControl* RhythmControl;
 	TMap<int, int> KeyMap;

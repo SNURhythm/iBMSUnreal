@@ -3,6 +3,7 @@
 
 #include "RhythmInput.h"
 
+
 #include "Chart.h"
 
 TMap<int, int> FRhythmInput::DefaultKeyMap = {
@@ -31,6 +32,7 @@ LRESULT FRhythmInput::WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 		const bool IsKeyDown = (lpb[26] & 0x01) != 1;
 		if(rawInput != 0){
 			UE_LOG(LogTemp, Warning, TEXT("Raw input: %d, %d"), rawInput, IsKeyDown);
+			if(!IsListening) return DefWindowProc(hwnd, msg, wParam, lParam);
 			if(IsKeyDown){
 				OnKeyDown(rawInput);
 			} else {
@@ -43,6 +45,7 @@ LRESULT FRhythmInput::WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 #endif
 void FRhythmInput::StartListen()
 {
+	UE_LOG(LogTemp, Warning, TEXT("Start listen key input"));
 	IsListening = true;
 	ListenTask = UE::Tasks::Launch (UE_SOURCE_LOCATION, [this]()
 	{
@@ -68,28 +71,39 @@ void FRhythmInput::StartListen()
 		wx.hInstance = GetModuleHandle(nullptr);
 		wx.lpszClassName = TEXT("Dummy");
 		RegisterClassEx(&wx);
-		HWND hwnd = CreateWindowEx(WS_EX_OVERLAPPEDWINDOW, wx.lpszClassName, TEXT(""), WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, HWND_MESSAGE, nullptr, wx.hInstance, this);
+		CurrentHwnd = CreateWindowEx(WS_EX_OVERLAPPEDWINDOW, wx.lpszClassName, TEXT(""), WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, HWND_MESSAGE, nullptr, wx.hInstance, this);
+		
 		RAWINPUTDEVICE rid;
 		rid.usUsagePage = 0x01;
 		rid.usUsage = 0x06;
 		rid.dwFlags = RIDEV_INPUTSINK;
-		rid.hwndTarget = hwnd;
+		rid.hwndTarget = CurrentHwnd;
 		RegisterRawInputDevices(&rid, 1, sizeof(rid));
 		MSG msg;
 		
-		while(IsListening && GetMessageW(&msg, hwnd, WM_NCCREATE, WM_INPUT))
+		while(IsListening && GetMessageW(&msg, CurrentHwnd, WM_CLOSE, WM_INPUT))
 		{
+			if(!IsListening) break;
 			TranslateMessage(&msg);
 			DispatchMessage(&msg);
 		}
-		SendMessageW(hwnd, WM_CLOSE, 0, 0);
+		SendMessageW(CurrentHwnd, WM_CLOSE, 0, 0);
 #endif
 	});
 }
 
 void FRhythmInput::StopListen()
 {
+	UE_LOG(LogTemp, Warning, TEXT("Stop listen key input"));
+	if(CurrentHwnd)
+	{
+		PostMessageW(CurrentHwnd, WM_CLOSE, 0, 0);
+		UE_LOG(LogTemp, Warning, TEXT("Hwnd closed"));
+	}
 	IsListening = false;
+
+	// ReSharper disable once CppExpressionWithoutSideEffects
+	ListenTask.Wait();
 }
 
 void FRhythmInput::OnKeyDown(int KeyCode)
