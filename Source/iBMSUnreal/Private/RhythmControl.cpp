@@ -5,6 +5,10 @@
 
 #include "BMSGameInstance.h"
 #include "BMSParser.h"
+#include "CanvasItem.h"
+#include "RhythmHUD.h"
+#include "Engine/Canvas.h"
+#include "Kismet/GameplayStatics.h"
 #include "Tasks/Task.h"
 
 
@@ -19,6 +23,7 @@ void ARhythmControl::OnJudge(const FJudgeResult& JudgeResult) const
 	{
 		State->Combo++;
 	}
+	CurrentHUD->OnJudge(JudgeResult, State->Combo);
 	UE_LOG(LogTemp, Warning, TEXT("Judge: %s, Combo: %d, Diff: %lld"), *JudgeResult.ToString(), State->Combo, JudgeResult.Diff);
 }
 
@@ -214,8 +219,11 @@ void ARhythmControl::BeginPlay()
 	GameInstance = Cast<UBMSGameInstance>(GetGameInstance());
 	Renderer = Cast<UBMSRenderer>(GetComponentByClass(UBMSRenderer::StaticClass()));
 	Jukebox = new FJukebox(GameInstance->GetFMODSystem());
-	
-
+	if(IsValid(RhythmHUDClass))
+	{
+		CurrentHUD = CreateWidget<URhythmHUD>(GetWorld(), RhythmHUDClass);
+		CurrentHUD->AddToViewport();
+	}
 	LoadGame();
 
 	MainLoopTask = UE::Tasks::Launch(UE_SOURCE_LOCATION, [&]()
@@ -293,6 +301,11 @@ void ARhythmControl::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 	if(!IsLoaded) return;
+	if(State == nullptr) return;
 	Renderer->Draw(Jukebox->GetPositionMicro());
+	// draw rectangle on Screen
+	
+	
+	
 }
 

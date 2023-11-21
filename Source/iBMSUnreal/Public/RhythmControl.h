@@ -10,6 +10,7 @@
 #include "GameFramework/Actor.h"
 #include "Tasks/Task.h"
 #include "IRhythmControl.h"
+
 #include "RhythmInput.h"
 #include "RhythmControl.generated.h"
 
@@ -57,6 +58,9 @@ private:
 	FRhythmState* State = nullptr;
 	TMap<int, bool> IsLanePressed;
 	FRhythmInput* RhythmInput;
+
+	UPROPERTY(VisibleInstanceOnly, Category="Runtime")
+	class URhythmHUD* CurrentHUD;
 public:	
 	// Sets default values for this actor's properties
 	ARhythmControl();
@@ -78,6 +82,8 @@ protected:
 
 	UPROPERTY()
 	UBMSRenderer* Renderer;
+	UPROPERTY(EditAnywhere, Category="Class Types")
+	TSubclassOf<UUserWidget> RhythmHUDClass;
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;

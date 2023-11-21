@@ -59,6 +59,8 @@ void FRhythmInput::StartListen()
 			} else {
 				pThis = reinterpret_cast<FRhythmInput*>(GetWindowLongPtr(hwnd, GWLP_USERDATA));
 			}
+			if(pThis == nullptr) return DefWindowProc(hwnd, msg, wParam, lParam);
+			if(!pThis->IsListening) return DefWindowProc(hwnd, msg, wParam, lParam);
 			pThis->WndProc(hwnd, msg, wParam, lParam);
 			return DefWindowProc(hwnd, msg, wParam, lParam);
 		};
