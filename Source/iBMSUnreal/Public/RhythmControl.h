@@ -9,7 +9,10 @@
 #include "Judge.h"
 #include "GameFramework/Actor.h"
 #include "Tasks/Task.h"
+#include "IRhythmControl.h"
+#include "RhythmInput.h"
 #include "RhythmControl.generated.h"
+
 
 class FRhythmState
 {
@@ -39,7 +42,7 @@ private:
 };
 
 UCLASS()
-class IBMSUNREAL_API ARhythmControl : public AActor
+class IBMSUNREAL_API ARhythmControl : public AActor, public IRhythmControl
 {
 	GENERATED_BODY()
 private:
@@ -53,6 +56,7 @@ private:
 	void CheckPassedTimeline(long long Time);
 	FRhythmState* State = nullptr;
 	TMap<int, bool> IsLanePressed;
+	FRhythmInput* RhythmInput;
 public:	
 	// Sets default values for this actor's properties
 	ARhythmControl();
@@ -63,8 +67,8 @@ public:
 	FJukebox* Jukebox;
 	void PressNote(FBMSNote* Note, long long PressedTime);
 	void ReleaseNote(FBMSNote* Note, long long ReleasedTime);
-	void PressLane(int Lane, double InputDelay = 0);
-	void ReleaseLane(int Lane, double InputDelay = 0);
+	virtual void PressLane(int Lane, double InputDelay = 0) override;
+	virtual void ReleaseLane(int Lane, double InputDelay = 0) override;
 	
 
 protected:

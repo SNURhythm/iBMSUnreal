@@ -150,6 +150,7 @@ void ARhythmControl::ReleaseNote(FBMSNote* Note, long long ReleasedTime)
 
 void ARhythmControl::PressLane(int Lane, double InputDelay)
 {
+	if(IsLanePressed[Lane]) return;
 	IsLanePressed[Lane] = true;
 	if(State == nullptr) return;
 	if(!State->IsPlaying) return;
@@ -178,6 +179,7 @@ void ARhythmControl::PressLane(int Lane, double InputDelay)
 
 void ARhythmControl::ReleaseLane(int Lane, double InputDelay)
 {
+	if(!IsLanePressed[Lane]) return;
 	IsLanePressed[Lane] = false;
 	if(State == nullptr) return;
 	if(!State->IsPlaying) return;
@@ -238,6 +240,8 @@ void ARhythmControl::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	LoadTask.Wait();
 	// ReSharper disable once CppExpressionWithoutSideEffects
 	MainLoopTask.Wait();
+	RhythmInput->StopListen();
+	delete RhythmInput;
 	Jukebox->Unload();
 	delete Jukebox;
 	Jukebox = nullptr;
@@ -271,6 +275,8 @@ void ARhythmControl::LoadGame()
 		}
 		State = new FRhythmState(Chart, false);
 		Renderer->Init(Chart);
+		RhythmInput = new FRhythmInput(this, *Chart->Meta);
+		RhythmInput->StartListen();
 		UE_LOG(LogTemp, Warning, TEXT("Chart&Jukebox loaded"));
 		if (!IsLoadCancelled)
 		{

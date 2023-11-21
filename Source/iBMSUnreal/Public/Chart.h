@@ -67,7 +67,7 @@ class IBMSUNREAL_API FChartMeta {
 	TArray<int> GetScratchLaneIndices() const
 	{
 		if(IsDP) return { 7, 15 };
-		return { 5 };
+		return { 7 };
 	}
 
 	TArray<int> GetTotalLaneIndices() const
