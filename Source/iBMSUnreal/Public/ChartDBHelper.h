@@ -42,6 +42,9 @@ public:
 	TArray<FString> SelectAllEntries(sqlite3* db);
 	bool DeleteEntry(sqlite3* db, FString& path);
 	bool ClearEntries(sqlite3* db);
+
+	static FString ToRelativePath(FString& path);
+	static FString ToAbsolutePath(FString& path);
 private:
 	FChartMeta* ReadChartMeta(sqlite3_stmt* stmt);
 

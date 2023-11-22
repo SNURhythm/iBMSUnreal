@@ -1,3 +1,4 @@
+#if PLATFORM_MAC
 #include "MacNatives.h"
 
 // OutFolderName is a std::string* that will be filled with the path to the selected folder
@@ -46,3 +47,5 @@ bool bSuccess = false;
 	return bSuccess;
 
 }
+
+#endif

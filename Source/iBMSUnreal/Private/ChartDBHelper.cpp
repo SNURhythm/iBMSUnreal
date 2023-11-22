@@ -1,6 +1,6 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-
+#include "iOSNatives.h"
 #include "ChartDBHelper.h"
 
 
@@ -9,17 +9,17 @@ sqlite3* ChartDBHelper::Connect() {
 	// use iOS Document Directory
 #if PLATFORM_IOS
 	// mkdir "BMS"
-	FString Directory = FPaths::Combine(FPaths::RootDir(), ".db/");
+	FString Directory = FPaths::Combine(GetIOSDocumentsPath(), "db/");
 #elif PLATFORM_MAC
 	// for macOS, ~/Library/Containers/com.package.name/Data/Documents/
-	FString Directory = FPaths::Combine(FPlatformProcess::UserDir(), "SNURhythm/iBMSUnreal/.db/");
+	FString Directory = FPaths::Combine(FPlatformProcess::UserDir(), "SNURhythm/iBMSUnreal/db/");
 	
 #elif PLATFORM_WINDOWS
 	// for Windows, AppData/Local/SNURhythm/iBMSUnreal
-	FString Directory = FPaths::Combine(FPlatformProcess::UserDir(), "SNURhythm/iBMSUnreal/.db/");
+	FString Directory = FPaths::Combine(FPlatformProcess::UserDir(), "SNURhythm/iBMSUnreal/db/");
 #else
     	// for other platforms, use Documents
-	FString Directory = FPaths::Combine(FPlatformProcess::UserDir(), "SNURhythm/iBMSUnreal/.db/");
+	FString Directory = FPaths::Combine(FPlatformProcess::UserDir(), "SNURhythm/iBMSUnreal/db/");
 #endif
 	FileManager.MakeDirectory(*Directory, true);
 	
@@ -156,7 +156,7 @@ bool ChartDBHelper::InsertChartMeta(sqlite3* db, FChartMeta& chartMeta) {
 		sqlite3_close(db);
 		return false;
 	}
-	sqlite3_bind_text(stmt, 1, TCHAR_TO_UTF8(*chartMeta.BmsPath), -1, SQLITE_TRANSIENT);
+	sqlite3_bind_text(stmt, 1, TCHAR_TO_UTF8(*ToRelativePath(chartMeta.BmsPath)), -1, SQLITE_TRANSIENT);
 	sqlite3_bind_text(stmt, 2, TCHAR_TO_UTF8(*chartMeta.MD5), -1, SQLITE_TRANSIENT);
 	sqlite3_bind_text(stmt, 3, TCHAR_TO_UTF8(*chartMeta.SHA256), -1, SQLITE_TRANSIENT);
 	sqlite3_bind_text(stmt, 4, TCHAR_TO_UTF8(*chartMeta.Title), -1, SQLITE_TRANSIENT);
@@ -164,7 +164,7 @@ bool ChartDBHelper::InsertChartMeta(sqlite3* db, FChartMeta& chartMeta) {
 	sqlite3_bind_text(stmt, 6, TCHAR_TO_UTF8(*chartMeta.Genre), -1, SQLITE_TRANSIENT);
 	sqlite3_bind_text(stmt, 7, TCHAR_TO_UTF8(*chartMeta.Artist), -1, SQLITE_TRANSIENT);
 	sqlite3_bind_text(stmt, 8, TCHAR_TO_UTF8(*chartMeta.SubArtist), -1, SQLITE_TRANSIENT);
-	sqlite3_bind_text(stmt, 9, TCHAR_TO_UTF8(*chartMeta.Folder), -1, SQLITE_TRANSIENT);
+	sqlite3_bind_text(stmt, 9, TCHAR_TO_UTF8(*ToRelativePath(chartMeta.Folder)), -1, SQLITE_TRANSIENT);
 	sqlite3_bind_text(stmt, 10, TCHAR_TO_UTF8(*chartMeta.StageFile), -1, SQLITE_TRANSIENT);
 	sqlite3_bind_text(stmt, 11, TCHAR_TO_UTF8(*chartMeta.Banner), -1, SQLITE_TRANSIENT);
 	sqlite3_bind_text(stmt, 12, TCHAR_TO_UTF8(*chartMeta.BackBmp), -1, SQLITE_TRANSIENT);
@@ -293,6 +293,7 @@ TArray<FChartMeta*> ChartDBHelper::SearchChartMeta(sqlite3* db, FString& text) {
 }
 
 bool ChartDBHelper::DeleteChartMeta(sqlite3* db, FString& path) {
+	FString pathRel = ToRelativePath(path);
 	auto query = "DELETE FROM chart_meta WHERE path = @path";
 	sqlite3_stmt* stmt;
 	int rc = sqlite3_prepare_v2(db, query, -1, &stmt, nullptr);
@@ -302,7 +303,7 @@ bool ChartDBHelper::DeleteChartMeta(sqlite3* db, FString& path) {
 		sqlite3_free(stmt);
 		return false;
 	}
-	sqlite3_bind_text(stmt, 1, TCHAR_TO_UTF8(*path), -1, SQLITE_TRANSIENT);
+	sqlite3_bind_text(stmt, 1, TCHAR_TO_UTF8(*pathRel), -1, SQLITE_TRANSIENT);
 	rc = sqlite3_step(stmt);
 	if (rc != SQLITE_DONE) {
 		FString err = UTF8_TO_TCHAR(sqlite3_errmsg(db));
@@ -338,7 +339,8 @@ bool ChartDBHelper::ClearChartMeta(sqlite3* db) {
 FChartMeta* ChartDBHelper::ReadChartMeta(sqlite3_stmt* stmt) {
 	int idx = 0;
 	FChartMeta* chartMeta = new FChartMeta();
-	chartMeta->BmsPath = UTF8_TO_TCHAR(sqlite3_column_text(stmt, idx++));
+	FString path = UTF8_TO_TCHAR(sqlite3_column_text(stmt, idx++));
+	chartMeta->BmsPath = ToAbsolutePath(path);
 	chartMeta->MD5 = UTF8_TO_TCHAR(sqlite3_column_text(stmt, idx++));
 	chartMeta->SHA256 = UTF8_TO_TCHAR(sqlite3_column_text(stmt, idx++));
 	chartMeta->Title = UTF8_TO_TCHAR(sqlite3_column_text(stmt, idx++));
@@ -346,7 +348,8 @@ FChartMeta* ChartDBHelper::ReadChartMeta(sqlite3_stmt* stmt) {
 	chartMeta->Genre = UTF8_TO_TCHAR(sqlite3_column_text(stmt, idx++));
 	chartMeta->Artist = UTF8_TO_TCHAR(sqlite3_column_text(stmt, idx++));
 	chartMeta->SubArtist = UTF8_TO_TCHAR(sqlite3_column_text(stmt, idx++));
-	chartMeta->Folder = UTF8_TO_TCHAR(sqlite3_column_text(stmt, idx++));
+	FString folder = UTF8_TO_TCHAR(sqlite3_column_text(stmt, idx++));
+	chartMeta->Folder = ToAbsolutePath(folder);
 	chartMeta->StageFile = UTF8_TO_TCHAR(sqlite3_column_text(stmt, idx++));
 	chartMeta->Banner = UTF8_TO_TCHAR(sqlite3_column_text(stmt, idx++));
 	chartMeta->BackBmp = UTF8_TO_TCHAR(sqlite3_column_text(stmt, idx++));
@@ -479,4 +482,36 @@ bool ChartDBHelper::ClearEntries(sqlite3* db)
 	}
 	sqlite3_finalize(stmt);
 	return true;
+}
+
+FString ChartDBHelper::ToRelativePath(FString& path)
+{
+	// for iOS, remove Documents
+#if PLATFORM_IOS
+	FString Documents = FPaths::Combine(GetIOSDocumentsPath(), "BMS/");
+	FString DocumentsAbs = IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(*Documents);
+	UE_LOG(LogTemp, Log, TEXT("ToRel - DocumentsAbs: %s, Path: %s"), *DocumentsAbs, *path);
+	if (path.StartsWith(DocumentsAbs)) {
+		UE_LOG(LogTemp, Log, TEXT("Relative Path: %s"), *path.RightChop(DocumentsAbs.Len()));
+		return path.RightChop(DocumentsAbs.Len());
+	}
+#endif
+	// otherwise, noop
+	return path;
+}
+
+FString ChartDBHelper::ToAbsolutePath(FString& path)
+{
+	// for iOS, add Documents
+#if PLATFORM_IOS
+	FString Documents = FPaths::Combine(GetIOSDocumentsPath(), "BMS/");
+	FString DocumentsAbs = IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(*Documents);
+	UE_LOG(LogTemp, Log, TEXT("ToAbs - DocumentsAbs: %s, Path: %s"), *DocumentsAbs, *path);
+	if (!path.StartsWith(DocumentsAbs)) {
+		UE_LOG(LogTemp, Log, TEXT("Absolute Path: %s"), *FPaths::Combine(DocumentsAbs, path));
+		return FPaths::Combine(DocumentsAbs, path);
+	}
+#endif
+	// otherwise, noop
+	return path;
 }

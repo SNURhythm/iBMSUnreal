@@ -8,7 +8,7 @@
 #include "ChartDBHelper.h"
 #include "ChartSelectUI.h"
 #include "ChartListEntry.h"
-
+#include "iOSNatives.h"
 #include "Judge.h"
 #include "tinyfiledialogs.h"
 #include "Blueprint/UserWidget.h"
@@ -65,11 +65,11 @@ static void FindNew(TArray<FDiff>& Diffs, const TSet<FString>& PrevPathSet, cons
 				{
 					return true;
 				}
-
-				if (!PrevPathSet.Contains(FilePath))
+				FString FullPath = IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(*FilePath);
+				if (!PrevPathSet.Contains(ChartDBHelper::ToRelativePath(FullPath)))
 				{
 					auto diff = FDiff();
-					diff.path = IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(*FilePath);
+					diff.path = FullPath;
 					diff.type = EDiffType::Added;
 					Diffs.Add(diff);
 				}
@@ -87,14 +87,17 @@ void AChartSelectScreen::LoadCharts()
 	auto db = dbHelper.Connect();
 	dbHelper.CreateChartMetaTable(db);
 	dbHelper.CreateEntriesTable(db);
-	auto entries = dbHelper.SelectAllEntries(db);
+	TArray<FString> entries;
 	// user home dir
 	FString homeDir = FPlatformProcess::UserHomeDir();
 	UE_LOG(LogTemp, Warning, TEXT("BMSGameModeBase UserHomeDir: %s"), *homeDir);
+#if PLATFORM_DESKTOP
+	entries = dbHelper.SelectAllEntries(db);
+	// check if platform is desktop
 	if (entries.IsEmpty())
 	{
 		FString Directory;
-#if PLATFORM_DESKTOP
+
 		FString defaultPath;
 #if PLATFORM_MAC
 		defaultPath = IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(*homeDir);
@@ -102,7 +105,7 @@ void AChartSelectScreen::LoadCharts()
 		std::string *stdstring = new std::string();
 		bool result = MacOSSelectFolder("Select BMS Folder", TCHAR_TO_ANSI(*defaultPath), stdstring);
 		if(result) Directory = FString(stdstring->c_str());
-#else
+#else // not mac
 		defaultPath = FPlatformProcess::UserDir();
 		// prompt user to select folder
 		Directory = tinyfd_selectFolderDialog("Select BMS Folder", TCHAR_TO_ANSI(*defaultPath));
@@ -116,22 +119,25 @@ void AChartSelectScreen::LoadCharts()
 			// insert entry
 			dbHelper.InsertEntry(db, Directory);
 		}
-
-#else
-		// use iOS Document Directory
-#if PLATFORM_IOS
-			// mkdir "BMS"
-			FString DirectoryRel = FPaths::Combine(FPaths::RootDir(), "BMS/");
-			IFileManager::Get().MakeDirectory(*DirectoryRel);
-#else
-			// use Project/BMS. Note that this would not work on packaged build, so we need to make it configurable
-			FString DirectoryRel = FPaths::Combine(FPaths::ProjectDir(), "BMS/");
-#endif
-			FString Directory = IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(*DirectoryRel);
-	    	dbHelper.InsertEntry(db, Directory);
-#endif
 		entries = dbHelper.SelectAllEntries(db);
+
+
 	}
+
+#else // not desktop
+	// use iOS Document Directory
+#if PLATFORM_IOS
+	// mkdir "BMS"
+	FString DirectoryRel = FPaths::Combine(GetIOSDocumentsPath(), "BMS/");
+	FString DirectoryAbs = IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(*DirectoryRel);
+	UE_LOG(LogTemp, Warning, TEXT("BMSGameModeBase DirectoryAbs: %s"), *DirectoryAbs);
+	IFileManager::Get().MakeDirectory(*DirectoryRel);
+#else
+	// use Project/BMS. Note that this would not work on packaged build, so we need to make it configurable
+	FString DirectoryRel = FPaths::Combine(FPaths::ProjectDir(), "BMS/");
+#endif
+	entries.Add(DirectoryRel);
+#endif
 	FTask LoadTask = Launch(UE_SOURCE_LOCATION, [&, db, entries]()
 	{
 		FMOD::Sound* SuccessSound;
@@ -155,7 +161,6 @@ void AChartSelectScreen::LoadCharts()
 			if (IsValid(ChartList))
 				SetChartMetas(chartMetas);
 		});
-
 		// find new charts
 		TArray<FDiff> Diffs;
 		TSet<FString> PathSet;
@@ -182,7 +187,7 @@ void AChartSelectScreen::LoadCharts()
 		for (auto& path : PathSet)
 		{
 			if (bCancelled) break;
-			if (!FileManager.FileExists(*path))
+			if (!FileManager.FileExists(*ChartDBHelper::ToAbsolutePath(path)))
 			{
 				auto diff = FDiff();
 				diff.path = path;
@@ -234,6 +239,9 @@ void AChartSelectScreen::LoadCharts()
 						dbHelper.InsertChartMeta(db, *Chart->Meta);
 						// close db
 						delete Chart;
+					} else
+					{
+						dbHelper.DeleteChartMeta(db, diff.path);
 					}
 				}
 			}, !bSupportMultithreading);
