@@ -73,6 +73,7 @@ public:
 	void ReleaseNote(FBMSNote* Note, long long ReleasedTime);
 	virtual void PressLane(int Lane, double InputDelay = 0) override;
 	virtual void ReleaseLane(int Lane, double InputDelay = 0) override;
+	virtual UWorld* GetContextWorld() override;
 	
 
 protected:

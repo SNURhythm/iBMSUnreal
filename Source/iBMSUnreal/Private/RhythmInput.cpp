@@ -3,10 +3,8 @@
 
 #include "RhythmInput.h"
 
-
 #include "Chart.h"
-
-
+// include macos appkit
 FRhythmInput::FRhythmInput(IRhythmControl* RhythmControlInit, const FChartMeta& Meta):RhythmControl(RhythmControlInit){
 	// TODO: load keymap from config
 	const TMap<int, TMap<int, int>> DefaultKeyMap = {
@@ -94,11 +92,62 @@ LRESULT FRhythmInput::WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 	}
 	return DefWindowProc(hwnd, msg, wParam, lParam);
 };
+
+#elif PLATFORM_MAC
+CGEventRef FRhythmInput::EventTapCallBack(CGEventTapProxy proxy, CGEventType type, CGEventRef event, void *refcon)
+{
+	FRhythmInput* pThis = reinterpret_cast<FRhythmInput*>(refcon);
+	if(!pThis->IsListening) {
+		CFRunLoopStop(CFRunLoopGetCurrent());
+		return event;
+	}
+	if(type == kCGEventKeyDown)
+	{
+		const int KeyCode = CGEventGetIntegerValueField(event, kCGKeyboardEventKeycode);
+		pThis->OnKeyDown(KeyCode);
+	} else if(type == kCGEventKeyUp)
+	{
+		const int KeyCode = CGEventGetIntegerValueField(event, kCGKeyboardEventKeycode);
+		pThis->OnKeyUp(KeyCode);
+	}
+	return event;
+}
+CFMutableDictionaryRef myCreateDeviceMatchingDictionary(UInt32 usagePage,
+		UInt32 usage) {
+	CFMutableDictionaryRef ret = CFDictionaryCreateMutable(kCFAllocatorDefault,
+			0, &kCFTypeDictionaryKeyCallBacks,
+			&kCFTypeDictionaryValueCallBacks);
+	if (!ret)
+		return NULL;
+
+	CFNumberRef pageNumberRef = CFNumberCreate(kCFAllocatorDefault,
+			kCFNumberIntType, &usagePage );
+	if (!pageNumberRef) {
+		CFRelease(ret);
+		return NULL;
+	}
+
+	CFDictionarySetValue(ret, CFSTR(kIOHIDDeviceUsagePageKey), pageNumberRef);
+	CFRelease(pageNumberRef);
+
+	CFNumberRef usageNumberRef = CFNumberCreate(kCFAllocatorDefault,
+			kCFNumberIntType, &usage);
+	if (!usageNumberRef) {
+		CFRelease(ret);
+		return NULL;
+	}
+
+	CFDictionarySetValue(ret, CFSTR(kIOHIDDeviceUsageKey), usageNumberRef);
+	CFRelease(usageNumberRef);
+
+	return ret;
+}
 #endif
 void FRhythmInput::StartListen()
 {
 	UE_LOG(LogTemp, Warning, TEXT("Start listen key input"));
 	IsListening = true;
+
 	ListenTask = UE::Tasks::Launch (UE_SOURCE_LOCATION, [this]()
 	{
 #if PLATFORM_WINDOWS
@@ -140,22 +189,85 @@ void FRhythmInput::StartListen()
 			DispatchMessage(&msg);
 		}
 		SendMessageW(CurrentHwnd, WM_CLOSE, 0, 0);
+#elif PLATFORM_MAC
+		UE_LOG(LogTemp, Warning, TEXT("Start listen key input - macOS"));
+		// CFRunLoopSourceRef runLoopSource;
+		// CGEventMask eventMask = CGEventMaskBit(kCGEventKeyDown) | CGEventMaskBit(kCGEventKeyUp);
+		// CFMachPortRef eventTap = CGEventTapCreate(kCGSessionEventTap, kCGHeadInsertEventTap, kCGEventTapOptionDefault, eventMask, EventTapCallBack, this);
+		// if (!eventTap) {
+		// 	UE_LOG(LogTemp, Warning, TEXT("failed to create event tap")); // how? A: permission Q: Info.plist? A: yes Q: what should I add? A: Privacy - Input Monitoring
+		// 	return;
+		// }
+		// runLoopSource = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, eventTap, 0);
+		// CFRunLoopAddSource(CFRunLoopGetCurrent(), runLoopSource, kCFRunLoopCommonModes);
+		// CGEventTapEnable(eventTap, true);
+		
+		// CFRunLoopRun();
+		CurrentCFRunLoop = CFRunLoopGetCurrent();
+		IOHIDManagerRef hidManager = IOHIDManagerCreate(kCFAllocatorDefault, kIOHIDOptionsTypeNone);
+		if (!hidManager) {
+			UE_LOG(LogTemp, Warning, TEXT("failed to create hid manager"));
+			return;
+		}
+		CFMutableDictionaryRef keyboard =
+			myCreateDeviceMatchingDictionary(0x01, 6);
+		CFMutableDictionaryRef keypad =
+			myCreateDeviceMatchingDictionary(0x01, 7);
+
+		CFMutableDictionaryRef matchesList[] = {
+			keyboard,
+			keypad,
+		};
+		CFArrayRef matches = CFArrayCreate(kCFAllocatorDefault,
+				(const void **)matchesList, 2, NULL);
+	IOHIDManagerSetDeviceMatchingMultiple(hidManager, matches);
+		IOHIDManagerRegisterInputValueCallback(hidManager, [](void* context, IOReturn result, void* sender, IOHIDValueRef value) {
+			FRhythmInput* pThis = reinterpret_cast<FRhythmInput*>(context);
+			if(!pThis->IsListening) {
+				UE_LOG(LogTemp, Warning, TEXT("Stop listen key input - macOS"));
+				CFRunLoopStop(CFRunLoopGetCurrent());
+				return;
+			}
+			if(result != kIOReturnSuccess) return;
+			IOHIDElementRef elem = IOHIDValueGetElement(value);
+			if (IOHIDElementGetUsagePage(elem) != 0x07)
+				return;
+			const int KeyCode = IOHIDElementGetUsage(elem);
+			if(KeyCode<4 || KeyCode>231) return;
+			const bool IsKeyDown = IOHIDValueGetIntegerValue(value);
+			if(IsKeyDown){
+				pThis->OnKeyDown(KeyCode);
+			} else {
+				pThis->OnKeyUp(KeyCode);
+			}
+		}, this);
+		IOHIDManagerScheduleWithRunLoop(hidManager, CFRunLoopGetCurrent(), kCFRunLoopDefaultMode);
+		IOHIDManagerOpen(hidManager, kIOHIDOptionsTypeNone);
+		UE_LOG(LogTemp, Warning, TEXT("Start listen key input - macOS 2"));
+		CFRunLoopRun();
+		UE_LOG(LogTemp, Warning, TEXT("Start listen key input - macOS 3"));
+
 #endif
 	});
+
+
 }
 
 void FRhythmInput::StopListen()
 {
 	UE_LOG(LogTemp, Warning, TEXT("Stop listen key input"));
+	IsListening = false;
 #if PLATFORM_WINDOWS
 	if(CurrentHwnd)
 	{
 		PostMessageW(CurrentHwnd, WM_CLOSE, 0, 0);
 		UE_LOG(LogTemp, Warning, TEXT("Hwnd closed"));
 	}
-#endif
-	IsListening = false;
 
+
+#elif PLATFORM_MAC
+	CFRunLoopStop(CurrentCFRunLoop);
+#endif
 	// ReSharper disable once CppExpressionWithoutSideEffects
 	ListenTask.Wait();
 }

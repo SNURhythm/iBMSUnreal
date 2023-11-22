@@ -209,6 +209,12 @@ void ARhythmControl::ReleaseLane(int Lane, double InputDelay)
 		}
 	}
 }
+
+UWorld* ARhythmControl::GetContextWorld()
+{
+	return GetWorld();
+}
+
 // Called when the game starts or when spawned
 void ARhythmControl::BeginPlay()
 {

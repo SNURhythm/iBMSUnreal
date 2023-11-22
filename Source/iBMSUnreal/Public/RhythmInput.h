@@ -6,6 +6,9 @@
 #include "CoreMinimal.h"
 #include <Tasks/Task.h>
 #include "IRhythmControl.h"
+#include <CoreGraphics/CoreGraphics.h>
+#include <CoreFoundation/CFRunLoop.h>
+#include <IOKit/hid/IOHIDManager.h>
 #if PLATFORM_WINDOWS
 
 #include "Windows/AllowWindowsPlatformTypes.h"
@@ -34,6 +37,10 @@ private:
 #if PLATFORM_WINDOWS
 	LRESULT WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 	HWND CurrentHwnd;
+#elif PLATFORM_MAC
+	CFRunLoopRef CurrentCFRunLoop;
+
+	static CGEventRef EventTapCallBack(CGEventTapProxy proxy, CGEventType type, CGEventRef event, void *refcon);
 #endif
 	IRhythmControl* RhythmControl;
 	TMap<int, int> KeyMap;
