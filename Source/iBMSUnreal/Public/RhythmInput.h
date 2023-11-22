@@ -6,14 +6,16 @@
 #include "CoreMinimal.h"
 #include <Tasks/Task.h>
 #include "IRhythmControl.h"
-#include <CoreGraphics/CoreGraphics.h>
-#include <CoreFoundation/CFRunLoop.h>
-#include <IOKit/hid/IOHIDManager.h>
+
 #if PLATFORM_WINDOWS
 
 #include "Windows/AllowWindowsPlatformTypes.h"
 
 #include "Windows.h"
+#elif PLATFORM_MAC
+#include <CoreGraphics/CoreGraphics.h>
+#include <CoreFoundation/CFRunLoop.h>
+#include <IOKit/hid/IOHIDManager.h>
 #endif
 
 class FChartMeta;

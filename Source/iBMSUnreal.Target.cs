@@ -11,5 +11,15 @@ public class iBMSUnrealTarget : TargetRules
 		DefaultBuildSettings = BuildSettingsVersion.V4;
 		IncludeOrderVersion = EngineIncludeOrderVersion.Unreal5_3;
 		ExtraModuleNames.Add("iBMSUnreal");
+		//
+		// bBuildDeveloperTools = true;
+		// bCompileRecast = false;
+		// bCompileSpeedTree = false;
+		// bCompileCEF3 = false;
+		// bCompileFreeType = false;
+		// bCompileRecast = false;
+		// bCompileNavmeshSegmentLinks = false;
+		// bCompileNavmeshClusterLinks = false;
+		// bUseLauncherChecks = false;
 	}
 }

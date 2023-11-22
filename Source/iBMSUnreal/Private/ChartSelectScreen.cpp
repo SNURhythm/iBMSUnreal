@@ -2,7 +2,7 @@
 
 
 #include "ChartSelectScreen.h"
-
+#include "MacNatives.h"
 #include "BMSGameInstance.h"
 #include "BMSParser.h"
 #include "ChartDBHelper.h"
@@ -93,18 +93,23 @@ void AChartSelectScreen::LoadCharts()
 	UE_LOG(LogTemp, Warning, TEXT("BMSGameModeBase UserHomeDir: %s"), *homeDir);
 	if (entries.IsEmpty())
 	{
+		FString Directory;
 #if PLATFORM_DESKTOP
 		FString defaultPath;
 #if PLATFORM_MAC
-	    	defaultPath = homeDir;
+		defaultPath = IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(*homeDir);
+		// NSOpenPanel in C++
+		std::string *stdstring = new std::string();
+		bool result = MacOSSelectFolder("Select BMS Folder", TCHAR_TO_ANSI(*defaultPath), stdstring);
+		if(result) Directory = FString(stdstring->c_str());
 #else
 		defaultPath = FPlatformProcess::UserDir();
-#endif
 		// prompt user to select folder
-
-		FString Directory = tinyfd_selectFolderDialog("Select BMS Folder", TCHAR_TO_ANSI(*defaultPath));
+		Directory = tinyfd_selectFolderDialog("Select BMS Folder", TCHAR_TO_ANSI(*defaultPath));
 		UE_LOG(LogTemp, Warning, TEXT("BMSGameModeBase Directory: %s"), *Directory);
 		// normalize path
+
+#endif
 		Directory = IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(*Directory);
 		if (!Directory.IsEmpty())
 		{
@@ -117,7 +122,7 @@ void AChartSelectScreen::LoadCharts()
 #if PLATFORM_IOS
 			// mkdir "BMS"
 			FString DirectoryRel = FPaths::Combine(FPaths::RootDir(), "BMS/");
-			FileManager.MakeDirectory(*DirectoryRel);
+			IFileManager::Get().MakeDirectory(*DirectoryRel);
 #else
 			// use Project/BMS. Note that this would not work on packaged build, so we need to make it configurable
 			FString DirectoryRel = FPaths::Combine(FPaths::ProjectDir(), "BMS/");
