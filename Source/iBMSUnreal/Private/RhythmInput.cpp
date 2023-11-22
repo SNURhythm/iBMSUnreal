@@ -147,11 +147,13 @@ void FRhythmInput::StartListen()
 void FRhythmInput::StopListen()
 {
 	UE_LOG(LogTemp, Warning, TEXT("Stop listen key input"));
+#if PLATFORM_WINDOWS
 	if(CurrentHwnd)
 	{
 		PostMessageW(CurrentHwnd, WM_CLOSE, 0, 0);
 		UE_LOG(LogTemp, Warning, TEXT("Hwnd closed"));
 	}
+#endif
 	IsListening = false;
 
 	// ReSharper disable once CppExpressionWithoutSideEffects
