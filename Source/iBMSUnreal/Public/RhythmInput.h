@@ -30,7 +30,7 @@ public:
 	FRhythmInput(IRhythmControl* RhythmControlInit, const FChartMeta& Meta);
 	~FRhythmInput();
 	
-	void StartListen();
+	bool StartListen();
 	void StopListen();
 
 private:

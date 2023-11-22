@@ -324,7 +324,12 @@ void ARhythmControl::LoadGame()
 		State = new FRhythmState(Chart, false);
 		Renderer->Init(Chart);
 		RhythmInput = new FRhythmInput(this, *Chart->Meta);
-		RhythmInput->StartListen();
+		bool result = RhythmInput->StartListen();
+		if(!result)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Failed to start listen"));
+			return;
+		}
 		UE_LOG(LogTemp, Warning, TEXT("Chart&Jukebox loaded"));
 		if (!IsLoadCancelled)
 		{
