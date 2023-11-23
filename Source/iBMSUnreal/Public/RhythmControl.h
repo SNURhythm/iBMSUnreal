@@ -11,8 +11,7 @@
 #include "Tasks/Task.h"
 #include "IRhythmControl.h"
 
-#include "NativeInputSource.h"
-#include "RhythmInputHandler.h"
+#include "Input/RhythmInputHandler.h"
 #include "RhythmControl.generated.h"
 
 

@@ -1,8 +1,8 @@
-#include "RhythmInputHandler.h"
+#include "Input/RhythmInputHandler.h"
 
-#include "InputNormalizer.h"
-#include "NativeInputSource.h"
-#include "UnrealInputSource.h"
+#include "Input/InputNormalizer.h"
+#include "Input/NativeInputSource.h"
+#include "Input/UnrealInputSource.h"
 
 FRhythmInputHandler::FRhythmInputHandler(IRhythmControl* Control, FChartMeta& ChartMeta): RhythmControl(Control)
 {

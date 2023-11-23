@@ -1,7 +1,7 @@
 ﻿// Fill out your copyright notice in the Description page of Project Settings.
 // get winuser.h raw input for windows
 
-#include "NativeInputSource.h"
+#include "Input/NativeInputSource.h"
 
 #include "Chart.h"
 // include macos appkit
