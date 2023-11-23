@@ -58,10 +58,10 @@ private:
 	void CheckPassedTimeline(long long Time);
 	FRhythmState* State = nullptr;
 	TMap<int, bool> IsLanePressed;
-	FRhythmInputHandler* InputHandler;
+	FRhythmInputHandler* InputHandler = nullptr;
 
 	UPROPERTY(VisibleInstanceOnly, Category="Runtime")
-	class URhythmHUD* CurrentHUD;
+	class URhythmHUD* CurrentHUD = nullptr;
 public:	
 	// Sets default values for this actor's properties
 	ARhythmControl();
@@ -89,6 +89,6 @@ protected:
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
-	FChart* Chart;
+	FChart* Chart = nullptr;
 
 };

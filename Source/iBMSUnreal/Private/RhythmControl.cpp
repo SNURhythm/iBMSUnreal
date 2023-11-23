@@ -263,8 +263,11 @@ void ARhythmControl::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
 	Super::EndPlay(EndPlayReason);
 	UE_LOG(LogTemp, Warning, TEXT("Rhythm EndPlay"));
-	InputHandler->StopListen();
-	delete InputHandler;
+	if(InputHandler != nullptr)
+	{
+		InputHandler->StopListen();
+		delete InputHandler;
+	}
 	IsLoadCancelled = true;
 	IsLoaded = false;
 	IsMainLoopCancelled = true;
@@ -272,13 +275,18 @@ void ARhythmControl::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	LoadTask.Wait();
 	// ReSharper disable once CppExpressionWithoutSideEffects
 	MainLoopTask.Wait();
-	
-	Jukebox->Unload();
-	delete Jukebox;
-	Jukebox = nullptr;
-	delete State;
-	State = nullptr;
-	if(Chart)
+	if(Jukebox != nullptr)
+	{
+		Jukebox->Unload();
+		delete Jukebox;
+		Jukebox = nullptr;
+	}
+	if(State != nullptr)
+	{
+		delete State;
+		State = nullptr;
+	}
+	if(Chart != nullptr)
 	{
 		delete Chart;
 		Chart = nullptr;
@@ -299,6 +307,12 @@ void ARhythmControl::LoadGame()
 		Parser.Parse(Options.BmsPath, &Chart, false, false, IsLoadCancelled);
 		if (IsLoadCancelled) return;
 		Jukebox->LoadChart(Chart, IsLoadCancelled);
+		if(Chart->Measures.IsEmpty())
+		{
+			// We don't need to check for empty timeline since all measures have at least one timeline
+			UE_LOG(LogTemp, Warning, TEXT("Chart is empty"));
+			return;
+		}
 		// init IsLanePressed
 		for (const auto& Lane : Chart->Meta->GetTotalLaneIndices())
 		{
