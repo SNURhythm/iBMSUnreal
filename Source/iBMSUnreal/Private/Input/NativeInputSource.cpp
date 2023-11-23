@@ -180,7 +180,7 @@ bool FNativeInputSource::StartListen()
 	});
 #endif
 
-	return true;
+	return false;
 }
 
 void FNativeInputSource::StopListen()
