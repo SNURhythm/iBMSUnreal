@@ -19,7 +19,7 @@ bool FUnrealInputSource::StartListen()
 	// EInputEvent::IE_Pressed can be swapped out to IE_Released if you want the release event instead
 	Press.bConsumeInput = true;
 	Press.bExecuteWhenPaused = false;
-	Press.KeyDelegate.GetDelegateWithKeyForManualSet().BindLambda([=](const FKey& Key)
+	Press.KeyDelegate.GetDelegateWithKeyForManualSet().BindLambda([this](const FKey& Key)
 	{
 		// print keycode
 		// get keycode integer
@@ -33,7 +33,7 @@ bool FUnrealInputSource::StartListen()
 	});
 	Release.bConsumeInput = true;
 	Release.bExecuteWhenPaused = false;
-	Release.KeyDelegate.GetDelegateWithKeyForManualSet().BindLambda([=](const FKey& Key)
+	Release.KeyDelegate.GetDelegateWithKeyForManualSet().BindLambda([this](const FKey& Key)
 	{
 		// print keycode
 		// get keycode integer

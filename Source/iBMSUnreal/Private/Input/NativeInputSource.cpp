@@ -12,7 +12,7 @@ FNativeInputSource::~FNativeInputSource()
 {
 }
 #if PLATFORM_WINDOWS
-LRESULT FRhythmInput::WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam){
+LRESULT FNativeInputSource::WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam){
 	if(msg == WM_INPUT)
 	{
 		// get raw input
@@ -144,12 +144,12 @@ bool FNativeInputSource::StartListen()
 		// proc to handle messages
 		wx.lpfnWndProc = [](HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) -> LRESULT
 		{
-			FRhythmInput* pThis;
+			FNativeInputSource* pThis;
 			if(msg == WM_NCCREATE){
-				pThis = static_cast<FRhythmInput*>(reinterpret_cast<CREATESTRUCT*>(lParam)->lpCreateParams);
+				pThis = static_cast<FNativeInputSource*>(reinterpret_cast<CREATESTRUCT*>(lParam)->lpCreateParams);
 				SetWindowLongPtr(hwnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(pThis));
 			} else {
-				pThis = reinterpret_cast<FRhythmInput*>(GetWindowLongPtr(hwnd, GWLP_USERDATA));
+				pThis = reinterpret_cast<FNativeInputSource*>(GetWindowLongPtr(hwnd, GWLP_USERDATA));
 			}
 			if(pThis == nullptr) return DefWindowProc(hwnd, msg, wParam, lParam);
 			if(!pThis->IsListening) return DefWindowProc(hwnd, msg, wParam, lParam);
