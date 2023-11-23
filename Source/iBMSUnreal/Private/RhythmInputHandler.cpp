@@ -51,6 +51,14 @@ FRhythmInputHandler::FRhythmInputHandler(IRhythmControl* Control, FChartMeta& Ch
 	KeyMap = DefaultKeyMap[ChartMeta.KeyMode];
 }
 
+FRhythmInputHandler::~FRhythmInputHandler()
+{
+	if(Input != nullptr){
+		StopListen();
+		delete Input;
+	}
+}
+
 void FRhythmInputHandler::OnKeyDown(int KeyCode, KeySource Source, int CharCode)
 {
 	FKey Normalized = InputNormalizer::Normalize(KeyCode, Source, CharCode);
@@ -70,6 +78,11 @@ void FRhythmInputHandler::OnKeyUp(int KeyCode, KeySource Source, int CharCode)
 }
 bool FRhythmInputHandler::StartListenNative()
 {
+	if(Input!=nullptr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Input already started"));
+		return false;
+	}
 	Input = new FNativeInputSource();
 	Input->SetHandler(this);
 	return Input->StartListen();
@@ -77,6 +90,11 @@ bool FRhythmInputHandler::StartListenNative()
 
 bool FRhythmInputHandler::StartListenUnreal(UInputComponent* InputComponent)
 {
+	if(Input!=nullptr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Input already started"));
+		return false;
+	}
 	Input = new FUnrealInputSource(InputComponent);
 	Input->SetHandler(this);
 	return Input->StartListen();
@@ -86,5 +104,7 @@ void FRhythmInputHandler::StopListen()
 {
 	if(Input != nullptr){
 		Input->StopListen();
+		delete Input;
+		Input = nullptr;
 	}
 }

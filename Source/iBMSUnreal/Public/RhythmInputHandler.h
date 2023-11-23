@@ -13,6 +13,7 @@ private:
 	IInputSource* Input = nullptr;
 public:
 	FRhythmInputHandler(IRhythmControl* Control, FChartMeta& ChartMeta);
+	~FRhythmInputHandler();
 	virtual void OnKeyDown(int KeyCode, KeySource Source, int CharCode = 0) override;
 	virtual void OnKeyUp(int KeyCode, KeySource Source, int CharCode = 0) override;
 	bool StartListenNative();
