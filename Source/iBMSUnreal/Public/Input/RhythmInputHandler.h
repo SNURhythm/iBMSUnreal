@@ -10,7 +10,9 @@ class FRhythmInputHandler: public IInputHandler
 private:
 	TMap<FKey, int> KeyMap;
 	IRhythmControl* RhythmControl;
-	IInputSource* Input = nullptr;
+	IInputSource* NativeInput = nullptr;
+	IInputSource* UnrealInput = nullptr;
+	IInputSource* UnrealTouchInput = nullptr;
 	APlayerController* PlayerController = nullptr;
 	AActor* Area = nullptr;
 	float TouchDistance = 0;

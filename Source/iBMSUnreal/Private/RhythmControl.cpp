@@ -322,9 +322,9 @@ void ARhythmControl::LoadGame()
 		State = new FRhythmState(Chart, false);
 		Renderer->Init(Chart);
 		InputHandler = new FRhythmInputHandler(this, *Chart->Meta);
-		// bool result = InputHandler->StartListenNative();
-		bool result = InputHandler->StartListenUnrealTouch(PlayerController, Renderer->NoteArea, 15);
-		if(!result)
+		bool result1 = InputHandler->StartListenNative();
+		bool result2 = InputHandler->StartListenUnrealTouch(PlayerController, Renderer->NoteArea, 15);
+		if(!result1 && !result2)
 		{
 			UE_LOG(LogTemp, Warning, TEXT("Failed to start listen"));
 			return;

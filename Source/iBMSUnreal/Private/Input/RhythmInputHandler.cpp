@@ -54,10 +54,7 @@ FRhythmInputHandler::FRhythmInputHandler(IRhythmControl* Control, FChartMeta& Me
 
 FRhythmInputHandler::~FRhythmInputHandler()
 {
-	if(Input != nullptr){
-		StopListen();
-		delete Input;
-	}
+	StopListen();
 }
 
 void FRhythmInputHandler::OnKeyDown(int KeyCode, KeySource Source, int CharCode)
@@ -127,26 +124,26 @@ int FRhythmInputHandler::GetLaneFromScreenPosition(FVector2D ScreenPosition) con
 
 bool FRhythmInputHandler::StartListenNative()
 {
-	if(Input!=nullptr)
+	if(NativeInput!=nullptr)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Input already started"));
 		return false;
 	}
-	Input = new FNativeInputSource();
-	Input->SetHandler(this);
-	return Input->StartListen();
+	NativeInput = new FNativeInputSource();
+	NativeInput->SetHandler(this);
+	return NativeInput->StartListen();
 }
 
 bool FRhythmInputHandler::StartListenUnreal(UInputComponent* InputComponent)
 {
-	if(Input!=nullptr)
+	if(UnrealInput!=nullptr)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Input already started"));
 		return false;
 	}
-	Input = new FUnrealInputSource(InputComponent);
-	Input->SetHandler(this);
-	return Input->StartListen();
+	UnrealInput = new FUnrealInputSource(InputComponent);
+	UnrealInput->SetHandler(this);
+	return UnrealInput->StartListen();
 }
 
 bool FRhythmInputHandler::StartListenUnrealTouch(APlayerController* PController, AActor* NoteArea, float Distance)
@@ -159,21 +156,25 @@ bool FRhythmInputHandler::StartListenUnrealTouch(APlayerController* PController,
 	PlayerController = PController;
 	Area = NoteArea;
 	TouchDistance = Distance;
-	if(Input!=nullptr)
+	if(UnrealTouchInput!=nullptr)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Input already started"));
 		return false;
 	}
-	Input = new FUnrealTouchInputSource(PController->InputComponent);
-	Input->SetHandler(this);
-	return Input->StartListen();
+	UnrealTouchInput = new FUnrealTouchInputSource(PController->InputComponent);
+	UnrealTouchInput->SetHandler(this);
+	return UnrealTouchInput->StartListen();
 }
 
 void FRhythmInputHandler::StopListen()
 {
-	if(Input != nullptr){
-		Input->StopListen();
-		delete Input;
-		Input = nullptr;
+	for(auto& Input : {&NativeInput, &UnrealInput, &UnrealTouchInput})
+	{
+		if(*Input != nullptr)
+		{
+			(*Input)->StopListen();
+			delete (*Input);
+			(*Input) = nullptr;
+		}
 	}
 }
