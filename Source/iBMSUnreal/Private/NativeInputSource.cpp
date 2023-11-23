@@ -1,58 +1,14 @@
 ﻿// Fill out your copyright notice in the Description page of Project Settings.
 // get winuser.h raw input for windows
 
-#include "RhythmInput.h"
+#include "NativeInputSource.h"
 
 #include "Chart.h"
 // include macos appkit
-FRhythmInput::FRhythmInput(IRhythmControl* RhythmControlInit, const FChartMeta& Meta):RhythmControl(RhythmControlInit){
-	// TODO: load keymap from config
-	const TMap<int, TMap<int, int>> DefaultKeyMap = {
-		{
-			7,{
-				// keys: SDF, SPACE, JKL
-				{0x53, 0}, {0x44, 1}, {0x46, 2}, {0x20, 3}, {0x4A, 4}, {0x4B, 5}, {0x4C, 6},
-				// scratch: LShift, RShift
-				{0xA0, 7},
-				{0xA1, 7}
-			}
-		},
-		{
-			5,{
-				// keys: DF, SPACE, JK
-				{0x44, 0}, {0x46, 1}, {0x20, 2}, {0x4A, 3}, {0x4B, 4}, {0x4C, 5},
-				// scratch: LShift, RShift
-				{0xA0, 7},
-				{0xA1, 7}
-			}
-		},
-		{
-		14,{
-				// keys: ZSXDCFV and MK,L.;/
-				{0x5A, 0}, {0x53, 1}, {0x58, 2}, {0x44, 3}, {0x43, 4}, {0x46, 5}, {0x56, 6},
-				{0x4D, 8}, {0x4B, 9}, {0xBC, 10}, {0x4C, 11}, {0xBE, 12}, {0xBA, 13}, {0xBF, 14},
-				// Lscratch: LShift
-				{0xA0, 7},
-				// Rscratch: RShift
-				{0xA1, 15}
-			}
-		},
-		{
-			10,{
-				// keys: ZSXDC and ,l.;/
-				{0x5A, 0}, {0x53, 1}, {0x58, 2}, {0x44, 3}, {0x43, 4},
-				{0xBC, 8}, {0x4C, 9}, {0xBE, 10}, {0xBA, 11}, {0xBF, 12},
-				// Lscratch: LShift
-				{0xA0, 7},
-				// Rscratch: RShift
-				{0xA1, 15}
-			}
-		}
-	};
-	KeyMap = DefaultKeyMap[Meta.KeyMode];
+FNativeInputSource::FNativeInputSource(){
 }
 
-FRhythmInput::~FRhythmInput()
+FNativeInputSource::~FNativeInputSource()
 {
 }
 #if PLATFORM_WINDOWS
@@ -84,9 +40,9 @@ LRESULT FRhythmInput::WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 				}
 			}
 			if(IsKeyDown){
-				OnKeyDown(rawInput);
+				OnKeyDown(rawInput, KeySource::VirtualKey);
 			} else {
-				OnKeyUp(rawInput);
+				OnKeyUp(rawInput, KeySource::VirtualKey);
 			}
 		}
 	}
@@ -94,24 +50,7 @@ LRESULT FRhythmInput::WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 };
 
 #elif PLATFORM_MAC
-CGEventRef FRhythmInput::EventTapCallBack(CGEventTapProxy proxy, CGEventType type, CGEventRef event, void *refcon)
-{
-	FRhythmInput* pThis = reinterpret_cast<FRhythmInput*>(refcon);
-	if(!pThis->IsListening) {
-		CFRunLoopStop(CFRunLoopGetCurrent());
-		return event;
-	}
-	if(type == kCGEventKeyDown)
-	{
-		const int KeyCode = CGEventGetIntegerValueField(event, kCGKeyboardEventKeycode);
-		pThis->OnKeyDown(KeyCode);
-	} else if(type == kCGEventKeyUp)
-	{
-		const int KeyCode = CGEventGetIntegerValueField(event, kCGKeyboardEventKeycode);
-		pThis->OnKeyUp(KeyCode);
-	}
-	return event;
-}
+
 CFMutableDictionaryRef myCreateDeviceMatchingDictionary(UInt32 usagePage,
 		UInt32 usage) {
 	CFMutableDictionaryRef ret = CFDictionaryCreateMutable(kCFAllocatorDefault,
@@ -143,7 +82,7 @@ CFMutableDictionaryRef myCreateDeviceMatchingDictionary(UInt32 usagePage,
 	return ret;
 }
 #endif
-bool FRhythmInput::StartListen()
+bool FNativeInputSource::StartListen()
 {
 	UE_LOG(LogTemp, Warning, TEXT("Start listen key input"));
 	IsListening = true;
@@ -166,7 +105,7 @@ bool FRhythmInput::StartListen()
 			(const void **)matchesList, 2, NULL);
 	IOHIDManagerSetDeviceMatchingMultiple(hidManager, matches);
 	IOHIDManagerRegisterInputValueCallback(hidManager, [](void* context, IOReturn result, void* sender, IOHIDValueRef value) {
-		FRhythmInput* pThis = reinterpret_cast<FRhythmInput*>(context);
+		FNativeInputSource* pThis = reinterpret_cast<FNativeInputSource*>(context);
 		if(!pThis->IsListening) {
 			UE_LOG(LogTemp, Warning, TEXT("Stop listen key input - macOS"));
 			CFRunLoopStop(CFRunLoopGetCurrent());
@@ -180,9 +119,9 @@ bool FRhythmInput::StartListen()
 		if(KeyCode<4 || KeyCode>231) return;
 		const bool IsKeyDown = IOHIDValueGetIntegerValue(value);
 		if(IsKeyDown){
-			pThis->OnKeyDown(KeyCode);
+			pThis->OnKeyDown(KeyCode, KeySource::ScanCode);
 		} else {
-			pThis->OnKeyUp(KeyCode);
+			pThis->OnKeyUp(KeyCode, KeySource::ScanCode);
 		}
 	}, this);
 
@@ -244,7 +183,7 @@ bool FRhythmInput::StartListen()
 	return true;
 }
 
-void FRhythmInput::StopListen()
+void FNativeInputSource::StopListen()
 {
 	UE_LOG(LogTemp, Warning, TEXT("Stop listen key input"));
 	IsListening = false;
@@ -263,20 +202,19 @@ void FRhythmInput::StopListen()
 	ListenTask.Wait();
 }
 
-void FRhythmInput::OnKeyDown(int KeyCode)
+void FNativeInputSource::SetHandler(IInputHandler* Handler)
 {
-	UE_LOG(LogTemp, Warning, TEXT("Key %d pressed"), KeyCode);
-	if(KeyMap.Contains(KeyCode)){
-		UE_LOG(LogTemp, Warning, TEXT("Key %d mapped to %d"), KeyCode, KeyMap[KeyCode]);
-		RhythmControl->PressLane(KeyMap[KeyCode]);
-	}
+	InputHandler = Handler;
 }
 
-void FRhythmInput::OnKeyUp(int KeyCode)
+void FNativeInputSource::OnKeyDown(int KeyCode, KeySource Source)
 {
-	UE_LOG(LogTemp, Warning, TEXT("Key %d released"), KeyCode);
-	if(KeyMap.Contains(KeyCode)){
-		UE_LOG(LogTemp, Warning, TEXT("Key %d mapped to %d"), KeyCode, KeyMap[KeyCode]);
-		RhythmControl->ReleaseLane(KeyMap[KeyCode]);
-	}
+	UE_LOG(LogTemp, Warning, TEXT("Native: Key %d pressed"), KeyCode);
+	if(InputHandler != nullptr) InputHandler->OnKeyDown(KeyCode, Source);
+}
+
+void FNativeInputSource::OnKeyUp(int KeyCode, KeySource Source)
+{
+	UE_LOG(LogTemp, Warning, TEXT("Native: Key %d released"), KeyCode);
+	if(InputHandler != nullptr) InputHandler->OnKeyUp(KeyCode, Source);
 }

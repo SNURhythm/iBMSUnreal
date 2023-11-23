@@ -11,7 +11,8 @@
 #include "Tasks/Task.h"
 #include "IRhythmControl.h"
 
-#include "RhythmInput.h"
+#include "NativeInputSource.h"
+#include "RhythmInputHandler.h"
 #include "RhythmControl.generated.h"
 
 
@@ -53,11 +54,12 @@ private:
 	StartOptions Options;
 	UE::Tasks::TTask<void> LoadTask;
 	UE::Tasks::TTask<void> MainLoopTask;
+	TObjectPtr<UInputComponent> PlayerInputComponent;
 	void OnJudge(const FJudgeResult& JudgeResult) const;
 	void CheckPassedTimeline(long long Time);
 	FRhythmState* State = nullptr;
 	TMap<int, bool> IsLanePressed;
-	FRhythmInput* RhythmInput;
+	FRhythmInputHandler* InputHandler;
 
 	UPROPERTY(VisibleInstanceOnly, Category="Runtime")
 	class URhythmHUD* CurrentHUD;

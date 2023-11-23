@@ -243,35 +243,18 @@ void ARhythmControl::BeginPlay()
 		}
 	});
 
-	// detect any key
-	FInputKeyBinding Binding(FInputChord(EKeys::AnyKey, false, false, false, false), EInputEvent::IE_Pressed);
-	// Key is any FKey value, commonly found in the EKeys struct, including EKeys::AnyKey
-	// You can also skip FInputChord altogether and just use the FKey value instead
-	// EInputEvent::IE_Pressed can be swapped out to IE_Released if you want the release event instead
-	Binding.bConsumeInput = true;
-	Binding.bExecuteWhenPaused = false;
-	Binding.KeyDelegate.GetDelegateWithKeyForManualSet().BindLambda([=](const FKey& Key)
-	{
-		// print keycode
-		// get keycode integer
-		const uint32 *KeyCode, *CharCode;
-		FInputKeyManager::Get().GetCodesFromKey(Key, KeyCode, CharCode);
-		const uint32 KeyCodeValue = KeyCode ? *KeyCode : 0;
-		const uint32 CharCodeValue = CharCode ? *CharCode : 0;
-		UE_LOG(LogTemp, Warning, TEXT("Key pressed from unreal basic input: %s, %d, %d"), *Key.ToString(), KeyCodeValue, CharCodeValue);
-		// Your code here
-	});
+	
 	// get player controller
 	APlayerController* PlayerController = GetWorld()->GetFirstPlayerController();
 	// Get the input component
-	UInputComponent* InputComponent = PlayerController->InputComponent;
+	PlayerInputComponent = PlayerController->InputComponent;
 	if (!InputComponent)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("InputComponent is null"));
 		return;
 	}
 	// Bind the binding to the input component
-	InputComponent->KeyBindings.Add(Binding);
+	// InputComponent->KeyBindings.Add(Binding);
 
 	
 }
@@ -280,7 +263,7 @@ void ARhythmControl::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
 	Super::EndPlay(EndPlayReason);
 	UE_LOG(LogTemp, Warning, TEXT("Rhythm EndPlay"));
-	RhythmInput->StopListen();
+	InputHandler->StopListen();
 	IsLoadCancelled = true;
 	IsLoaded = false;
 	IsMainLoopCancelled = true;
@@ -323,8 +306,9 @@ void ARhythmControl::LoadGame()
 		}
 		State = new FRhythmState(Chart, false);
 		Renderer->Init(Chart);
-		RhythmInput = new FRhythmInput(this, *Chart->Meta);
-		bool result = RhythmInput->StartListen();
+		InputHandler = new FRhythmInputHandler(this, *Chart->Meta);
+		// bool result = InputHandler->StartListenNative();
+		bool result = InputHandler->StartListenNative();
 		if(!result)
 		{
 			UE_LOG(LogTemp, Warning, TEXT("Failed to start listen"));

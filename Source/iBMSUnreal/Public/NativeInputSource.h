@@ -5,6 +5,9 @@
 
 #include "CoreMinimal.h"
 #include <Tasks/Task.h>
+
+#include "IInputSource.h"
+#include "IInputHandler.h"
 #include "IRhythmControl.h"
 
 #if PLATFORM_WINDOWS
@@ -23,19 +26,20 @@ class FChartMeta;
 /**
  * 
  */
-class IBMSUNREAL_API FRhythmInput
+class IBMSUNREAL_API FNativeInputSource: public IInputSource
 {
 
 public:
-	FRhythmInput(IRhythmControl* RhythmControlInit, const FChartMeta& Meta);
-	~FRhythmInput();
-	
-	bool StartListen();
-	void StopListen();
+	FNativeInputSource();
+	~FNativeInputSource();
+
+	virtual bool StartListen() override;
+	virtual void StopListen() override;
+	virtual void SetHandler(IInputHandler* Handler) override;
 
 private:
-	void OnKeyDown(int KeyCode);
-	void OnKeyUp(int KeyCode);
+	void OnKeyDown(int KeyCode, KeySource Source);
+	void OnKeyUp(int KeyCode, KeySource Source);
 #if PLATFORM_WINDOWS
 	LRESULT WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam);
 	HWND CurrentHwnd;
@@ -44,7 +48,7 @@ private:
 
 	static CGEventRef EventTapCallBack(CGEventTapProxy proxy, CGEventType type, CGEventRef event, void *refcon);
 #endif
-	IRhythmControl* RhythmControl;
+	IInputHandler* InputHandler = nullptr;
 	TMap<int, int> KeyMap;
 	UE::Tasks::FTask ListenTask;
 	std::atomic_bool IsListening;

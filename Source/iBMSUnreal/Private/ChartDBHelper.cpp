@@ -4,7 +4,6 @@
 #include "iOSNatives.h"
 
 
-
 sqlite3* ChartDBHelper::Connect() {
 	IFileManager& FileManager = IFileManager::Get();
 	// use iOS Document Directory
@@ -23,7 +22,6 @@ sqlite3* ChartDBHelper::Connect() {
 	FString Directory = FPaths::Combine(FPlatformProcess::UserDir(), "SNURhythm/iBMSUnreal/db/");
 #endif
 	FileManager.MakeDirectory(*Directory, true);
-	
 	FString pathRel = FPaths::Combine(Directory, "chart.db");
 	FString path = IFileManager::Get().ConvertToAbsolutePathForExternalAppForWrite(*pathRel);
 	UE_LOG(LogTemp, Log, TEXT("DB Path: %s"), *path);
