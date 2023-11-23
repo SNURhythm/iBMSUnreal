@@ -3,8 +3,9 @@
 #include "Input/InputNormalizer.h"
 #include "Input/NativeInputSource.h"
 #include "Input/UnrealInputSource.h"
+#include "Input/UnrealTouchInputSource.h"
 
-FRhythmInputHandler::FRhythmInputHandler(IRhythmControl* Control, FChartMeta& ChartMeta): RhythmControl(Control)
+FRhythmInputHandler::FRhythmInputHandler(IRhythmControl* Control, FChartMeta& Meta): RhythmControl(Control), ChartMeta(Meta)
 {
 	const TMap<int, TMap<FKey, int>> DefaultKeyMap = {
 		{
@@ -48,7 +49,7 @@ FRhythmInputHandler::FRhythmInputHandler(IRhythmControl* Control, FChartMeta& Ch
 			}
 		}
 	};
-	KeyMap = DefaultKeyMap[ChartMeta.KeyMode];
+	KeyMap = DefaultKeyMap[Meta.KeyMode];
 }
 
 FRhythmInputHandler::~FRhythmInputHandler()
@@ -70,12 +71,60 @@ void FRhythmInputHandler::OnKeyDown(int KeyCode, KeySource Source, int CharCode)
 
 void FRhythmInputHandler::OnKeyUp(int KeyCode, KeySource Source, int CharCode)
 {
-	FKey Normalized = InputNormalizer::Normalize(KeyCode, Source, CharCode);
+	const FKey Normalized = InputNormalizer::Normalize(KeyCode, Source, CharCode);
 	UE_LOG(LogTemp, Warning, TEXT("Rhythm Key up: %s"), *Normalized.ToString());
 	if(KeyMap.Contains(Normalized)){
 		RhythmControl->ReleaseLane(KeyMap[Normalized]);
 	}
 }
+
+void FRhythmInputHandler::OnFingerDown(int FingerIndex, FVector Location)
+{
+	UE_LOG(LogTemp, Warning, TEXT("Finger Down Location: %f, %f"), Location.X, Location.Y);
+	const int Lane = GetLaneFromScreenPosition(FVector2D(Location.X, Location.Y));
+	FingerToLane[FingerIndex] = Lane;
+	RhythmControl->PressLane(Lane);
+}
+
+void FRhythmInputHandler::OnFingerUp(int FingerIndex, FVector Location)
+{
+	int Lane = FingerToLane[FingerIndex];
+	if(Lane < 0) return;
+	RhythmControl->ReleaseLane(Lane);
+	FingerToLane[FingerIndex] = -1;
+}
+
+
+int FRhythmInputHandler::GetLaneFromScreenPosition(FVector2D ScreenPosition) const
+{
+	FVector worldPosition;
+	FVector worldDirection;
+	PlayerController->DeprojectScreenPositionToWorld(ScreenPosition.X, ScreenPosition.Y, worldPosition, worldDirection);
+	worldPosition = worldPosition / GNearClippingPlane * TouchDistance;
+	worldPosition.X = worldPosition.X + Area->GetActorLocation().X; // -leftmost~rightmost => 0~width
+	UE_LOG(LogTemp, Warning, TEXT("World Location: %f, %f, %f"), worldPosition.X, worldPosition.Y, worldPosition.Z);
+	const int LaneCount = ChartMeta.KeyMode;
+	const float LaneWidth = Area->GetActorScale().X / LaneCount;
+	UE_LOG(LogTemp, Warning, TEXT("Lane Width: %f"), LaneWidth);
+	int Lane = static_cast<int>(FMath::FloorToInt((worldPosition.X) / LaneWidth));
+	UE_LOG(LogTemp, Warning, TEXT("RawLane: %d"), Lane);
+	if(Lane < 0) return 7; // left scratch
+	if(Lane >= LaneCount)
+	{
+		return ChartMeta.IsDP ? 15 : 7; // right scratch
+	}
+	if(Lane >= 7 && ChartMeta.KeyMode == 14) {
+		// 14Keys: 7 is scratch, so we should map 7~13 to 8~14
+		Lane += 1;
+	}
+	if(Lane >= 5 && ChartMeta.KeyMode == 10) {
+		// 10Keys: 5,6 is empty and 7 is scratch, so we should map 5~9 to 8~12
+		Lane += 3;
+	}
+	
+	return Lane;
+}
+
 bool FRhythmInputHandler::StartListenNative()
 {
 	if(Input!=nullptr)
@@ -96,6 +145,26 @@ bool FRhythmInputHandler::StartListenUnreal(UInputComponent* InputComponent)
 		return false;
 	}
 	Input = new FUnrealInputSource(InputComponent);
+	Input->SetHandler(this);
+	return Input->StartListen();
+}
+
+bool FRhythmInputHandler::StartListenUnrealTouch(APlayerController* PController, AActor* NoteArea, float Distance)
+{
+	// init finger to lane map
+	for (int i=0; i<10; i++)
+	{
+		FingerToLane.Add(i, -1);
+	}
+	PlayerController = PController;
+	Area = NoteArea;
+	TouchDistance = Distance;
+	if(Input!=nullptr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Input already started"));
+		return false;
+	}
+	Input = new FUnrealTouchInputSource(PController->InputComponent);
 	Input->SetHandler(this);
 	return Input->StartListen();
 }

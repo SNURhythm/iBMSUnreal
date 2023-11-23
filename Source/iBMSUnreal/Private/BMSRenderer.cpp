@@ -439,12 +439,3 @@ void UBMSRenderer::Reset()
 }
 
 
-// double mouseX;
-// double mouseY;
-// UGameplayStatics::GetPlayerController(GetWorld(), 0)->GetMousePosition(mouseX, mouseY);
-// UE_LOG(LogTemp, Warning, TEXT("Mouse Location: %f, %f"), mouseX, mouseY);
-// FVector worldPosition;
-// FVector worldDirection;
-// UGameplayStatics::GetPlayerController(GetWorld(), 0)->DeprojectScreenPositionToWorld(mouseX, mouseY, worldPosition, worldDirection);
-// worldPosition = worldPosition / GNearClippingPlane * 10;
-// UE_LOG(LogTemp, Warning, TEXT("World Location: %f, %f, %f"), worldPosition.X, worldPosition.Y, worldPosition.Z);

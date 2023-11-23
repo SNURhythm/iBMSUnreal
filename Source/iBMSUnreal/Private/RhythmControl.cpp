@@ -245,10 +245,10 @@ void ARhythmControl::BeginPlay()
 
 	
 	// get player controller
-	APlayerController* PlayerController = GetWorld()->GetFirstPlayerController();
+	PlayerController = GetWorld()->GetFirstPlayerController();
 	// Get the input component
 	PlayerInputComponent = PlayerController->InputComponent;
-	if (!InputComponent)
+	if (!PlayerInputComponent)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("InputComponent is null"));
 		return;
@@ -323,7 +323,7 @@ void ARhythmControl::LoadGame()
 		Renderer->Init(Chart);
 		InputHandler = new FRhythmInputHandler(this, *Chart->Meta);
 		// bool result = InputHandler->StartListenNative();
-		bool result = InputHandler->StartListenNative();
+		bool result = InputHandler->StartListenUnrealTouch(PlayerController, Renderer->NoteArea, 15);
 		if(!result)
 		{
 			UE_LOG(LogTemp, Warning, TEXT("Failed to start listen"));

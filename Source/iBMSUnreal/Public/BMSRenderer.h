@@ -45,14 +45,14 @@ private:
 public:	
 	// Sets default values for this actor's properties
 	UBMSRenderer();
-
+	UPROPERTY(EditAnywhere, Category="BMS Renderer")
+	AActor* NoteArea;
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
 	// NoteArea, where notes are rendered within its local space
-	UPROPERTY(EditAnywhere, Category="BMS Renderer")
-	AActor* NoteArea;
+
 
 	// Paper2D Sprite for rendering notes
 	UPROPERTY(EditAnywhere, Category="BMS Renderer")

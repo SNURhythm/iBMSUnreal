@@ -54,6 +54,7 @@ private:
 	UE::Tasks::TTask<void> LoadTask;
 	UE::Tasks::TTask<void> MainLoopTask;
 	TObjectPtr<UInputComponent> PlayerInputComponent;
+	APlayerController* PlayerController = nullptr;
 	void OnJudge(const FJudgeResult& JudgeResult) const;
 	void CheckPassedTimeline(long long Time);
 	FRhythmState* State = nullptr;
