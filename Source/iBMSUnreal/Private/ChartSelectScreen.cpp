@@ -11,6 +11,7 @@
 #include "iOSNatives.h"
 #include "Judge.h"
 #include "tinyfiledialogs.h"
+#include "transcode.h"
 #include "Blueprint/UserWidget.h"
 #include "iBMSUnreal/Public/ImageUtils.h"
 #include "Kismet/GameplayStatics.h"
@@ -287,7 +288,7 @@ void AChartSelectScreen::OnStartButtonClicked()
 void AChartSelectScreen::BeginPlay()
 {
 	Super::BeginPlay();
-
+	transcode("/Users/xf/iBMS/take003/bga_take.mpg", "/Users/xf/iBMS/take003/bga_take-ffmpeg.mp4");
 	UE_LOG(LogTemp, Warning, TEXT("ChartSelectScreen BeginPlay()!!"));
 	UBMSGameInstance* GameInstance = Cast<UBMSGameInstance>(UGameplayStatics::GetGameInstance(GetWorld()));
 	FMODSystem = GameInstance->GetFMODSystem();
