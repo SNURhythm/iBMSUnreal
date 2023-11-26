@@ -11,7 +11,7 @@ public class iBMSUnreal : ModuleRules
 		
 		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "Paper2D"});
 
-		PrivateDependencyModuleNames.AddRange(new string[] { "FMODStudio" });
+		PrivateDependencyModuleNames.AddRange(new string[] { "FMODStudio", "MediaAssets" });
 		
 		// Uncomment if you are using Slate UI
 		PrivateDependencyModuleNames.AddRange(new string[] { "Slate", "SlateCore" });
@@ -56,6 +56,27 @@ public class iBMSUnreal : ModuleRules
           
             // add corresponding include path
             PublicIncludePaths.Add(System.IO.Path.Combine(ModuleDirectory, "../ThirdParty/ffmpeg/mac/include"));
+        } else if (Target.Platform == UnrealTargetPlatform.Win64){
+			PublicAdditionalLibraries.Add(System.IO.Path.Combine(ModuleDirectory, "../ThirdParty/ffmpeg/win64/avcodec.lib"));
+			PublicAdditionalLibraries.Add(System.IO.Path.Combine(ModuleDirectory, "../ThirdParty/ffmpeg/win64/avdevice.lib"));
+			PublicAdditionalLibraries.Add(System.IO.Path.Combine(ModuleDirectory, "../ThirdParty/ffmpeg/win64/avfilter.lib"))	;
+			PublicAdditionalLibraries.Add(System.IO.Path.Combine(ModuleDirectory, "../ThirdParty/ffmpeg/win64/avformat.lib"));
+			PublicAdditionalLibraries.Add(System.IO.Path.Combine(ModuleDirectory, "../ThirdParty/ffmpeg/win64/avutil.lib"));
+			PublicAdditionalLibraries.Add(System.IO.Path.Combine(ModuleDirectory, "../ThirdParty/ffmpeg/win64/swresample.lib"));
+			PublicAdditionalLibraries.Add(System.IO.Path.Combine(ModuleDirectory, "../ThirdParty/ffmpeg/win64/swscale.lib"));
+	
+			// add corresponding dll
+			RuntimeDependencies.Add("$(BinaryOutputDir)/"+"avcodec-60.dll", System.IO.Path.Combine(ModuleDirectory, "../ThirdParty/ffmpeg/win64/avcodec-60.dll"));
+			RuntimeDependencies.Add("$(BinaryOutputDir)/"+"avdevice-60.dll",System.IO.Path.Combine(ModuleDirectory, "../ThirdParty/ffmpeg/win64/avdevice-60.dll"));
+			RuntimeDependencies.Add("$(BinaryOutputDir)/"+"avfilter-9.dll",System.IO.Path.Combine(ModuleDirectory, "../ThirdParty/ffmpeg/win64/avfilter-9.dll"));
+			RuntimeDependencies.Add("$(BinaryOutputDir)/"+"avformat-60.dll",System.IO.Path.Combine(ModuleDirectory, "../ThirdParty/ffmpeg/win64/avformat-60.dll"));
+			RuntimeDependencies.Add("$(BinaryOutputDir)/"+"avutil-58.dll",System.IO.Path.Combine(ModuleDirectory, "../ThirdParty/ffmpeg/win64/avutil-58.dll"));
+			RuntimeDependencies.Add("$(BinaryOutputDir)/"+"swresample-4.dll",System.IO.Path.Combine(ModuleDirectory, "../ThirdParty/ffmpeg/win64/swresample-4.dll"));
+			RuntimeDependencies.Add("$(BinaryOutputDir)/"+"swscale-7.dll",System.IO.Path.Combine(ModuleDirectory, "../ThirdParty/ffmpeg/win64/swscale-7.dll"));
+
+			
+			// add corresponding include path
+			PublicIncludePaths.Add(System.IO.Path.Combine(ModuleDirectory, "../ThirdParty/ffmpeg/win64/include"));
         }
 
 		// Uncomment if you are using online features

@@ -10,6 +10,9 @@
 #include "ChartListEntry.h"
 #include "iOSNatives.h"
 #include "Judge.h"
+#include "MediaPlayer.h"
+#include "MediaPlayer.h"
+#include "MediaTexture.h"
 #include "tinyfiledialogs.h"
 #include "transcode.h"
 #include "Blueprint/UserWidget.h"
@@ -288,7 +291,8 @@ void AChartSelectScreen::OnStartButtonClicked()
 void AChartSelectScreen::BeginPlay()
 {
 	Super::BeginPlay();
-	transcode("/Users/xf/iBMS/take003/bga_take.mpg", "/Users/xf/iBMS/take003/bga_take-ffmpeg.mp4");
+	int ret = transcode("F:/BMS/take003/bga_take.mpg", "F:/BMS/take003/bga_take-ffmpeg.mp4");
+	UE_LOG(LogTemp, Warning, TEXT("transcode: %d"), ret);
 	UE_LOG(LogTemp, Warning, TEXT("ChartSelectScreen BeginPlay()!!"));
 	UBMSGameInstance* GameInstance = Cast<UBMSGameInstance>(UGameplayStatics::GetGameInstance(GetWorld()));
 	FMODSystem = GameInstance->GetFMODSystem();
@@ -370,6 +374,15 @@ void AChartSelectScreen::BeginPlay()
 				}
 				CurrentEntryData = EntryData;
 				UTexture2D* BackgroundImage = nullptr;
+				FString VideoPath = "F:/BMS/take_003/bga_take.mp4";
+				// load video
+				UMediaPlayer* MediaPlayer = NewObject<UMediaPlayer>(this);
+				MediaPlayer->OpenFile(VideoPath);
+				// set video to media texture
+				UMediaTexture* MediaTexture = NewObject<UMediaTexture>(this);
+				MediaTexture->SetMediaPlayer(MediaPlayer);
+				
+				MediaPlayer->Play();
 				bool IsValid = false;
 
 				auto path = chartMeta->StageFile;
