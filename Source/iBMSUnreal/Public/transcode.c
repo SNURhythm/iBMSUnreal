@@ -90,6 +90,7 @@ int open_input_file(const char *filename, TranscodeContext* ctx)
             av_log(NULL, AV_LOG_ERROR, "Failed to find decoder for stream #%u\n", i);
             return AVERROR_DECODER_NOT_FOUND;
         }
+        av_log(NULL, AV_LOG_INFO, "Found decoder for stream #%u: %s\n", i, dec->name);
         codec_ctx = avcodec_alloc_context3(dec);
         if (!codec_ctx) {
             av_log(NULL, AV_LOG_ERROR, "Failed to allocate the decoder context for stream #%u\n", i);
@@ -166,6 +167,7 @@ int open_output_file(const char *filename, TranscodeContext* ctx)
                 av_log(NULL, AV_LOG_FATAL, "Necessary encoder not found\n");
                 return AVERROR_INVALIDDATA;
             }
+            av_log(NULL, AV_LOG_INFO, "Found encoder for stream #%u: %s\n", i, encoder->name);
             enc_ctx = avcodec_alloc_context3(encoder);
             if (!enc_ctx) {
                 av_log(NULL, AV_LOG_FATAL, "Failed to allocate the encoder context\n");
@@ -563,15 +565,31 @@ int transcode(const char* inPath, const char* outPath, void* isCancelled)
     if ((ret = open_input_file(inPath, ctx)) < 0)
         goto end;
     av_log(NULL, AV_LOG_INFO, "Open input file success\n");
+    if (*isCancelledInt) {
+        av_log(NULL, AV_LOG_INFO, "Transcode cancelled\n");
+        goto end;
+    }
     if ((ret = open_output_file(outPath, ctx)) < 0)
         goto end;
     av_log(NULL, AV_LOG_INFO, "Open output file success\n");
+    if (*isCancelledInt) {
+        av_log(NULL, AV_LOG_INFO, "Transcode cancelled\n");
+        goto end;
+    }
     if ((ret = init_filters(ctx)) < 0)
         goto end;
     av_log(NULL, AV_LOG_INFO, "Init filters success\n");
+    if (*isCancelledInt) {
+        av_log(NULL, AV_LOG_INFO, "Transcode cancelled\n");
+        goto end;
+    }
     if (!(packet = av_packet_alloc()))
         goto end;
     av_log(NULL, AV_LOG_INFO, "Alloc packet success\n");
+    if (*isCancelledInt) {
+        av_log(NULL, AV_LOG_INFO, "Transcode cancelled\n");
+        goto end;
+    }
 
     /* read all packets */
     while (1) { 
