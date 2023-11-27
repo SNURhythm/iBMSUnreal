@@ -412,7 +412,18 @@ void AChartSelectScreen::BeginPlay()
 								if(!FPaths::FileExists(TempPath))
 								{
 									UE_LOG(LogTemp, Warning, TEXT("Transcoding %s to %s"), *Original, *TempPath);
-									transcode(TCHAR_TO_ANSI(*Original), TCHAR_TO_ANSI(*TempPath));
+									// copy original to hash.originalext so that it would contain only ascii characters
+									// and ffmpeg can read it
+									FString TempOriginal = FPaths::Combine(FPaths::ProjectSavedDir(), "Temp", Hash + "." + Extension);
+									TempOriginal = IFileManager::Get().ConvertToAbsolutePathForExternalAppForWrite(*TempOriginal);
+									if(!FPaths::FileExists(TempOriginal))
+									{
+										IFileManager::Get().Copy(*TempOriginal, *Original);
+									}
+									int result = transcode(TCHAR_TO_ANSI(*TempOriginal), TCHAR_TO_ANSI(*TempPath));
+									// remove temp original
+									IFileManager::Get().Delete(*TempOriginal);
+									UE_LOG(LogTemp, Warning, TEXT("Transcoding done: %d"), result);
 								}
 								UE_LOG(LogTemp, Warning, TEXT("geturl: %s"), *MediaPlayer->GetUrl());
 								

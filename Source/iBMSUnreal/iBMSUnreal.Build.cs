@@ -17,22 +17,18 @@ public class iBMSUnreal : ModuleRules
 		PrivateDependencyModuleNames.AddRange(new string[] { "Slate", "SlateCore" });
 		PrivateDependencyModuleNames.AddRange(new string[] { "ImageWrapper", "RenderCore", "Paper2D"});
 		// Add CoreGraphics, bz2,...
-		if (Target.Platform == UnrealTargetPlatform.Mac)
+		
+		if (Target.Platform == UnrealTargetPlatform.IOS)
 		{
 			PublicFrameworks.AddRange(new string[]
 			{
-				"Cocoa", "CoreFoundation", "IOKit", "CoreAudio", "AudioToolbox", "VideoToolbox", "AVKit", "CoreImage",
-				"CoreMedia", "OpenCL", "Accelerate", "OpenGL", "Metal"
+				"CoreAudio", "AudioToolbox", "VideoToolbox", "AVKit", "CoreImage",
+				"CoreMedia", "Accelerate"
 			});
 			PublicSystemLibraries.AddRange(new string[]
 			{
 				"bz2", "iconv", "c++", "z"
 			});
-
-		}
-		string ThirdPartyPath = System.IO.Path.Combine(ModuleDirectory, "../../ThirdParty/");
-		if (Target.Platform == UnrealTargetPlatform.IOS)
-		{
             PublicAdditionalLibraries.Add(System.IO.Path.Combine(ModuleDirectory, "../ThirdParty/ffmpeg/ios/libavcodec.a"));
             PublicAdditionalLibraries.Add(System.IO.Path.Combine(ModuleDirectory, "../ThirdParty/ffmpeg/ios/libavdevice.a"));
             PublicAdditionalLibraries.Add(System.IO.Path.Combine(ModuleDirectory, "../ThirdParty/ffmpeg/ios/libavfilter.a"));
@@ -43,6 +39,16 @@ public class iBMSUnreal : ModuleRules
             // add corresponding include path
             PublicIncludePaths.Add(System.IO.Path.Combine(ModuleDirectory, "../ThirdParty/ffmpeg/ios/include"));
 		} else if (Target.Platform == UnrealTargetPlatform.Mac){
+			PublicFrameworks.AddRange(new string[]
+			{
+				"Cocoa", "CoreFoundation", "IOKit", "CoreAudio", "AudioToolbox", "VideoToolbox", "AVKit", "CoreImage",
+				"CoreMedia", "OpenCL", "Accelerate", "OpenGL", "Metal"
+			});
+			PublicSystemLibraries.AddRange(new string[]
+			{
+				"bz2", "iconv", "c++", "z"
+			});
+			
 			PublicAdditionalLibraries.Add(System.IO.Path.Combine(ModuleDirectory, "../ThirdParty/ffmpeg/mac/libx264.a"));
 			PublicAdditionalLibraries.Add(System.IO.Path.Combine(ModuleDirectory, "../ThirdParty/ffmpeg/mac/libx265.a"));
             PublicAdditionalLibraries.Add(System.IO.Path.Combine(ModuleDirectory, "../ThirdParty/ffmpeg/mac/libavcodec.a"));

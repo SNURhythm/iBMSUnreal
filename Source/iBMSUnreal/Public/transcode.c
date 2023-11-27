@@ -673,5 +673,5 @@ end:
     if (ret < 0)
         av_log(NULL, AV_LOG_ERROR, "Error occurred: %s\n", av_err2str(ret));
 
-    return ret ? 1 : 0;
+    return ret;
 }
