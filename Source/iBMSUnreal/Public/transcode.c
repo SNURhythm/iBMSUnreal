@@ -178,11 +178,16 @@ int open_output_file(const char *filename, TranscodeContext* ctx)
                 enc_ctx->height = dec_ctx->height;
                 enc_ctx->width = dec_ctx->width;
                 enc_ctx->sample_aspect_ratio = dec_ctx->sample_aspect_ratio;
-                /* take first format from list of supported formats */
-                if (encoder->pix_fmts)
-                    enc_ctx->pix_fmt = encoder->pix_fmts[0];
-                else
-                    enc_ctx->pix_fmt = dec_ctx->pix_fmt;
+                // print all supported pixel formats in encoder
+                for (int ipf = 0; encoder->pix_fmts[ipf] != AV_PIX_FMT_NONE; ipf++) {
+                    av_log(NULL, AV_LOG_INFO, "Encoder pix fmt: %d\n", encoder->pix_fmts[ipf]);
+                }
+                // /* take first format from list of supported formats */
+                // if (encoder->pix_fmts)
+                //     enc_ctx->pix_fmt = encoder->pix_fmts[0];
+                // else
+                    enc_ctx->pix_fmt = AV_PIX_FMT_YUV420P;
+                av_log(NULL, AV_LOG_INFO, "Dec pix fmt: %d, Enc pix fmt: %d\n", dec_ctx->pix_fmt, enc_ctx->pix_fmt);
                 /* video time_base can be set to whatever is handy and supported by encoder */
                 enc_ctx->time_base = av_inv_q(dec_ctx->framerate);
             } else {
@@ -277,6 +282,7 @@ int init_filter(FilteringContext* fctx, AVCodecContext *dec_ctx,
             ret = AVERROR_UNKNOWN;
             goto end;
         }
+        av_log(NULL, AV_LOG_INFO, "filtering source or sink element found\n");
 
         snprintf(args, sizeof(args),
                 "video_size=%dx%d:pix_fmt=%d:time_base=%d/%d:pixel_aspect=%d/%d",
@@ -291,7 +297,7 @@ int init_filter(FilteringContext* fctx, AVCodecContext *dec_ctx,
             av_log(NULL, AV_LOG_ERROR, "Cannot create buffer source\n");
             goto end;
         }
-
+        
         ret = avfilter_graph_create_filter(&buffersink_ctx, buffersink, "out",
                 NULL, NULL, filter_graph);
         if (ret < 0) {
@@ -306,6 +312,7 @@ int init_filter(FilteringContext* fctx, AVCodecContext *dec_ctx,
             av_log(NULL, AV_LOG_ERROR, "Cannot set output pixel format\n");
             goto end;
         }
+        av_log(NULL, AV_LOG_INFO, "Set output pixel format success\n");
     } else if (dec_ctx->codec_type == AVMEDIA_TYPE_AUDIO) {
         char buf[64];
         buffersrc = avfilter_get_by_name("abuffer");
@@ -315,6 +322,7 @@ int init_filter(FilteringContext* fctx, AVCodecContext *dec_ctx,
             ret = AVERROR_UNKNOWN;
             goto end;
         }
+        av_log(NULL, AV_LOG_INFO, "filtering source or sink element found\n");
 
         if (dec_ctx->ch_layout.order == AV_CHANNEL_ORDER_UNSPEC)
             av_channel_layout_default(&dec_ctx->ch_layout, dec_ctx->ch_layout.nb_channels);
@@ -330,6 +338,7 @@ int init_filter(FilteringContext* fctx, AVCodecContext *dec_ctx,
             av_log(NULL, AV_LOG_ERROR, "Cannot create audio buffer source\n");
             goto end;
         }
+        av_log(NULL, AV_LOG_INFO, "Create audio buffer source success\n");
 
         ret = avfilter_graph_create_filter(&buffersink_ctx, buffersink, "out",
                 NULL, NULL, filter_graph);
@@ -337,6 +346,7 @@ int init_filter(FilteringContext* fctx, AVCodecContext *dec_ctx,
             av_log(NULL, AV_LOG_ERROR, "Cannot create audio buffer sink\n");
             goto end;
         }
+        av_log(NULL, AV_LOG_INFO, "Create audio buffer sink success\n");
 
         ret = av_opt_set_bin(buffersink_ctx, "sample_fmts",
                 (uint8_t*)&enc_ctx->sample_fmt, sizeof(enc_ctx->sample_fmt),
@@ -345,6 +355,7 @@ int init_filter(FilteringContext* fctx, AVCodecContext *dec_ctx,
             av_log(NULL, AV_LOG_ERROR, "Cannot set output sample format\n");
             goto end;
         }
+        av_log(NULL, AV_LOG_INFO, "Set output sample format success\n");
 
         av_channel_layout_describe(&enc_ctx->ch_layout, buf, sizeof(buf));
         ret = av_opt_set(buffersink_ctx, "ch_layouts",
@@ -353,6 +364,7 @@ int init_filter(FilteringContext* fctx, AVCodecContext *dec_ctx,
             av_log(NULL, AV_LOG_ERROR, "Cannot set output channel layout\n");
             goto end;
         }
+        av_log(NULL, AV_LOG_INFO, "Set output channel layout success\n");
 
         ret = av_opt_set_bin(buffersink_ctx, "sample_rates",
                 (uint8_t*)&enc_ctx->sample_rate, sizeof(enc_ctx->sample_rate),
@@ -361,6 +373,7 @@ int init_filter(FilteringContext* fctx, AVCodecContext *dec_ctx,
             av_log(NULL, AV_LOG_ERROR, "Cannot set output sample rate\n");
             goto end;
         }
+        av_log(NULL, AV_LOG_INFO, "Set output sample rate success\n");
     } else {
         ret = AVERROR_UNKNOWN;
         goto end;
@@ -381,13 +394,16 @@ int init_filter(FilteringContext* fctx, AVCodecContext *dec_ctx,
         ret = AVERROR(ENOMEM);
         goto end;
     }
+    av_log(NULL, AV_LOG_INFO, "Set filter graph endpoints success\n");
 
     if ((ret = avfilter_graph_parse_ptr(filter_graph, filter_spec,
                     &inputs, &outputs, NULL)) < 0)
         goto end;
+    av_log(NULL, AV_LOG_INFO, "Parse filter graph success\n");
 
     if ((ret = avfilter_graph_config(filter_graph, NULL)) < 0)
         goto end;
+    av_log(NULL, AV_LOG_INFO, "Config filter graph success\n");
 
     /* Fill FilteringContext */
     fctx->buffersrc_ctx = buffersrc_ctx;
@@ -420,21 +436,24 @@ int init_filters(TranscodeContext* ctx)
 
 
         if (ctx->ifmt_ctx->streams[i]->codecpar->codec_type == AVMEDIA_TYPE_VIDEO)
-            filter_spec = "null"; /* passthrough (dummy) filter for video */
+            filter_spec = "format=pix_fmts=yuv420p";
         else
             filter_spec = "anull"; /* passthrough (dummy) filter for audio */
         ret = init_filter(&(ctx->filter_ctx[i]), ctx->stream_ctx[i].dec_ctx,
                 ctx->stream_ctx[i].enc_ctx, filter_spec);
         if (ret)
             return ret;
+        av_log(NULL, AV_LOG_INFO, "Init filter for stream #%u success\n", i);
 
         ctx->filter_ctx[i].enc_pkt = av_packet_alloc();
         if (!ctx->filter_ctx[i].enc_pkt)
             return AVERROR(ENOMEM);
+        av_log(NULL, AV_LOG_INFO, "Alloc packet for stream #%u success\n", i);
 
         ctx->filter_ctx[i].filtered_frame = av_frame_alloc();
         if (!ctx->filter_ctx[i].filtered_frame)
             return AVERROR(ENOMEM);
+        av_log(NULL, AV_LOG_INFO, "Alloc frame for stream #%u success\n", i);
     }
     return 0;
 }
@@ -540,12 +559,16 @@ int transcode(const char* inPath, const char* outPath)
 
     if ((ret = open_input_file(inPath, ctx)) < 0)
         goto end;
+    av_log(NULL, AV_LOG_INFO, "Open input file success\n");
     if ((ret = open_output_file(outPath, ctx)) < 0)
         goto end;
+    av_log(NULL, AV_LOG_INFO, "Open output file success\n");
     if ((ret = init_filters(ctx)) < 0)
         goto end;
+    av_log(NULL, AV_LOG_INFO, "Init filters success\n");
     if (!(packet = av_packet_alloc()))
         goto end;
+    av_log(NULL, AV_LOG_INFO, "Alloc packet success\n");
 
     /* read all packets */
     while (1) {
@@ -672,6 +695,7 @@ end:
 
     if (ret < 0)
         av_log(NULL, AV_LOG_ERROR, "Error occurred: %s\n", av_err2str(ret));
-
+    av_log(NULL, AV_LOG_ERROR, "What the heck is -78: %s\n", av_err2str(-78));
+    av_log(NULL, AV_LOG_ERROR, "What the heck is -2: %s\n", av_err2str(-2));
     return ret;
 }
