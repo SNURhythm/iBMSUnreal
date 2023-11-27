@@ -30,8 +30,6 @@
  * audio and video streams.
  */
 #include "transcode.h"
-
-#include <assert.h>
 #include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>
 #include <libavfilter/buffersink.h>
@@ -45,7 +43,6 @@ static AVFormatContext *ofmt_ctx;
 typedef struct FilteringContext {
     AVFilterContext *buffersink_ctx;
     AVFilterContext *buffersrc_ctx;
-    AVFilterContext *anullsrc_ctx;
     AVFilterGraph *filter_graph;
 
     AVPacket *enc_pkt;
@@ -146,55 +143,7 @@ static int open_output_file(const char *filename)
         return AVERROR_UNKNOWN;
     }
 
-    // // add acc anullsrc if no audio stream
-    // AVStream *in_audio_stream = NULL;
-    // for (i = 0; i < ifmt_ctx->nb_streams; i++) {
-    //     if (ifmt_ctx->streams[i]->codecpar->codec_type == AVMEDIA_TYPE_AUDIO) {
-    //         in_audio_stream = ifmt_ctx->streams[i];
-    //         break;
-    //     }
-    // }
-    // if(!in_audio_stream)
-    // {
-    //     const AVCodec *codec = avcodec_find_encoder(AV_CODEC_ID_AAC);
-    //     if(!codec)
-    //     {
-    //         av_log(NULL, AV_LOG_ERROR, "Could not find encoder for aac\n");
-    //         return AVERROR_UNKNOWN;
-    //     }
-    //     AVStream *stream = avformat_new_stream(ofmt_ctx, codec);
-    //     if(!stream)
-    //     {
-    //         av_log(NULL, AV_LOG_ERROR, "Could not create stream for aac\n");
-    //         return AVERROR_UNKNOWN;
-    //     }
-    //     AVCodecContext *codec_ctx = avcodec_alloc_context3(codec);
-    //     if(!codec_ctx)
-    //     {
-    //         av_log(NULL, AV_LOG_ERROR, "Could not alloc codec context for aac\n");
-    //         return AVERROR_UNKNOWN;
-    //     }
-    //     av_channel_layout_default(&codec_ctx->ch_layout, 2);
-    //     codec_ctx->codec_type = AVMEDIA_TYPE_AUDIO;
-    //     codec_ctx->codec_id = AV_CODEC_ID_AAC;
-    //     codec_ctx->sample_rate = 44100;
-    //     codec_ctx->sample_fmt = codec->sample_fmts[0];
-    //     codec_ctx->time_base = (AVRational){1, codec_ctx->sample_rate};
-    //
-    //     ret = avcodec_open2(codec_ctx, codec, NULL);
-    //     if(ret < 0)
-    //     {
-    //         av_log(NULL, AV_LOG_ERROR, "Could not open codec for aac\n");
-    //         return AVERROR_UNKNOWN;
-    //     }
-    //     ret = avcodec_parameters_from_context(stream->codecpar, codec_ctx);
-    //     if(ret < 0)
-    //     {
-    //         av_log(NULL, AV_LOG_ERROR, "Could not copy codec params for aac\n");
-    //         return AVERROR_UNKNOWN;
-    //     }
-    //     stream->time_base = codec_ctx->time_base;
-    // }
+
     for (i = 0; i < ifmt_ctx->nb_streams; i++) {
         out_stream = avformat_new_stream(ofmt_ctx, NULL);
         if (!out_stream) {
@@ -301,13 +250,10 @@ static int init_filter(FilteringContext* fctx, AVCodecContext *dec_ctx,
     int ret = 0;
     const AVFilter *buffersrc = NULL;
     const AVFilter *buffersink = NULL;
-    const AVFilter *anullsrc = NULL;
     AVFilterContext *buffersrc_ctx = NULL;
     AVFilterContext *buffersink_ctx = NULL;
-    AVFilterContext *anullsrc_ctx = NULL;
     AVFilterInOut *outputs = avfilter_inout_alloc();
     AVFilterInOut *inputs  = avfilter_inout_alloc();
-    AVFilterInOut *anullsrc_outputs = avfilter_inout_alloc();
     AVFilterGraph *filter_graph = avfilter_graph_alloc();
 
     if (!outputs || !inputs || !filter_graph) {
@@ -356,7 +302,6 @@ static int init_filter(FilteringContext* fctx, AVCodecContext *dec_ctx,
         char buf[64];
         buffersrc = avfilter_get_by_name("abuffer");
         buffersink = avfilter_get_by_name("abuffersink");
-        anullsrc = avfilter_get_by_name("anullsrc");
         if (!buffersrc || !buffersink) {
             av_log(NULL, AV_LOG_ERROR, "filtering source or sink element not found\n");
             ret = AVERROR_UNKNOWN;
@@ -382,13 +327,6 @@ static int init_filter(FilteringContext* fctx, AVCodecContext *dec_ctx,
                 NULL, NULL, filter_graph);
         if (ret < 0) {
             av_log(NULL, AV_LOG_ERROR, "Cannot create audio buffer sink\n");
-            goto end;
-        }
-        ret = avfilter_graph_create_filter(&anullsrc_ctx, anullsrc, "anullsrc",
-                NULL, NULL, filter_graph);
-
-        if (ret < 0) {
-            av_log(NULL, AV_LOG_ERROR, "Cannot create anullsrc\n");
             goto end;
         }
 
@@ -424,9 +362,8 @@ static int init_filter(FilteringContext* fctx, AVCodecContext *dec_ctx,
     outputs->name       = av_strdup("in");
     outputs->filter_ctx = buffersrc_ctx;
     outputs->pad_idx    = 0;
-    outputs->next       = NULL;   
-    
-    // sink
+    outputs->next       = NULL;
+
     inputs->name       = av_strdup("out");
     inputs->filter_ctx = buffersink_ctx;
     inputs->pad_idx    = 0;
@@ -437,9 +374,10 @@ static int init_filter(FilteringContext* fctx, AVCodecContext *dec_ctx,
         goto end;
     }
 
-    if ((ret = avfilter_graph_parse_ptr(filter_graph, filter_spec, &inputs, &outputs, NULL)) < 0)
+    if ((ret = avfilter_graph_parse_ptr(filter_graph, filter_spec,
+                    &inputs, &outputs, NULL)) < 0)
         goto end;
-    
+
     if ((ret = avfilter_graph_config(filter_graph, NULL)) < 0)
         goto end;
 
@@ -451,7 +389,7 @@ static int init_filter(FilteringContext* fctx, AVCodecContext *dec_ctx,
 end:
     avfilter_inout_free(&inputs);
     avfilter_inout_free(&outputs);
-    avfilter_inout_free(&anullsrc_outputs);
+
     return ret;
 }
 
@@ -460,7 +398,7 @@ static int init_filters(void)
     const char *filter_spec;
     unsigned int i;
     int ret;
-    filter_ctx = (FilteringContext*)av_malloc_array(ifmt_ctx->nb_streams+1, sizeof(*filter_ctx));
+    filter_ctx = (FilteringContext*)av_malloc_array(ifmt_ctx->nb_streams, sizeof(*filter_ctx));
     if (!filter_ctx)
         return AVERROR(ENOMEM);
 
@@ -490,11 +428,6 @@ static int init_filters(void)
         if (!filter_ctx[i].filtered_frame)
             return AVERROR(ENOMEM);
     }
-    // anullsrc on the last stream
-    filter_spec = "anullsrc=channel_layout=stereo:sample_rate=44100";
-    ret = init_filter(&filter_ctx[i], NULL, NULL, filter_spec);
-    if (ret)
-        return ret;
     return 0;
 }
 
@@ -552,13 +485,6 @@ static int filter_encode_write_frame(AVFrame *frame, unsigned int stream_index)
         av_log(NULL, AV_LOG_ERROR, "Error while feeding the filtergraph\n");
         return ret;
     }
-    
-    ret = av_buffersrc_add_frame_flags(filter->anullsrc_ctx,
-            frame, 0);
-    if (ret < 0) {
-        av_log(NULL, AV_LOG_ERROR, "Error while feeding the anullsrc\n");
-        return ret;
-    }
 
     /* pull filtered frames from the filtergraph */
     while (1) {
@@ -575,7 +501,7 @@ static int filter_encode_write_frame(AVFrame *frame, unsigned int stream_index)
             break;
         }
 
-        filter->filtered_frame->time_base = av_buffersink_get_time_base(filter->buffersink_ctx);
+        filter->filtered_frame->time_base = av_buffersink_get_time_base(filter->buffersink_ctx);;
         filter->filtered_frame->pict_type = AV_PICTURE_TYPE_NONE;
         ret = encode_write_frame(stream_index, 0);
         av_frame_unref(filter->filtered_frame);

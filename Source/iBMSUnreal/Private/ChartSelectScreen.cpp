@@ -291,7 +291,7 @@ void AChartSelectScreen::OnStartButtonClicked()
 void AChartSelectScreen::BeginPlay()
 {
 	Super::BeginPlay();
-	int ret = transcode("F:/BMS/take003/bga_take.mpg", "F:/BMS/take003/bga_take-ffmpeg.mp4");
+	int ret = transcode("/Users/xf/iBMS/take003/bga_take.mpg", "/Users/xf/iBMS/take003/bga_take-ffmpeg.mp4");
 	UE_LOG(LogTemp, Warning, TEXT("transcode: %d"), ret);
 	UE_LOG(LogTemp, Warning, TEXT("ChartSelectScreen BeginPlay()!!"));
 	UBMSGameInstance* GameInstance = Cast<UBMSGameInstance>(UGameplayStatics::GetGameInstance(GetWorld()));
