@@ -394,7 +394,7 @@ void AChartSelectScreen::BeginPlay()
 					auto Folder = Chart->Meta->Folder;
 
 					
-					FTask BGATask = Launch(UE_SOURCE_LOCATION, [&, BmpTable, Folder, ImagePath]()
+					BGATask = Launch(UE_SOURCE_LOCATION, [&, BmpTable, Folder, ImagePath]()
 					{
 						UE_LOG(LogTemp, Warning, TEXT("BGATask"));
 						for(auto& bmp: BmpTable)
@@ -412,7 +412,13 @@ void AChartSelectScreen::BeginPlay()
 								if(!FPaths::FileExists(TempPath))
 								{
 									UE_LOG(LogTemp, Warning, TEXT("Transcoding %s to %s"), *Original, *TempPath);
-									int result = transcode(TCHAR_TO_UTF8(*Original), TCHAR_TO_UTF8(*TempPath));
+									int result = transcode(TCHAR_TO_UTF8(*Original), TCHAR_TO_UTF8(*TempPath), &bJukeboxCancelled);
+									if(result<0||bJukeboxCancelled)
+									{
+										// remove temp file
+										IFileManager::Get().Delete(*TempPath);
+										return;
+									}
 									UE_LOG(LogTemp, Warning, TEXT("Transcoding done: %d"), result);
 								}
 								UE_LOG(LogTemp, Warning, TEXT("geturl: %s"), *MediaPlayer->GetUrl());
@@ -583,4 +589,8 @@ void AChartSelectScreen::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	}
 	jukebox->Unload();
 	delete jukebox;
+	if (BGATask.IsValid())
+	{
+		BGATask.Wait();
+	}
 }

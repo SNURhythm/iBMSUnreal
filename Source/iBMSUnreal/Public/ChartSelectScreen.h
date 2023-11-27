@@ -26,6 +26,7 @@ private:
 	std::atomic_bool bJukeboxCancelled;
 	FMOD::System* FMODSystem;
 	UE::Tasks::FTask JukeboxTask;
+	UE::Tasks::TTask<void> BGATask;
 
 	void LoadCharts();
 	void SetChartMetas(const TArray<FChartMeta*>& ChartMetas);

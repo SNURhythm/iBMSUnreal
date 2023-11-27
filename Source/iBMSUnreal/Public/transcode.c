@@ -38,6 +38,7 @@
 #include <libavutil/opt.h>
 #include <libavutil/pixdesc.h>
 
+
 typedef struct FilteringContext {
     AVFilterContext *buffersink_ctx;
     AVFilterContext *buffersrc_ctx;
@@ -549,8 +550,10 @@ int flush_encoder(unsigned int stream_index, TranscodeContext* ctx)
     return encode_write_frame(stream_index, 1, ctx);
 }
 
-int transcode(const char* inPath, const char* outPath)
+
+int transcode(const char* inPath, const char* outPath, void* isCancelled)
 {
+    int* isCancelledInt = (int*)isCancelled;
     int ret;
     AVPacket *packet = NULL;
     unsigned int stream_index;
@@ -571,7 +574,11 @@ int transcode(const char* inPath, const char* outPath)
     av_log(NULL, AV_LOG_INFO, "Alloc packet success\n");
 
     /* read all packets */
-    while (1) {
+    while (1) { 
+        if (*isCancelledInt) {
+            av_log(NULL, AV_LOG_INFO, "Transcode cancelled\n");
+            goto end;
+        }
         if ((ret = av_read_frame(ctx->ifmt_ctx, packet)) < 0)
             break;
         stream_index = packet->stream_index;
@@ -620,6 +627,10 @@ int transcode(const char* inPath, const char* outPath)
 
     /* flush decoders, filters and encoders */
     for (i = 0; i < ctx->ifmt_ctx->nb_streams; i++) {
+        if (*isCancelledInt) {
+            av_log(NULL, AV_LOG_INFO, "Transcode cancelled\n");
+            goto end;
+        }
         // Skip processing if the stream is audio
         if (ctx->ifmt_ctx->streams[i]->codecpar->codec_type == AVMEDIA_TYPE_AUDIO)
             continue;
@@ -640,6 +651,10 @@ int transcode(const char* inPath, const char* outPath)
         }
 
         while (ret >= 0) {
+            if (*isCancelledInt) {
+                av_log(NULL, AV_LOG_INFO, "Transcode cancelled\n");
+                goto end;
+            }
             ret = avcodec_receive_frame(stream->dec_ctx, stream->dec_frame);
             if (ret == AVERROR_EOF)
                 break;
