@@ -16,7 +16,7 @@ private:
 	FMOD::System* System;
 	int MaxBgRealChannels;
 	FMOD::ChannelGroup* ChannelGroup;
-	FMOD_RESULT ReadWav(const FString& Path, FMOD::Sound** Sound);
+	FMOD_RESULT ReadWav(const FString& Path, FMOD::Sound** Sound, std::atomic_bool& bCancelled);
 	unsigned long long MsToDSPClocks(double Ms);
 	TQueue<TPair<unsigned long long, FMOD::Sound*>> SoundQueue;
 	void ScheduleSound(unsigned long long startDspClock, FMOD::Sound* Sound);

@@ -6,7 +6,7 @@
 #include "BMSParser.h"
 #include <Tasks/Task.h>
 
-FMOD_RESULT FJukebox::ReadWav(const FString& Path, FMOD::Sound** Sound)
+FMOD_RESULT FJukebox::ReadWav(const FString& Path, FMOD::Sound** Sound, std::atomic_bool& bCancelled)
 {
 	TArray<uint8> bytes;
 	// ignore extension, and try .mp3, .ogg, .wav, .flac
@@ -14,6 +14,7 @@ FMOD_RESULT FJukebox::ReadWav(const FString& Path, FMOD::Sound** Sound)
 	bool found = false;
 	for(auto ext : {".mp3", ".ogg", ".wav", ".flac"})
 	{
+		if(bCancelled) return FMOD_ERR_FILE_NOTFOUND;
 		FString newPath = withoutExt + ext;
 		if(FPaths::FileExists(newPath))
 		{
@@ -107,7 +108,8 @@ void FJukebox::LoadChart(const FChart* chart, std::atomic_bool& bCancelled)
 			auto& wav = Chart->WavTable[j];
 			
 			FMOD::Sound* sound;
-			FMOD_RESULT result = ReadWav(FPaths::Combine(ChartFolder, wav), &sound);
+			FMOD_RESULT result = ReadWav(FPaths::Combine(ChartFolder, wav), &sound, bCancelled);
+			if(bCancelled) return;
 			sound->setLoopCount(0);
 			if(result != FMOD_OK)
 			{

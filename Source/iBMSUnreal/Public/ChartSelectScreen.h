@@ -7,6 +7,7 @@
 #include "ChartListEntryData.h"
 #include "Jukebox.h"
 #include "fmod.hpp"
+#include "MediaPlayer.h"
 #include "Tasks/Task.h"
 #include "GameFramework/Actor.h"
 #include "ChartSelectScreen.generated.h"
@@ -21,10 +22,11 @@ public:
 	AChartSelectScreen();
 private:
 	FJukebox* jukebox;
-	FCriticalSection jukeboxLock;
 	std::atomic_bool bCancelled;
 	std::atomic_bool bJukeboxCancelled;
 	FMOD::System* FMODSystem;
+	UE::Tasks::FTask JukeboxTask;
+
 	void LoadCharts();
 	void SetChartMetas(const TArray<FChartMeta*>& ChartMetas);
 
@@ -39,6 +41,10 @@ private:
 	UPROPERTY()
 	UChartListEntryData* CurrentEntryData;
 protected:
+	UPROPERTY(EditAnywhere, Category="Media")
+	UMediaPlayer* MediaPlayer;
+	UPROPERTY(EditAnywhere, Category="Media")
+	UMaterial* VideoMaterial;
 	UPROPERTY(EditAnywhere, Category="Class Types")
 	TSubclassOf<UUserWidget> WidgetClass;
 
@@ -47,6 +53,8 @@ protected:
 
 	UFUNCTION()
 	void OnStartButtonClicked();
+	UFUNCTION()
+	void OnPlaybackResumed();
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 	// EndPlay
@@ -55,5 +63,8 @@ protected:
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
-
+	UFUNCTION()
+	void OnMediaOpened(FString OpenedUrl);
+	UFUNCTION()
+	void OnMediaOpenFailed(FString FailedUrl);
 };

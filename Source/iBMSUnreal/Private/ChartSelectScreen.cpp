@@ -10,14 +10,18 @@
 #include "ChartListEntry.h"
 #include "iOSNatives.h"
 #include "Judge.h"
+#include "MaterialDomain.h"
 #include "MediaPlayer.h"
 #include "MediaPlayer.h"
 #include "MediaTexture.h"
+#include "StreamMediaSource.h"
 #include "tinyfiledialogs.h"
 #include "transcode.h"
 #include "Blueprint/UserWidget.h"
 #include "iBMSUnreal/Public/ImageUtils.h"
 #include "Kismet/GameplayStatics.h"
+#include "Materials/MaterialExpressionTextureBase.h"
+#include "Materials/MaterialExpressionTextureSample.h"
 
 
 using namespace UE::Tasks;
@@ -287,12 +291,19 @@ void AChartSelectScreen::OnStartButtonClicked()
 	UGameplayStatics::OpenLevel(GetWorld(), "RhythmPlay");
 }
 
+void AChartSelectScreen::OnPlaybackResumed()
+{
+	ChartSelectUI->BackgroundImage->SetBrushFromMaterial(VideoMaterial);
+}
+
 // Called when the game starts or when spawned
 void AChartSelectScreen::BeginPlay()
 {
 	Super::BeginPlay();
-	int ret = transcode("/Users/xf/iBMS/take003/bga_take.mpg", "/Users/xf/iBMS/take003/bga_take-ffmpeg.mp4");
-	UE_LOG(LogTemp, Warning, TEXT("transcode: %d"), ret);
+	MediaPlayer->OnMediaOpened.AddDynamic(this, &AChartSelectScreen::OnMediaOpened);
+	MediaPlayer->OnPlaybackResumed.AddDynamic(this, &AChartSelectScreen::OnPlaybackResumed);
+	// int ret = transcode("/Users/xf/iBMS/take003/bga_take.mpg", "/Users/xf/iBMS/take003/bga_take-ffmpeg.mp4");
+	// UE_LOG(LogTemp, Warning, TEXT("transcode: %d"), ret);
 	UE_LOG(LogTemp, Warning, TEXT("ChartSelectScreen BeginPlay()!!"));
 	UBMSGameInstance* GameInstance = Cast<UBMSGameInstance>(UGameplayStatics::GetGameInstance(GetWorld()));
 	FMODSystem = GameInstance->GetFMODSystem();
@@ -333,25 +344,116 @@ void AChartSelectScreen::BeginPlay()
 				ChartSelectUI->JudgementText->SetText(
 					FText::FromString(FString::Printf(TEXT("%s"), *FJudge::GetRankDescription(chartMeta->Rank))));
 				bJukeboxCancelled = true;
-				FString BmsPath = chartMeta->BmsPath;
-				// full-parse chart
-				FTask LoadTask = Launch(UE_SOURCE_LOCATION, [&, BmsPath]()
+				if (JukeboxTask.IsValid())
 				{
-					jukeboxLock.Lock();
+					JukeboxTask.Wait();
+				}
+				bJukeboxCancelled = false;
+				FString BmsPath = chartMeta->BmsPath;
+				
+				bool IsImageValid = false;
+				UTexture2D* BackgroundImage = nullptr;
+				auto ImagePath = chartMeta->StageFile;
+				if (ImagePath.IsEmpty())
+				{
+					ImagePath = chartMeta->BackBmp;
+				}
+				if (ImagePath.IsEmpty())
+				{
+					ImagePath = chartMeta->Preview;
+				}
+				if (ImagePath.IsEmpty())
+				{
+					// set to blank, black
+					ChartSelectUI->BackgroundImage->SetBrushFromTexture(nullptr);
+					ChartSelectUI->BackgroundImage->SetBrushTintColor(FLinearColor::Black);
+					ChartSelectUI->StageFileImage->SetBrushFromTexture(nullptr);
+					ChartSelectUI->StageFileImage->SetBrushTintColor(FLinearColor::Black);
+				} else
+				{
+					ImagePath = FPaths::Combine(chartMeta->Folder, ImagePath);
+					ImageUtils::LoadTexture2D(ImagePath, IsImageValid, -1, -1, BackgroundImage);
+					if(IsImageValid)
+					{
+						ChartSelectUI->StageFileImage->SetBrushTintColor(FLinearColor::White);
+						ChartSelectUI->StageFileImage->SetBrushFromTexture(BackgroundImage);
+					}
+				}
+				MediaPlayer->Close();
+				
+				// full-parse chart
+				JukeboxTask = Launch(UE_SOURCE_LOCATION, [&, BmsPath, ImagePath]()
+				{
+					
 					FBMSParser Parser;
 					FChart* Chart;
-					bJukeboxCancelled = false;
+					UE_LOG(LogTemp, Warning, TEXT("Full-parsing %s"), *BmsPath);
 					Parser.Parse(BmsPath, &Chart, false, false, bJukeboxCancelled);
+					UE_LOG(LogTemp, Warning, TEXT("Full-parsing done"));
+					auto BmpTable = Chart->BmpTable;
+					auto Folder = Chart->Meta->Folder;
+
+					
+					FTask BGATask = Launch(UE_SOURCE_LOCATION, [&, BmpTable, Folder, ImagePath]()
+					{
+						UE_LOG(LogTemp, Warning, TEXT("BGATask"));
+						for(auto& bmp: BmpTable)
+						{
+							// find first mpg/mp4/avi/...
+							FString Name = bmp.Value;
+							FString Extension = FPaths::GetExtension(Name);
+							if(Extension == "mpg" || Extension == "mp4" || Extension == "avi")
+							{
+								// transcode into temp file
+								FString Original = FPaths::Combine(Folder, Name);
+								FString Hash = FMD5::HashBytes((uint8*)TCHAR_TO_ANSI(*Original), Original.Len());
+								FString TempPath = FPaths::Combine(FPaths::ProjectSavedDir(), "Temp", Hash + ".mp4");
+								TempPath = IFileManager::Get().ConvertToAbsolutePathForExternalAppForWrite(*TempPath);
+								if(!FPaths::FileExists(TempPath))
+								{
+									UE_LOG(LogTemp, Warning, TEXT("Transcoding %s to %s"), *Original, *TempPath);
+									transcode(TCHAR_TO_ANSI(*Original), TCHAR_TO_ANSI(*TempPath));
+								}
+								UE_LOG(LogTemp, Warning, TEXT("geturl: %s"), *MediaPlayer->GetUrl());
+								
+								AsyncTask(ENamedThreads::GameThread, [&, TempPath]()
+								{
+									ChartSelectUI->BackgroundImage->SetBrushTintColor(FLinearColor(0.5f, 0.5f, 0.5f, 0.5f));
+									ChartSelectUI->BackgroundImage->SetBrushFromMaterial(VideoMaterial);
+									if(!MediaPlayer->GetUrl().EndsWith(TempPath))
+									{
+										// MediaPlayer->Close();
+										MediaPlayer->OpenFile(TempPath);
+									}
+								});
+								return;
+							}
+						}
+						AsyncTask(ENamedThreads::GameThread, [&, ImagePath]()
+						{
+							if(!ImagePath.IsEmpty())
+							{
+								UTexture2D* Image = nullptr;
+								bool IsValid = false;
+								ImageUtils::LoadTexture2D(ImagePath, IsValid, -1, -1, Image);
+								if(IsValid)
+								{
+									ChartSelectUI->BackgroundImage->SetBrushTintColor(FLinearColor(0.5f, 0.5f, 0.5f, 0.5f));
+									ChartSelectUI->BackgroundImage->SetBrushFromTexture(Image);
+								}
+							}
+						});
+					});
+					UE_LOG(LogTemp, Warning, TEXT("Loading sound"));
 					jukebox->LoadChart(Chart, bJukeboxCancelled);
+					UE_LOG(LogTemp, Warning, TEXT("Loading sound done"));
 					if (bJukeboxCancelled)
 					{
 						delete Chart;
-						jukeboxLock.Unlock();
 						return;
 					}
 					jukebox->Start(0, true);
 					delete Chart;
-					jukeboxLock.Unlock();
 				});
 
 
@@ -373,42 +475,15 @@ void AChartSelectScreen::BeginPlay()
 					}
 				}
 				CurrentEntryData = EntryData;
-				UTexture2D* BackgroundImage = nullptr;
-				FString VideoPath = "F:/BMS/take_003/bga_take.mp4";
-				// load video
-				UMediaPlayer* MediaPlayer = NewObject<UMediaPlayer>(this);
-				MediaPlayer->OpenFile(VideoPath);
-				// set video to media texture
-				UMediaTexture* MediaTexture = NewObject<UMediaTexture>(this);
-				MediaTexture->SetMediaPlayer(MediaPlayer);
 				
-				MediaPlayer->Play();
-				bool IsValid = false;
+				MediaPlayer->PlayOnOpen = true;
+				// set video to media texture
+				
+				// bool result = MediaPlayer->Play();
+				// UE_LOG(LogTemp, Warning, TEXT("MediaPlayer->Play(): %d"), result);
+				
 
-				auto path = chartMeta->StageFile;
-				if (path.IsEmpty())
-				{
-					path = chartMeta->BackBmp;
-				}
-				if (path.IsEmpty())
-				{
-					path = chartMeta->Preview;
-				}
-				if (path.IsEmpty())
-				{
-					// set to blank, black
-					ChartSelectUI->BackgroundImage->SetBrushFromTexture(nullptr);
-					ChartSelectUI->BackgroundImage->SetBrushTintColor(FLinearColor::Black);
-					ChartSelectUI->StageFileImage->SetBrushFromTexture(nullptr);
-					ChartSelectUI->StageFileImage->SetBrushTintColor(FLinearColor::Black);
-					return;
-				}
-				path = FPaths::Combine(chartMeta->Folder, path);
-				ImageUtils::LoadTexture2D(path, IsValid, -1, -1, BackgroundImage);
-				ChartSelectUI->BackgroundImage->SetBrushTintColor(FLinearColor(0.5f, 0.5f, 0.5f, 0.5f));
-				ChartSelectUI->BackgroundImage->SetBrushFromTexture(BackgroundImage);
-				ChartSelectUI->StageFileImage->SetBrushTintColor(FLinearColor::White);
-				ChartSelectUI->StageFileImage->SetBrushFromTexture(BackgroundImage);
+
 			});
 			// on item bound
 			ChartSelectUI->ChartList->OnEntryWidgetGenerated().AddLambda([&](UUserWidget& Widget)
@@ -483,14 +558,28 @@ void AChartSelectScreen::Tick(float DeltaTime)
 	FMODSystem->update();
 }
 
+void AChartSelectScreen::OnMediaOpened(FString OpenedUrl)
+{
+	bool isPlayed = MediaPlayer->Play();
+	UE_LOG(LogTemp, Warning, TEXT("MediaPlayer->Play(): %d"), isPlayed);
+	
+}
+
+void AChartSelectScreen::OnMediaOpenFailed(FString FailedUrl)
+{
+	UE_LOG(LogTemp, Warning, TEXT("MediaPlayer->OnMediaOpenFailed"));
+}
+
 void AChartSelectScreen::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
 	Super::EndPlay(EndPlayReason);
 	UE_LOG(LogTemp, Warning, TEXT("ChartSelectScreen EndPlay()!!"));
 	bCancelled = true;
 	bJukeboxCancelled = true;
-	jukeboxLock.Lock();
+	if (JukeboxTask.IsValid())
+	{
+		JukeboxTask.Wait();
+	}
 	jukebox->Unload();
 	delete jukebox;
-	jukeboxLock.Unlock();
 }
