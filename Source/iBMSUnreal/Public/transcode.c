@@ -162,7 +162,13 @@ int open_output_file(const char *filename, TranscodeContext* ctx)
         if (dec_ctx->codec_type == AVMEDIA_TYPE_VIDEO
                 || dec_ctx->codec_type == AVMEDIA_TYPE_AUDIO) {
             /* use h264 encoder */
-            encoder = avcodec_find_encoder(dec_ctx->codec_type == AVMEDIA_TYPE_VIDEO?AV_CODEC_ID_H264:dec_ctx->codec_id);
+            if(dec_ctx->codec_type == AVMEDIA_TYPE_VIDEO)
+            {
+                encoder = avcodec_find_encoder(AV_CODEC_ID_H264);
+            } else
+            {
+                encoder = avcodec_find_encoder(dec_ctx->codec_id);
+            }
             if (!encoder) {
                 av_log(NULL, AV_LOG_FATAL, "Necessary encoder not found\n");
                 return AVERROR_INVALIDDATA;
@@ -561,6 +567,10 @@ int transcode(const char* inPath, const char* outPath, void* isCancelled)
     unsigned int stream_index;
     unsigned int i;
     TranscodeContext* ctx = (TranscodeContext*)av_malloc(sizeof(TranscodeContext));
+    ctx->stream_ctx = NULL;
+    ctx->filter_ctx = NULL;
+    ctx->ifmt_ctx = NULL;
+    ctx->ofmt_ctx = NULL;
 
     if ((ret = open_input_file(inPath, ctx)) < 0)
         goto end;
