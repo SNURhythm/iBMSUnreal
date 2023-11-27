@@ -406,7 +406,7 @@ void AChartSelectScreen::BeginPlay()
 							{
 								// transcode into temp file
 								FString Original = FPaths::Combine(Folder, Name);
-								FString Hash = FMD5::HashBytes((uint8*)TCHAR_TO_ANSI(*Original), Original.Len());
+								FString Hash = FMD5::HashBytes((uint8*)TCHAR_TO_UTF8(*Original), Original.Len());
 								FString TempPath = FPaths::Combine(FPaths::ProjectSavedDir(), "Temp", Hash + ".mp4");
 								TempPath = IFileManager::Get().ConvertToAbsolutePathForExternalAppForWrite(*TempPath);
 								if(!FPaths::FileExists(TempPath))
