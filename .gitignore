@@ -20,6 +20,7 @@ BMS
 *.so
 *.dylib
 *.dll
+!**/ThirdParty/**/*.dll
 
 # Fortran module files
 *.mod
@@ -28,7 +29,9 @@ BMS
 *.lai
 *.la
 *.a
+!**/ThirdParty/**/*.a
 *.lib
+!**/ThirdParty/**/*.lib
 
 # Executables
 *.exe

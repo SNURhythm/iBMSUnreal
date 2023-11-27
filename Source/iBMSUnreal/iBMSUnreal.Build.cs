@@ -71,7 +71,7 @@ public class iBMSUnreal : ModuleRules
 			PublicAdditionalLibraries.Add(System.IO.Path.Combine(ModuleDirectory, "../ThirdParty/ffmpeg/win64/swresample.lib"));
 			PublicAdditionalLibraries.Add(System.IO.Path.Combine(ModuleDirectory, "../ThirdParty/ffmpeg/win64/swscale.lib"));
 			PublicAdditionalLibraries.Add(System.IO.Path.Combine(ModuleDirectory, "../ThirdParty/ffmpeg/win64/postproc.lib"));
-	
+			PublicAdditionalLibraries.Add(System.IO.Path.Combine(ModuleDirectory, "../ThirdParty/ffmpeg/win64/libx264.a"));
 			// add corresponding dll
 			RuntimeDependencies.Add("$(BinaryOutputDir)/"+"avcodec-60.dll", System.IO.Path.Combine(ModuleDirectory, "../ThirdParty/ffmpeg/win64/avcodec-60.dll"));
 			RuntimeDependencies.Add("$(BinaryOutputDir)/"+"avdevice-60.dll",System.IO.Path.Combine(ModuleDirectory, "../ThirdParty/ffmpeg/win64/avdevice-60.dll"));
@@ -81,6 +81,7 @@ public class iBMSUnreal : ModuleRules
 			RuntimeDependencies.Add("$(BinaryOutputDir)/"+"swresample-4.dll",System.IO.Path.Combine(ModuleDirectory, "../ThirdParty/ffmpeg/win64/swresample-4.dll"));
 			RuntimeDependencies.Add("$(BinaryOutputDir)/"+"swscale-7.dll",System.IO.Path.Combine(ModuleDirectory, "../ThirdParty/ffmpeg/win64/swscale-7.dll"));
 			RuntimeDependencies.Add("$(BinaryOutputDir)/"+"postproc-57.dll",System.IO.Path.Combine(ModuleDirectory, "../ThirdParty/ffmpeg/win64/postproc-57.dll"));
+			//RuntimeDependencies.Add("$(BinaryOutputDir)/"+"libx264-164.dll",System.IO.Path.Combine(ModuleDirectory, "../ThirdParty/ffmpeg/win64/libx264-164.dll"));
 			
 			// add corresponding include path
 			PublicIncludePaths.Add(System.IO.Path.Combine(ModuleDirectory, "../ThirdParty/ffmpeg/win64/include"));
