@@ -6,7 +6,6 @@
 #include "BMSParser.h"
 #include <Tasks/Task.h>
 
-#include "SelectionSet.h"
 
 FMOD_RESULT FJukebox::ReadWav(const FString& Path, FMOD::Sound** Sound, std::atomic_bool& bCancelled)
 {
