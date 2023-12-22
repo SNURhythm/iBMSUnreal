@@ -220,10 +220,12 @@ void FJukebox::Unpause()
 
 void FJukebox::PlaySound(FMOD::Sound* sound, FMOD::ChannelGroup* group, bool paused, FMOD::Channel** channel)
 {
-	if(const auto PreviousChannel = AudioChannelMap.FindRef(sound))
-	{
-		PreviousChannel->stop();
-	}
+	// THIS IS BUGGY RIGHT NOW
+	// if(const auto PreviousChannel = AudioChannelMap.FindRef(sound))
+	// {
+	// 	UE_LOG(LogTemp, Warning, TEXT("Sound %p already playing, stop it"), sound);
+	// 	PreviousChannel->stop();
+	// }
 	System->playSound(sound, group, paused, channel);
 	AudioChannelMap.Add(sound, *channel);
 }
