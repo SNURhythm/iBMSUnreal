@@ -16,8 +16,10 @@ private:
 	FMOD::System* System;
 	int MaxBgRealChannels;
 	FMOD::ChannelGroup* ChannelGroup;
+	TMap<FMOD::Sound*, FMOD::Channel*> AudioChannelMap;
 	FMOD_RESULT ReadWav(const FString& Path, FMOD::Sound** Sound, std::atomic_bool& bCancelled);
 	unsigned long long MsToDSPClocks(double Ms);
+	void PlaySound(FMOD::Sound* sound, FMOD::ChannelGroup* group, bool paused, FMOD::Channel** channel);
 	TQueue<TPair<unsigned long long, FMOD::Sound*>> SoundQueue;
 	void ScheduleSound(unsigned long long startDspClock, FMOD::Sound* Sound);
 	const FChart* Chart;
@@ -29,6 +31,7 @@ public:
 	void LoadChart(const FChart* chart, std::atomic_bool& bCancelled);
 	void Start(long long PosMicro = 0, bool autoKeysound = false);
 	void Unpause();
+
 	void Pause();
 	void Stop();
 

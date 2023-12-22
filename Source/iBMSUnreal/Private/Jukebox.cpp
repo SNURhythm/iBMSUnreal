@@ -6,6 +6,8 @@
 #include "BMSParser.h"
 #include <Tasks/Task.h>
 
+#include "SelectionSet.h"
+
 FMOD_RESULT FJukebox::ReadWav(const FString& Path, FMOD::Sound** Sound, std::atomic_bool& bCancelled)
 {
 	TArray<uint8> bytes;
@@ -31,7 +33,7 @@ FMOD_RESULT FJukebox::ReadWav(const FString& Path, FMOD::Sound** Sound, std::ato
 	FMOD_CREATESOUNDEXINFO exinfo = {};
 	exinfo.cbsize = sizeof(FMOD_CREATESOUNDEXINFO);
 	exinfo.length = bytes.Num();
-	return System->createSound(reinterpret_cast<const char*>(bytes.GetData()), FMOD_OPENMEMORY | FMOD_CREATESAMPLE | FMOD_ACCURATETIME, &exinfo, Sound);
+	return System->createSound(reinterpret_cast<const char*>(bytes.GetData()),  FMOD_LOOP_OFF | FMOD_DEFAULT | FMOD_2D | FMOD_3D_WORLDRELATIVE | FMOD_3D_INVERSEROLLOFF | FMOD_OPENMEMORY | FMOD_ACCURATETIME | FMOD_MPEGSEARCH | FMOD_IGNORETAGS | FMOD_LOWMEM | FMOD_OPENMEMORY | FMOD_CREATESAMPLE | FMOD_ACCURATETIME, &exinfo, Sound);
 }
 
 unsigned long long FJukebox::MsToDSPClocks(double Ms)
@@ -56,7 +58,7 @@ void FJukebox::ScheduleSound(unsigned long long startDspClock, FMOD::Sound* Soun
 		return;
 	}
 	FMOD::Channel* channel;
-	System->playSound(Sound, ChannelGroup, true, &channel);
+	PlaySound(Sound, ChannelGroup, true, &channel);
 	channel->setDelay(startDspClock, 0, true);
 	channel->setPaused(false);
 }
@@ -203,7 +205,7 @@ void FJukebox::Unpause()
 				SoundQueueLock.Unlock();
 				
 				FMOD::Channel* channel;
-				System->playSound(pair.Value, ChannelGroup, true, &channel);
+				PlaySound(pair.Value, ChannelGroup, true, &channel);
 				channel->setDelay(pair.Key, 0, true);
 
 				channel->setPaused(false);
@@ -215,6 +217,16 @@ void FJukebox::Unpause()
 			
 		}
 	});
+}
+
+void FJukebox::PlaySound(FMOD::Sound* sound, FMOD::ChannelGroup* group, bool paused, FMOD::Channel** channel)
+{
+	if(const auto PreviousChannel = AudioChannelMap.FindRef(sound))
+	{
+		PreviousChannel->stop();
+	}
+	System->playSound(sound, group, paused, channel);
+	AudioChannelMap.Add(sound, *channel);
 }
 
 void FJukebox::Pause()
@@ -239,7 +251,7 @@ void FJukebox::PlayKeysound(int id)
 	UE::Tasks::Launch(UE_SOURCE_LOCATION, [this, sound](){
 		FMOD::Channel* channel;
 		if(!ChannelGroup) return;
-		System->playSound(sound, ChannelGroup, false, &channel);
+		PlaySound(sound, ChannelGroup, false, &channel);
 	});
 }
 
