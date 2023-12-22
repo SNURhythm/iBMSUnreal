@@ -15,7 +15,7 @@ sqlite3* ChartDBHelper::Connect() {
 	FString Directory = FPaths::Combine(FPlatformProcess::UserDir(), "SNURhythm/iBMSUnreal/db/");
 	
 #elif PLATFORM_WINDOWS
-	// for Windows, AppData/Local/SNURhythm/iBMSUnreal
+	// for Windows, Documents/SNURhythm/iBMSUnreal
 	FString Directory = FPaths::Combine(FPlatformProcess::UserDir(), "SNURhythm/iBMSUnreal/db/");
 #else
     	// for other platforms, use Documents

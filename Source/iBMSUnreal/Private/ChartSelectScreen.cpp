@@ -426,7 +426,21 @@ void AChartSelectScreen::BeginPlay()
 								// transcode into temp file
 								FString Original = FPaths::Combine(Folder, Name);
 								FString Hash = FMD5::HashBytes((uint8*)TCHAR_TO_UTF8(*Original), Original.Len());
-								FString TempPath = FPaths::Combine(FPaths::ProjectSavedDir(), "Temp", Hash + ".mp4");
+								#if PLATFORM_IOS
+								FString Directory = FPaths::Combine(GetIOSDocumentsPath(), "Temp/");
+								#elif PLATFORM_MAC
+								// for macOS, ~/Library/Containers/com.package.name/Data/Documents/
+								FString Directory = FPaths::Combine(FPlatformProcess::UserDir(), "SNURhythm/iBMSUnreal/Temp/");
+									
+								#elif PLATFORM_WINDOWS
+								// for Windows, Documents/SNURhythm/iBMSUnreal
+								FString Directory = FPaths::Combine(FPlatformProcess::UserDir(), "SNURhythm/iBMSUnreal/Temp/");
+								#else
+								// for other platforms, use Documents
+								FString Directory = FPaths::Combine(FPlatformProcess::UserDir(), "SNURhythm/iBMSUnreal/Temp/");
+								#endif
+								IFileManager::Get().MakeDirectory(*Directory, true);
+								FString TempPath = FPaths::Combine(Directory, Hash + ".mp4");
 								TempPath = IFileManager::Get().ConvertToAbsolutePathForExternalAppForWrite(*TempPath);
 								if(!FPaths::FileExists(TempPath))
 								{
