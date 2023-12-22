@@ -22,8 +22,11 @@ public:
 	AChartSelectScreen();
 private:
 	FJukebox* jukebox;
+	bool IsScanning;
+	int TotalNewCharts = 0;
 	std::atomic_bool bCancelled;
 	std::atomic_bool bJukeboxCancelled;
+	std::atomic_int SuccessNewChartCount = 0;
 	FMOD::System* FMODSystem;
 	UE::Tasks::FTask JukeboxTask;
 	UE::Tasks::TTask<void> BGATask;

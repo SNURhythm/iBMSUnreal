@@ -148,6 +148,7 @@ void AChartSelectScreen::LoadCharts()
 #endif
 	FTask LoadTask = Launch(UE_SOURCE_LOCATION, [&, db, entries]()
 	{
+		IsScanning = true;
 		FMOD::Sound* SuccessSound;
 		const FString SoundPathRel = FPaths::Combine(FPaths::ProjectContentDir(), "Sounds/success.wav");
 		const FString SoundPath = IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(*SoundPathRel);
@@ -172,7 +173,7 @@ void AChartSelectScreen::LoadCharts()
 		// find new charts
 		TArray<FDiff> Diffs;
 		TSet<FString> PathSet;
-		std::atomic_int SuccessCount;
+		SuccessNewChartCount = 0;
 		// TODO: Initialize prevPathSet by db
 		for (auto& meta : chartMetas)
 		{
@@ -191,6 +192,7 @@ void AChartSelectScreen::LoadCharts()
 			FindNew(Diffs, PathSet, entry, bCancelled);
 		}
 		UE_LOG(LogTemp, Warning, TEXT("BMSGameModeBase FindNew Done: %d"), Diffs.Num());
+		TotalNewCharts = Diffs.Num();
 		// find deleted charts
 		for (auto& path : PathSet)
 		{
@@ -231,10 +233,10 @@ void AChartSelectScreen::LoadCharts()
 						FChart* Chart;
 						Parser.Parse(diff.path, &Chart, false, true, bCancelled);
 						if (bCancelled) return;
-						++SuccessCount;
-						if (SuccessCount % 100 == 0)
+						++SuccessNewChartCount;
+						if (SuccessNewChartCount % 100 == 0)
 						{
-							UE_LOG(LogTemp, Warning, TEXT("success count: %d"), (int)SuccessCount);
+							UE_LOG(LogTemp, Warning, TEXT("success count: %d"), (int)SuccessNewChartCount);
 							if (isCommitting) continue;
 							isCommitting = true;
 							dbHelper.CommitTransaction(db);
@@ -255,24 +257,36 @@ void AChartSelectScreen::LoadCharts()
 			}, !bSupportMultithreading);
 			dbHelper.CommitTransaction(db);
 		}
-		if (bCancelled) return;
-		chartMetas = dbHelper.SelectAllChartMeta(db);
-		chartMetas.Sort([](const FChartMeta& A, const FChartMeta& B)
+		if (bCancelled) goto scan_end;
+
+		AsyncTask(ENamedThreads::GameThread, [ChartList, this]()
 		{
-			return A.Title < B.Title;
-		});
-		AsyncTask(ENamedThreads::GameThread, [chartMetas, ChartList, this]()
-		{
+
+			if (bCancelled) return;
+			// refresh search result
+			auto dbHelper = ChartDBHelper::GetInstance();
+			const auto db = dbHelper.Connect();
+			const auto SearchText = ChartSelectUI->SearchBox->GetText();
+			FString SearchString = SearchText.ToString();
+			auto chartMetas = SearchString.IsEmpty() ? dbHelper.SelectAllChartMeta(db) :
+				dbHelper.SearchChartMeta(db, SearchString);
+			chartMetas.Sort([](const FChartMeta& A, const FChartMeta& B)
+			{
+				return A.Title < B.Title;
+			});
 			if (bCancelled) return;
 			if (IsValid(ChartList))
 				SetChartMetas(chartMetas);
+			
 		});
-
+		
 		UE_LOG(LogTemp, Warning, TEXT("BMSGameModeBase End Task"));
-		UE_LOG(LogTemp, Warning, TEXT("success count: %d"), (int)SuccessCount);
-		if (bCancelled) return;
-		const auto Result = FMODSystem->playSound(SuccessSound, nullptr, false, nullptr);
-		UE_LOG(LogTemp, Warning, TEXT("FMODSystem->playSound: %d"), Result);
+		UE_LOG(LogTemp, Warning, TEXT("success count: %d"), (int)SuccessNewChartCount);
+		if (bCancelled) goto scan_end;
+		UE_LOG(LogTemp, Warning, TEXT("FMODSystem->playSound: %d"), FMODSystem->playSound(SuccessSound, nullptr, false, nullptr));
+
+scan_end:
+		IsScanning = false;
 	});
 }
 
@@ -561,6 +575,21 @@ void AChartSelectScreen::OnSearchBoxTextCommitted(const FText& Text, ETextCommit
 void AChartSelectScreen::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+	if(IsScanning)
+	{
+		const int CurrentNewCharts = SuccessNewChartCount;
+		const FString Text = TotalNewCharts == 0 ? TEXT("Checking for new files") : FString::Printf(TEXT("Scanning %d/%d"), CurrentNewCharts, TotalNewCharts);
+		ChartSelectUI->OverlayInfoText->SetText(FText::FromString(Text));
+	} else
+	{
+		ChartSelectUI->OverlayInfoText->SetText(FText::FromString(""));
+	}
+	if(ChartSelectUI->OverlayInfoText->GetText().IsEmpty())
+	{
+		ChartSelectUI->OverlayInfoBox->SetVisibility(ESlateVisibility::Collapsed);
+	} else {
+		ChartSelectUI->OverlayInfoBox->SetVisibility(ESlateVisibility::Visible);
+	}
 	if (FMODSystem == nullptr) return;
 	FMODSystem->update();
 }

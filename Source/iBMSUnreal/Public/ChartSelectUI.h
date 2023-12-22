@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
+#include "Components/Border.h"
 #include "Components/Button.h"
 #include "Components/EditableTextBox.h"
 #include "Components/Image.h"
@@ -49,4 +50,10 @@ public:
 
 	UPROPERTY(meta = (BindWidget))
 	UButton* StartButton;
+	
+	UPROPERTY(meta = (BindWidget))
+	UBorder* OverlayInfoBox;
+
+	UPROPERTY(meta = (BindWidget))
+	UTextBlock* OverlayInfoText;
 };
