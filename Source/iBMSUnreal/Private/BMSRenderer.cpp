@@ -188,6 +188,7 @@ void UBMSRenderer::DrawNote(FBMSNote* Note, const double Offset)
 	{
 		Actor = GetInstance(EBMSObjectType::Note);
 		Actor->SetActorRelativeLocation(FVector(Left, 0, OffsetToTop(Offset)));
+		Actor->GetRenderComponent()->SetSpriteColor(GetColorByLane(Note->Lane));
 		State->NoteActors.Add(Note, Actor);
 	}
 
@@ -199,7 +200,13 @@ void UBMSRenderer::DrawNote(FBMSNote* Note, const double Offset)
 
 	
 }
-
+FLinearColor UBMSRenderer::GetColorByLane(int Lane) const
+{
+	if(IsScratchLane(Lane)) return FLinearColor(1, 0, 0, 1);
+	// even: white, odd: blue
+	if(Lane % 2 == 0) return FLinearColor(1, 1, 1, 1);
+	return FLinearColor(0, 0, 1, 1);
+}
 void UBMSRenderer::DrawLongNote(FBMSLongNote* Head, const double StartOffset, const double EndOffset, const bool TailOnly)
 {
 	FBMSLongNote* Tail = Head->Tail;
@@ -216,6 +223,7 @@ void UBMSRenderer::DrawLongNote(FBMSLongNote* Head, const double StartOffset, co
 		StartTop = FMath::Max(JudgeLineZ, StartTop);
 	}
 	const double Height = EndTop - StartTop;
+	const FLinearColor Color = GetColorByLane(Head->Lane);
 
 	if(!TailOnly)
 	{
@@ -228,12 +236,13 @@ void UBMSRenderer::DrawLongNote(FBMSLongNote* Head, const double StartOffset, co
 		{
 			HeadActor = GetInstance(EBMSObjectType::LongNoteHead);
 			HeadActor->SetActorRelativeLocation(FVector(Left, 0, StartTop));
+			HeadActor->GetRenderComponent()->SetSpriteColor(Color);
+			if(IsScratchLane(Head->Lane))
+			{
+				// tilt 90 degrees on Z
+				HeadActor->SetActorRelativeRotation(FRotator(0, 270, 0));
+			}
 			State->NoteActors.Add(Head, HeadActor);
-		}
-		if(IsScratchLane(Head->Lane))
-		{
-			// tilt 90 degrees on Z
-			HeadActor->SetActorRelativeRotation(FRotator(0, 270, 0));
 		}
 	}
 	float Alpha = 0.01f;
@@ -244,6 +253,8 @@ void UBMSRenderer::DrawLongNote(FBMSLongNote* Head, const double StartOffset, co
 	{
 		Alpha = Head->IsPlayed? 0.2f : 0.3f;
 	}
+
+	FLinearColor TailColor = FLinearColor(Color.R, Color.G, Color.B, Alpha);
 	APaperSpriteActor* TailActor;
 	if(State->NoteActors.Contains(Tail))
 	{
@@ -253,7 +264,7 @@ void UBMSRenderer::DrawLongNote(FBMSLongNote* Head, const double StartOffset, co
 		FVector Scale = TailActor->GetActorRelativeScale3D();
 		Scale.Z = Height;
 		TailActor->SetActorRelativeScale3D(Scale);
-		TailActor->GetRenderComponent()->SetSpriteColor(FLinearColor(1, 1, 1, Alpha));
+		TailActor->GetRenderComponent()->SetSpriteColor(TailColor);
 	} else
 	{
 		TailActor = GetInstance(EBMSObjectType::LongNoteTail);
@@ -261,7 +272,7 @@ void UBMSRenderer::DrawLongNote(FBMSLongNote* Head, const double StartOffset, co
 		Scale.Z = Height;
 		TailActor->SetActorRelativeScale3D(Scale);
 		TailActor->SetActorRelativeLocation(FVector(Left, 0, StartTop));
-		TailActor->GetRenderComponent()->SetSpriteColor(FLinearColor(1, 1, 1, Alpha));
+		TailActor->GetRenderComponent()->SetSpriteColor(TailColor);
 		State->NoteActors.Add(Tail, TailActor);
 	}
 	if(IsScratchLane(Tail->Lane))
@@ -271,7 +282,7 @@ void UBMSRenderer::DrawLongNote(FBMSLongNote* Head, const double StartOffset, co
 	}
 }
 
-double UBMSRenderer::LaneToLeft(int Lane)
+double UBMSRenderer::LaneToLeft(int Lane) const
 {
 	if(IsLeftScratchLane(Lane)) return -1;
 	if(IsRightScratchLane(Lane)) return 0; // Right Scratch
@@ -279,7 +290,7 @@ double UBMSRenderer::LaneToLeft(int Lane)
 	return (static_cast<double>(Lane+1)/KeyLaneCount) - 1;
 }
 
-bool UBMSRenderer::IsScratchLane(int Lane)
+bool UBMSRenderer::IsScratchLane(int Lane) const
 {
 	return IsLeftScratchLane(Lane) || IsRightScratchLane(Lane);
 }

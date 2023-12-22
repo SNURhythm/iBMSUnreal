@@ -72,9 +72,10 @@ public:
 	APaperSpriteActor* GetInstance(EBMSObjectType Type) const;
 	void DestroyMeasureLine(const FMeasure* Measure) const;
 	void DrawMeasureLine(FMeasure* Measure, double Offset);
+	FLinearColor GetColorByLane(int Lane) const;
 	void DrawLongNote(FBMSLongNote* Head, double StartOffset, double EndOffset, bool TailOnly = false);
-	double LaneToLeft(int Lane);
-	bool IsScratchLane(int Lane);
+	double LaneToLeft(int Lane) const;
+	bool IsScratchLane(int Lane) const;
 	static bool IsLeftScratchLane(int Lane);
 	static bool IsRightScratchLane(int Lane);
 	double OffsetToTop(double Offset) const;
