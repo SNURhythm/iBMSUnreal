@@ -212,7 +212,7 @@ void UBMSRenderer::DrawLongNote(FBMSLongNote* Head, const double StartOffset, co
 	FBMSLongNote* Tail = Head->Tail;
 	const double Left = LaneToLeft(Head->Lane);
 	double StartTop = OffsetToTop(StartOffset);
-	const double EndTop = OffsetToTop(EndOffset);
+	const double EndTop = FMath::Min(1, OffsetToTop(EndOffset));
 	if(Head->IsPlayed)
 	{
 		if(EndTop < JudgeLineZ)
