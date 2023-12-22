@@ -116,14 +116,19 @@ void AChartSelectScreen::LoadCharts()
 #else // not mac
 		defaultPath = FPlatformProcess::UserDir();
 		// prompt user to select folder
-		Directory = tinyfd_selectFolderDialog("Select BMS Folder", TCHAR_TO_ANSI(*defaultPath));
+		while (Directory.IsEmpty())
+		{
+			Directory = tinyfd_selectFolderDialog("Select BMS Folder", nullptr);
+		}
 		UE_LOG(LogTemp, Warning, TEXT("BMSGameModeBase Directory: %s"), *Directory);
 		// normalize path
 
 #endif
-		Directory = IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(*Directory);
+
 		if (!Directory.IsEmpty())
 		{
+			Directory = IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(*Directory);
+		
 			// insert entry
 			dbHelper.InsertEntry(db, Directory);
 		}
