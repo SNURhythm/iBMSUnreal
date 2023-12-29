@@ -267,7 +267,7 @@ int open_output_file(const char *filename, TranscodeContext* ctx)
         return ret;
     }
     
-    ret = avformat_write_header(ctx->ofmt_ctx, NULL);
+    ret = avformat_write_header(ctx->ofmt_ctx, &opts2);
     av_dict_free(&opts2);
     if (ret < 0) {
         av_log(NULL, AV_LOG_ERROR, "Error occurred when opening output file\n");
