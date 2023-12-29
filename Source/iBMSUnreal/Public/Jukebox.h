@@ -32,9 +32,10 @@ private:
 	UPROPERTY();
 	FCriticalSection BGALock;
 	
-	TMap<int, long long> BGAStartMap;
+	TQueue<TPair<int, long long>> BGAStartQueue;
 	UMediaPlayer* MediaPlayer = nullptr;
 	bool IsCorrectingBGADrift = false;
+
 public:
 	TMap<int, UMediaSource*> BGASourceMap;
 	FJukebox(FMOD::System* System);

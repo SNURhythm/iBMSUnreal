@@ -447,6 +447,8 @@ void AChartSelectScreen::BeginPlay()
 						{
 							ChartSelectUI->BackgroundImage->SetBrushTintColor(FLinearColor(0.5f, 0.5f, 0.5f, 0.5f));
 							ChartSelectUI->BackgroundImage->SetBrushFromMaterial(VideoMaterial);
+							// aspect ratio
+							ChartSelectUI->BackgroundImage->SetRenderScale(FVector2D(1.0f, 1.0f));
 						});
 					} else
 					{

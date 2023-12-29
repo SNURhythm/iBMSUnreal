@@ -8,6 +8,7 @@
 #include "Jukebox.h"
 #include "fmod.hpp"
 #include "MediaPlayer.h"
+#include "MediaTexture.h"
 #include "Tasks/Task.h"
 #include "GameFramework/Actor.h"
 #include "ChartSelectScreen.generated.h"
@@ -49,6 +50,8 @@ protected:
 	UMediaPlayer* MediaPlayer;
 	UPROPERTY(EditAnywhere, Category="Media")
 	UMaterial* VideoMaterial;
+	UPROPERTY(EditAnywhere, Category="Media")
+	UMediaTexture* VideoTexture;
 	UPROPERTY(EditAnywhere, Category="Class Types")
 	TSubclassOf<UUserWidget> WidgetClass;
 

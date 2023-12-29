@@ -136,6 +136,7 @@ void FJukebox::LoadChart(const FChart* chart, std::atomic_bool& bCancelled, UMed
 	
 	MediaPlayer = OptionalPlayer;
 	MediaPlayer->PlayOnOpen = true;
+
 	for(auto& bmp: Chart->BmpTable)
 	{
 		// find first mpg/mp4/avi/...
@@ -169,7 +170,6 @@ void FJukebox::LoadChart(const FChart* chart, std::atomic_bool& bCancelled, UMed
 			MediaSource->SetFilePath(TempPath);
 			BGASourceMap.Add(bmp.Key, MediaSource);
 			UE_LOG(LogTemp, Warning, TEXT("Added BGA %d"), bmp.Key);
-			break;
 		}
 	}	
 }
@@ -195,7 +195,7 @@ void FJukebox::Start(long long PosMicro, bool autoKeysound)
 			if(timeline->BgaBase != -1)
 			{
 				UE_LOG(LogTemp, Warning, TEXT("BGA %d at %lld"), timeline->BgaBase, timeline->Timing);
-				BGAStartMap.Add(timeline->BgaBase, timeline->Timing);
+				BGAStartQueue.Enqueue({timeline->BgaBase, timeline->Timing});
 			}
 			auto timing = timeline->Timing - PosMicro;
 			if(timing < 0) continue;
@@ -259,10 +259,42 @@ void FJukebox::Unpause()
 						// if faster, set playback rate slower
 						// adjustment is a linear function of drift which makes player to catch up estimated time quickly
 
-						auto rateAdjustment = absDriftMicro / 1000.0 / 1000.0;
+						auto rateAdjustment = absDriftMicro / 1000.0 / 1000.0*5.0;
 						UE_LOG(LogTemp, Warning, TEXT("Rate adjustment: %f"), rateAdjustment);
 						auto rate = driftMicro > 0 ? 1.0-rateAdjustment : 1.0+rateAdjustment;
-						if(rate < 0.5) rate = 0.5;
+						UE_LOG(LogTemp, Warning, TEXT("Rate: %f"), rate);
+						TArray<FFloatRange> SupportedRates;
+						MediaPlayer->GetSupportedRates(SupportedRates, true);
+						bool IsGood = false;
+						for(auto& range: SupportedRates)
+						{
+							if(range.Contains(rate))
+							{
+								IsGood = true;
+								break;
+							}
+						}
+						if(!IsGood)
+						{
+							// find closest rate
+							// if rate > 1.0, find closest rate > 1.0
+							// if rate < 1.0, find closest rate < 1.0
+
+							// iterate through all lower/upper bounds
+
+							auto closest = SupportedRates[0].GetLowerBoundValue();
+							for(auto& range: SupportedRates)
+							{
+								auto bound = rate > 1.0 ? range.GetUpperBoundValue() : range.GetLowerBoundValue();
+								if(bound == 0.0f) continue;
+								if(FMath::Abs(bound - rate) < FMath::Abs(closest - rate))
+								{
+									closest = bound;
+								}
+							}
+							rate = closest;
+						}
+						UE_LOG(LogTemp, Warning, TEXT("Closest Available Rate: %f"), rate);
 						MediaPlayer->SetRate(rate);
 						IsCorrectingBGADrift = true;
 						
@@ -279,34 +311,36 @@ void FJukebox::Unpause()
 					if(MediaPlayer)
 					{
 						BGALock.Lock();
-						for(auto& pair: BGAStartMap)
+						TPair<int, long long> pair;
+						
+						bool Valid = BGAStartQueue.Peek(pair);
+						if(!Valid)
+							goto Skip;
+						// UE_LOG(LogTemp, Warning, TEXT("BGA %d at %lld vs current time %lld"), pair.Key, pair.Value, GetPositionMicro());
+						if(GetPositionMicro() >= pair.Value)
 						{
-							UE_LOG(LogTemp, Warning, TEXT("BGA %d at %lld vs current time %lld"), pair.Key, pair.Value, GetPositionMicro());
-							if(GetPositionMicro() >= pair.Value)
+							if(!BGASourceMap.Contains(pair.Key))
 							{
-								
-								if(!BGASourceMap.Contains(pair.Key))
-								{
-									UE_LOG(LogTemp, Warning, TEXT("BGA %d is not loaded"), pair.Key);
-									continue;
-								}
-								const auto Source = BGASourceMap[pair.Key];
-								if(!Source)
-								{
-									UE_LOG(LogTemp, Warning, TEXT("BGA %d is null"), pair.Key);
-									continue;
-								}
-								UE_LOG(LogTemp, Warning, TEXT("Start BGA %d"), pair.Key);
-								AsyncTask(ENamedThreads::GameThread, [Source, this]()
-								{
-									MediaPlayer->OpenSource(Source);
-								});
-								CurrentBGAStart = pair.Value;
-
-								BGAStartMap.Remove(pair.Key);
-								break;
+								UE_LOG(LogTemp, Warning, TEXT("BGA %d is not loaded"), pair.Key);
+								goto Skip;
 							}
+							const auto Source = BGASourceMap[pair.Key];
+							if(!Source)
+							{
+								UE_LOG(LogTemp, Warning, TEXT("BGA %d is null"), pair.Key);
+								goto Skip;
+							}
+							UE_LOG(LogTemp, Warning, TEXT("Start BGA %d"), pair.Key);
+							AsyncTask(ENamedThreads::GameThread, [Source, this]()
+							{
+								MediaPlayer->OpenSource(Source);
+							});
+							CurrentBGAStart = pair.Value;
+
+							BGAStartQueue.Dequeue(pair);
 						}
+						
+					Skip:
 						BGALock.Unlock();
 					}
 				// });
@@ -403,7 +437,7 @@ void FJukebox::Unload()
 	}
 	SoundTable.Empty();
 	BGALock.Lock();
-	BGAStartMap.Empty();
+	BGAStartQueue.Empty();
 	BGASourceMap.Empty();
 	BGALock.Unlock();
 }
