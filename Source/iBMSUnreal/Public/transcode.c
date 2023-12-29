@@ -204,7 +204,7 @@ int open_output_file(const char *filename, TranscodeContext* ctx)
                 av_log(NULL, AV_LOG_INFO, "Audio Codec: %d\n", dec_ctx->codec_id);
                 enc_ctx->sample_rate = dec_ctx->sample_rate;
                 // stereo
-                enc_ctx->channel_layout = AV_CH_LAYOUT_STEREO;
+                av_channel_layout_copy(&(enc_ctx->ch_layout), &(AVChannelLayout)AV_CHANNEL_LAYOUT_STEREO);
                 /* take first format from list of supported formats */
                 if(encoder->sample_fmts) enc_ctx->sample_fmt = encoder->sample_fmts[0];
                 enc_ctx->time_base = (AVRational){1, enc_ctx->sample_rate};
