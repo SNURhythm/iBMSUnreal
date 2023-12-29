@@ -391,7 +391,9 @@ void FJukebox::PlaySound(FMOD::Sound* sound, FMOD::ChannelGroup* group, bool pau
 	// 	PreviousChannel->stop();
 	// }
 	System->playSound(sound, group, paused, channel);
+	AudioChannelMapLock.Lock();
 	AudioChannelMap.Add(sound, *channel);
+	AudioChannelMapLock.Unlock();
 }
 
 void FJukebox::Pause()

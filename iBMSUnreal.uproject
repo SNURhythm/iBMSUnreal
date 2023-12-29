@@ -29,6 +29,10 @@
 		{
 			"Name": "ElectraPlayer",
 			"Enabled": true
+		},
+		{
+			"Name": "ImagePlate",
+			"Enabled": true
 		}
 	]
 }

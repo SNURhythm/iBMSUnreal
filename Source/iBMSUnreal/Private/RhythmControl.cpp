@@ -306,7 +306,7 @@ void ARhythmControl::LoadGame()
 		FBMSParser Parser;
 		Parser.Parse(Options.BmsPath, &Chart, false, false, IsLoadCancelled);
 		if (IsLoadCancelled) return;
-		Jukebox->LoadChart(Chart, IsLoadCancelled);
+		Jukebox->LoadChart(Chart, IsLoadCancelled, MediaPlayer);
 		if(Chart->Measures.IsEmpty())
 		{
 			// We don't need to check for empty timeline since all measures have at least one timeline

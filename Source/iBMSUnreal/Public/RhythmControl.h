@@ -63,6 +63,7 @@ private:
 
 	UPROPERTY(VisibleInstanceOnly, Category="Runtime")
 	class URhythmHUD* CurrentHUD = nullptr;
+
 public:	
 	// Sets default values for this actor's properties
 	ARhythmControl();
@@ -79,6 +80,8 @@ public:
 	
 
 protected:
+	UPROPERTY(EditAnywhere, Category="Media")
+	UMediaPlayer* MediaPlayer;
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;

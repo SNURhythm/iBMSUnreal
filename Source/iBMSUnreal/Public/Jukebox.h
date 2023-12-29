@@ -19,6 +19,7 @@ private:
 	FMOD::System* System;
 	int MaxBgRealChannels;
 	FMOD::ChannelGroup* ChannelGroup;
+	FCriticalSection AudioChannelMapLock;
 	TMap<FMOD::Sound*, FMOD::Channel*> AudioChannelMap;
 	long long CurrentBGAStart = -1;
 	FMOD_RESULT ReadWav(const FString& Path, FMOD::Sound** Sound, std::atomic_bool& bCancelled);
