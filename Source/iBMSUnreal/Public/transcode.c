@@ -217,12 +217,16 @@ int open_output_file(const char *filename, TranscodeContext* ctx)
             /* Third parameter can be used to pass settings to encoder */
             AVDictionary *opts = NULL;
             av_dict_set(&opts, "preset", "ultrafast", 0);
+            
+
             ret = avcodec_open2(enc_ctx, encoder, &opts);
             av_dict_free(&opts);
+
             if (ret < 0) {
                 av_log(NULL, AV_LOG_ERROR, "Cannot open video encoder for stream #%u\n", i);
                 return ret;
             }
+          
             ret = avcodec_parameters_from_context(out_stream->codecpar, enc_ctx);
             if (ret < 0) {
                 av_log(NULL, AV_LOG_ERROR, "Failed to copy encoder parameters to output stream #%u\n", i);
@@ -256,7 +260,16 @@ int open_output_file(const char *filename, TranscodeContext* ctx)
     }
 
     /* init muxer, write output file header */
-    ret = avformat_write_header(ctx->ofmt_ctx, NULL);
+    // fast start
+    AVDictionary *opts2 = NULL;
+    ret = av_dict_set(&opts2, "movflags", "+faststart", 0);
+    if (ret < 0) {
+        av_log(NULL, AV_LOG_ERROR, "Cannot set movflags\n");
+        return ret;
+    }
+    
+    ret = avformat_write_header(ctx->ofmt_ctx, &opts2);
+    av_dict_free(&opts2);
     if (ret < 0) {
         av_log(NULL, AV_LOG_ERROR, "Error occurred when opening output file\n");
         return ret;
@@ -738,7 +751,5 @@ end:
 
     if (ret < 0)
         av_log(NULL, AV_LOG_ERROR, "Error occurred: %s\n", av_err2str(ret));
-    av_log(NULL, AV_LOG_ERROR, "What the heck is -78: %s\n", av_err2str(-78));
-    av_log(NULL, AV_LOG_ERROR, "What the heck is -2: %s\n", av_err2str(-2));
     return ret;
 }

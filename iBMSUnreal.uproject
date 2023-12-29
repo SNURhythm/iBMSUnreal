@@ -25,6 +25,10 @@
 		{
 			"Name": "FMODStudio",
 			"Enabled": true
+		},
+		{
+			"Name": "ElectraPlayer",
+			"Enabled": true
 		}
 	]
 }

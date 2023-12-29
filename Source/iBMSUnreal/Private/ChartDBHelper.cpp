@@ -2,25 +2,12 @@
 
 #include "ChartDBHelper.h"
 #include "iOSNatives.h"
+#include "iBMSUnreal/Public/Utils.h"
 
 
 sqlite3* ChartDBHelper::Connect() {
 	IFileManager& FileManager = IFileManager::Get();
-	// use iOS Document Directory
-#if PLATFORM_IOS
-	// mkdir "BMS"
-	FString Directory = FPaths::Combine(GetIOSDocumentsPath(), "db/");
-#elif PLATFORM_MAC
-	// for macOS, ~/Library/Containers/com.package.name/Data/Documents/
-	FString Directory = FPaths::Combine(FPlatformProcess::UserDir(), "SNURhythm/iBMSUnreal/db/");
-	
-#elif PLATFORM_WINDOWS
-	// for Windows, Documents/SNURhythm/iBMSUnreal
-	FString Directory = FPaths::Combine(FPlatformProcess::UserDir(), "SNURhythm/iBMSUnreal/db/");
-#else
-    	// for other platforms, use Documents
-	FString Directory = FPaths::Combine(FPlatformProcess::UserDir(), "SNURhythm/iBMSUnreal/db/");
-#endif
+	FString Directory = FUtils::GetDocumentsPath("db");
 	FileManager.MakeDirectory(*Directory, true);
 	FString pathRel = FPaths::Combine(Directory, "chart.db");
 	FString path = IFileManager::Get().ConvertToAbsolutePathForExternalAppForWrite(*pathRel);

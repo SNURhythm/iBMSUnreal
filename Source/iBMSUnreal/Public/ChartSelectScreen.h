@@ -59,6 +59,8 @@ protected:
 	void OnStartButtonClicked();
 	UFUNCTION()
 	void OnPlaybackResumed();
+	UFUNCTION()
+	void OnSeekCompleted();
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 	// EndPlay

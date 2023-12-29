@@ -9,7 +9,7 @@ public class iBMSUnreal : ModuleRules
 	{
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 		
-		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "Paper2D"});
+		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "Paper2D", "MediaAssets" });
 
 		PrivateDependencyModuleNames.AddRange(new string[] { "FMODStudio", "MediaAssets" });
 		

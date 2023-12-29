@@ -10,18 +10,13 @@
 #include "ChartListEntry.h"
 #include "iOSNatives.h"
 #include "Judge.h"
-#include "MaterialDomain.h"
 #include "MediaPlayer.h"
-#include "MediaPlayer.h"
-#include "MediaTexture.h"
-#include "StreamMediaSource.h"
+
 #include "tinyfiledialogs.h"
-#include "transcode.h"
 #include "Blueprint/UserWidget.h"
 #include "iBMSUnreal/Public/ImageUtils.h"
 #include "Kismet/GameplayStatics.h"
-#include "Materials/MaterialExpressionTextureBase.h"
-#include "Materials/MaterialExpressionTextureSample.h"
+
 
 
 using namespace UE::Tasks;
@@ -309,10 +304,38 @@ void AChartSelectScreen::OnStartButtonClicked()
 	// load level
 	UGameplayStatics::OpenLevel(GetWorld(), "RhythmPlay");
 }
+void AChartSelectScreen::OnMediaOpened(FString OpenedUrl)
+{
+	
+	// long long CurrentJukeboxTime = jukebox->GetPositionMicro();
+	// // Seek
+	//
+	// UE_LOG(LogTemp, Warning, TEXT("MediaPlayer->SupportsSeeking(): %d"), MediaPlayer->SupportsSeeking());
+	// // MediaPlayer->seek
+	// MediaPlayer->Pause();
+	// bool result = MediaPlayer->Seek(FTimespan::FromMicroseconds(CurrentJukeboxTime));
+	// UE_LOG(LogTemp, Warning, TEXT("MediaPlayer->Seek(): %d"), result);
+	// UE_LOG(LogTemp, Warning, TEXT("jukebox->GetPositionMicro(): %lld"), CurrentJukeboxTime);
+	// bool isPlayed = MediaPlayer->Play();
+	//
+	// // UE_LOG(LogTemp, Warning, TEXT("MediaPlayer->Play(): %d"), isPlayed);
+	
+}
+
+void AChartSelectScreen::OnMediaOpenFailed(FString FailedUrl)
+{
+	UE_LOG(LogTemp, Warning, TEXT("MediaPlayer->OnMediaOpenFailed"));
+}
 
 void AChartSelectScreen::OnPlaybackResumed()
 {
 	ChartSelectUI->BackgroundImage->SetBrushFromMaterial(VideoMaterial);
+}
+
+void AChartSelectScreen::OnSeekCompleted()
+{
+	// MediaPlayer->Play();
+	UE_LOG(LogTemp, Warning, TEXT("SeekCompleted"));
 }
 
 // Called when the game starts or when spawned
@@ -321,6 +344,7 @@ void AChartSelectScreen::BeginPlay()
 	Super::BeginPlay();
 	MediaPlayer->OnMediaOpened.AddDynamic(this, &AChartSelectScreen::OnMediaOpened);
 	MediaPlayer->OnPlaybackResumed.AddDynamic(this, &AChartSelectScreen::OnPlaybackResumed);
+	MediaPlayer->OnSeekCompleted.AddDynamic(this, &AChartSelectScreen::OnSeekCompleted);
 	// int ret = transcode("/Users/xf/iBMS/take003/bga_take.mpg", "/Users/xf/iBMS/take003/bga_take-ffmpeg.mp4");
 	// UE_LOG(LogTemp, Warning, TEXT("transcode: %d"), ret);
 	UE_LOG(LogTemp, Warning, TEXT("ChartSelectScreen BeginPlay()!!"));
@@ -413,62 +437,19 @@ void AChartSelectScreen::BeginPlay()
 					auto Folder = Chart->Meta->Folder;
 
 					
-					BGATask = Launch(UE_SOURCE_LOCATION, [&, BmpTable, Folder, ImagePath]()
+
+					UE_LOG(LogTemp, Warning, TEXT("Loading sound"));
+					jukebox->Stop();
+					jukebox->LoadChart(Chart,  bJukeboxCancelled, MediaPlayer);
+					if(!jukebox->BGASourceMap.IsEmpty())
 					{
-						UE_LOG(LogTemp, Warning, TEXT("BGATask"));
-						for(auto& bmp: BmpTable)
+						AsyncTask(ENamedThreads::GameThread, [&]()
 						{
-							// find first mpg/mp4/avi/...
-							FString Name = bmp.Value;
-							FString Extension = FPaths::GetExtension(Name);
-							if(Extension == "mpg" || Extension == "mp4" || Extension == "avi")
-							{
-								// transcode into temp file
-								FString Original = FPaths::Combine(Folder, Name);
-								FString Hash = FMD5::HashBytes((uint8*)TCHAR_TO_UTF8(*Original), Original.Len());
-								#if PLATFORM_IOS
-								FString Directory = FPaths::Combine(GetIOSDocumentsPath(), "Temp/");
-								#elif PLATFORM_MAC
-								// for macOS, ~/Library/Containers/com.package.name/Data/Documents/
-								FString Directory = FPaths::Combine(FPlatformProcess::UserDir(), "SNURhythm/iBMSUnreal/Temp/");
-									
-								#elif PLATFORM_WINDOWS
-								// for Windows, Documents/SNURhythm/iBMSUnreal
-								FString Directory = FPaths::Combine(FPlatformProcess::UserDir(), "SNURhythm/iBMSUnreal/Temp/");
-								#else
-								// for other platforms, use Documents
-								FString Directory = FPaths::Combine(FPlatformProcess::UserDir(), "SNURhythm/iBMSUnreal/Temp/");
-								#endif
-								IFileManager::Get().MakeDirectory(*Directory, true);
-								FString TempPath = FPaths::Combine(Directory, Hash + ".mp4");
-								TempPath = IFileManager::Get().ConvertToAbsolutePathForExternalAppForWrite(*TempPath);
-								if(!FPaths::FileExists(TempPath))
-								{
-									UE_LOG(LogTemp, Warning, TEXT("Transcoding %s to %s"), *Original, *TempPath);
-									int result = transcode(TCHAR_TO_UTF8(*Original), TCHAR_TO_UTF8(*TempPath), &bJukeboxCancelled);
-									if(result<0||bJukeboxCancelled)
-									{
-										// remove temp file
-										IFileManager::Get().Delete(*TempPath);
-										return;
-									}
-									UE_LOG(LogTemp, Warning, TEXT("Transcoding done: %d"), result);
-								}
-								UE_LOG(LogTemp, Warning, TEXT("geturl: %s"), *MediaPlayer->GetUrl());
-								
-								AsyncTask(ENamedThreads::GameThread, [&, TempPath]()
-								{
-									ChartSelectUI->BackgroundImage->SetBrushTintColor(FLinearColor(0.5f, 0.5f, 0.5f, 0.5f));
-									ChartSelectUI->BackgroundImage->SetBrushFromMaterial(VideoMaterial);
-									if(!MediaPlayer->GetUrl().EndsWith(TempPath))
-									{
-										// MediaPlayer->Close();
-										MediaPlayer->OpenFile(TempPath);
-									}
-								});
-								return;
-							}
-						}
+							ChartSelectUI->BackgroundImage->SetBrushTintColor(FLinearColor(0.5f, 0.5f, 0.5f, 0.5f));
+							ChartSelectUI->BackgroundImage->SetBrushFromMaterial(VideoMaterial);
+						});
+					} else
+					{
 						AsyncTask(ENamedThreads::GameThread, [&, ImagePath]()
 						{
 							if(!ImagePath.IsEmpty())
@@ -483,9 +464,7 @@ void AChartSelectScreen::BeginPlay()
 								}
 							}
 						});
-					});
-					UE_LOG(LogTemp, Warning, TEXT("Loading sound"));
-					jukebox->LoadChart(Chart, bJukeboxCancelled);
+					}
 					UE_LOG(LogTemp, Warning, TEXT("Loading sound done"));
 					if (bJukeboxCancelled)
 					{
@@ -515,8 +494,7 @@ void AChartSelectScreen::BeginPlay()
 					}
 				}
 				CurrentEntryData = EntryData;
-				
-				MediaPlayer->PlayOnOpen = true;
+				// MediaPlayer->PlayOnOpen = false;
 				// set video to media texture
 				
 				// bool result = MediaPlayer->Play();
@@ -594,6 +572,33 @@ void AChartSelectScreen::OnSearchBoxTextCommitted(const FText& Text, ETextCommit
 void AChartSelectScreen::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+	if(MediaPlayer)
+	{
+		// UE_LOG(LogTemp, Warning, TEXT("MediaPlayer->IsPlaying(): %d"), MediaPlayer->IsPlaying());
+		// UE_LOG(LogTemp, Warning, TEXT("MediaPlayer->IsPaused(): %d"), MediaPlayer->IsPaused());
+		// UE_LOG(LogTemp, Warning, TEXT("MediaPlayer->GetTime(): %f"), MediaPlayer->GetTime().GetTotalMicroseconds());
+		//rate
+		// UE_LOG(LogTemp, Warning, TEXT("MediaPlayer->GetRate(): %f"), MediaPlayer->GetRate());
+
+		
+		long long CurrentJukeboxTime = jukebox->GetPositionMicro();
+		if(CurrentJukeboxTime > 0)
+		{
+			// check media player drift
+			long long CurrentMediaPlayerTime = MediaPlayer->GetTime().GetTotalMicroseconds();
+			long long Diff = CurrentMediaPlayerTime - CurrentJukeboxTime;
+			// UE_LOG(LogTemp, Warning, TEXT("Diff: %lld"), Diff);
+			// if(Diff > 50000 || Diff < -50000)
+			// {
+			// 	// seek
+			// 	UE_LOG(LogTemp, Warning, TEXT("Seeking"));
+			// 	MediaPlayer->Pause();
+			// 	bool result = MediaPlayer->Seek(FTimespan::FromMicroseconds(CurrentJukeboxTime));
+			// 	UE_LOG(LogTemp, Warning, TEXT("Seeking result: %d"), result);
+			// 	MediaPlayer->Play();
+			// }
+		}
+	}
 	if(IsScanning)
 	{
 		const int CurrentNewCharts = SuccessNewChartCount;
@@ -613,17 +618,7 @@ void AChartSelectScreen::Tick(float DeltaTime)
 	FMODSystem->update();
 }
 
-void AChartSelectScreen::OnMediaOpened(FString OpenedUrl)
-{
-	bool isPlayed = MediaPlayer->Play();
-	UE_LOG(LogTemp, Warning, TEXT("MediaPlayer->Play(): %d"), isPlayed);
-	
-}
 
-void AChartSelectScreen::OnMediaOpenFailed(FString FailedUrl)
-{
-	UE_LOG(LogTemp, Warning, TEXT("MediaPlayer->OnMediaOpenFailed"));
-}
 
 void AChartSelectScreen::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {

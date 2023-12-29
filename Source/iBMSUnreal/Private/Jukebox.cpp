@@ -6,6 +6,10 @@
 #include "BMSParser.h"
 #include <Tasks/Task.h>
 
+#include "FileMediaSource.h"
+#include "transcode.h"
+#include "iBMSUnreal/Public/Utils.h"
+
 
 FMOD_RESULT FJukebox::ReadWav(const FString& Path, FMOD::Sound** Sound, std::atomic_bool& bCancelled)
 {
@@ -79,7 +83,12 @@ FJukebox::~FJukebox()
 	Unload();
 }
 
-void FJukebox::LoadChart(const FChart* chart, std::atomic_bool& bCancelled)
+void FJukebox::OnMediaOpened(FString OpenedUrl)
+{
+	MediaPlayer->Play();
+}
+
+void FJukebox::LoadChart(const FChart* chart, std::atomic_bool& bCancelled, UMediaPlayer* OptionalPlayer)
 {
 	Unload();
 	Chart = chart;
@@ -123,7 +132,46 @@ void FJukebox::LoadChart(const FChart* chart, std::atomic_bool& bCancelled)
 			SoundTableLock.Unlock();
 		}
 	}, !bSupportMultiThreading);
+	if(OptionalPlayer == nullptr) return;
+	
+	MediaPlayer = OptionalPlayer;
+	MediaPlayer->PlayOnOpen = true;
+	for(auto& bmp: Chart->BmpTable)
+	{
+		// find first mpg/mp4/avi/...
+		FString Name = bmp.Value;
+		FString Extension = FPaths::GetExtension(Name);
+		if(Extension == "mpg" || Extension == "mp4" || Extension == "avi" || Extension == "wmv")
+		{
+			// transcode into temp file
+			FString Original = FPaths::Combine(Chart->Meta->Folder, Name);
+			FString Hash = FMD5::HashBytes((uint8*)TCHAR_TO_UTF8(*Original), Original.Len());
+			FString Directory = FUtils::GetDocumentsPath("Temp");
+			IFileManager::Get().MakeDirectory(*Directory, true);
+			FString TempPath = FPaths::Combine(Directory, Hash + ".mp4");
+			TempPath = IFileManager::Get().ConvertToAbsolutePathForExternalAppForWrite(*TempPath);
+			if(!FPaths::FileExists(TempPath))
+			{
+				UE_LOG(LogTemp, Warning, TEXT("Transcoding %s to %s"), *Original, *TempPath);
+				int result = transcode(TCHAR_TO_UTF8(*Original), TCHAR_TO_UTF8(*TempPath), &bCancelled);
+				if(result<0||bCancelled)
+				{
+					// remove temp file
+					IFileManager::Get().Delete(*TempPath);
+					break;
+				}
+				UE_LOG(LogTemp, Warning, TEXT("Transcoding done: %d"), result);
+			}
+			const FString FileName = FPaths::GetBaseFilename(TempPath);
+			const FName ObjectName = MakeUniqueObjectName(GetTransientPackage(), UFileMediaSource::StaticClass(), FName(*FileName));
 
+			auto MediaSource = NewObject<UFileMediaSource>(GetTransientPackage(), ObjectName, RF_Transactional | RF_Transient);
+			MediaSource->SetFilePath(TempPath);
+			BGASourceMap.Add(bmp.Key, MediaSource);
+			UE_LOG(LogTemp, Warning, TEXT("Added BGA %d"), bmp.Key);
+			break;
+		}
+	}	
 }
 
 void FJukebox::Start(long long PosMicro, bool autoKeysound)
@@ -144,6 +192,11 @@ void FJukebox::Start(long long PosMicro, bool autoKeysound)
 	{
 		for(auto& timeline: measure->TimeLines)
 		{
+			if(timeline->BgaBase != -1)
+			{
+				UE_LOG(LogTemp, Warning, TEXT("BGA %d at %lld"), timeline->BgaBase, timeline->Timing);
+				BGAStartMap.Add(timeline->BgaBase, timeline->Timing);
+			}
 			auto timing = timeline->Timing - PosMicro;
 			if(timing < 0) continue;
 			auto dspClock = StartDspClock + MsToDSPClocks(static_cast<double>(timing)/1000.0);
@@ -176,13 +229,89 @@ void FJukebox::Start(long long PosMicro, bool autoKeysound)
 void FJukebox::Unpause()
 {
 	ChannelGroup->setPaused(false);
+	if(MediaPlayer)
+	{
+		MediaPlayer->Play();
+	}
 	// start Thread to pop SoundQueue
+	IsCorrectingBGADrift = false;
 	UE::Tasks::FTask task = UE::Tasks::Launch(UE_SOURCE_LOCATION, [this](){
 		while(true)
 		{
 			bool isPaused;
 			ChannelGroup->getPaused(&isPaused);
 			if(isPaused) break;
+
+			if(MediaPlayer)
+			{
+				if(CurrentBGAStart>=0 && MediaPlayer->IsPlaying())
+				{
+					// check drift
+					auto estimatedTime = GetPositionMicro() - CurrentBGAStart;
+					auto actualTime = MediaPlayer->GetTime().GetTotalMicroseconds();
+					auto driftMicro = actualTime - estimatedTime;
+					auto absDriftMicro = FMath::Abs(driftMicro);
+					
+					if(absDriftMicro > 40*1000 || (IsCorrectingBGADrift && absDriftMicro > 5*1000))
+					{
+						UE_LOG(LogTemp, Warning, TEXT("BGA drift: %f"), driftMicro);
+						// if slower, set playback rate faster
+						// if faster, set playback rate slower
+						// adjustment is a linear function of drift which makes player to catch up estimated time quickly
+
+						auto rateAdjustment = absDriftMicro / 1000.0 / 1000.0;
+						UE_LOG(LogTemp, Warning, TEXT("Rate adjustment: %f"), rateAdjustment);
+						auto rate = driftMicro > 0 ? 1.0-rateAdjustment : 1.0+rateAdjustment;
+						if(rate < 0.5) rate = 0.5;
+						MediaPlayer->SetRate(rate);
+						IsCorrectingBGADrift = true;
+						
+					} else
+					{
+						if(IsCorrectingBGADrift)
+						{
+							IsCorrectingBGADrift = false;
+							MediaPlayer->SetRate(1.0f);
+						}
+					}
+				}
+				// AsyncTask(ENamedThreads::GameThread, [this](){
+					if(MediaPlayer)
+					{
+						BGALock.Lock();
+						for(auto& pair: BGAStartMap)
+						{
+							UE_LOG(LogTemp, Warning, TEXT("BGA %d at %lld vs current time %lld"), pair.Key, pair.Value, GetPositionMicro());
+							if(GetPositionMicro() >= pair.Value)
+							{
+								
+								if(!BGASourceMap.Contains(pair.Key))
+								{
+									UE_LOG(LogTemp, Warning, TEXT("BGA %d is not loaded"), pair.Key);
+									continue;
+								}
+								const auto Source = BGASourceMap[pair.Key];
+								if(!Source)
+								{
+									UE_LOG(LogTemp, Warning, TEXT("BGA %d is null"), pair.Key);
+									continue;
+								}
+								UE_LOG(LogTemp, Warning, TEXT("Start BGA %d"), pair.Key);
+								AsyncTask(ENamedThreads::GameThread, [Source, this]()
+								{
+									MediaPlayer->OpenSource(Source);
+								});
+								CurrentBGAStart = pair.Value;
+
+								BGAStartMap.Remove(pair.Key);
+								break;
+							}
+						}
+						BGALock.Unlock();
+					}
+				// });
+				
+			}
 			int channels;
 			int realChannels;
 			System->getChannelsPlaying(&channels, &realChannels);
@@ -213,7 +342,6 @@ void FJukebox::Unpause()
 			System->update();
 			// sleep for 1ms
 			FPlatformProcess::Sleep(0.001);
-			
 		}
 	});
 }
@@ -233,6 +361,10 @@ void FJukebox::PlaySound(FMOD::Sound* sound, FMOD::ChannelGroup* group, bool pau
 void FJukebox::Pause()
 {
 	ChannelGroup->setPaused(true);
+	if(MediaPlayer)
+	{
+		MediaPlayer->Pause();
+	}
 }
 
 void FJukebox::Stop()
@@ -243,6 +375,12 @@ void FJukebox::Stop()
 	SoundQueueLock.Lock();
 	SoundQueue.Empty();
 	SoundQueueLock.Unlock();
+
+	
+	if(MediaPlayer)
+	{
+		MediaPlayer->Close();
+	}
 }
 
 void FJukebox::PlayKeysound(int id)
@@ -264,7 +402,12 @@ void FJukebox::Unload()
 		pair.Value->release();
 	}
 	SoundTable.Empty();
+	BGALock.Lock();
+	BGAStartMap.Empty();
+	BGASourceMap.Empty();
+	BGALock.Unlock();
 }
+
 
 long long FJukebox::GetPositionMicro() const
 {
