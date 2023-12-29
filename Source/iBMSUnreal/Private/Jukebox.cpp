@@ -322,12 +322,14 @@ void FJukebox::Unpause()
 							if(!BGASourceMap.Contains(pair.Key))
 							{
 								UE_LOG(LogTemp, Warning, TEXT("BGA %d is not loaded"), pair.Key);
+								BGAStartQueue.Dequeue(pair);
 								goto Skip;
 							}
 							const auto Source = BGASourceMap[pair.Key];
 							if(!Source)
 							{
 								UE_LOG(LogTemp, Warning, TEXT("BGA %d is null"), pair.Key);
+								BGAStartQueue.Dequeue(pair);
 								goto Skip;
 							}
 							UE_LOG(LogTemp, Warning, TEXT("Start BGA %d"), pair.Key);

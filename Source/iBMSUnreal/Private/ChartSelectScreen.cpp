@@ -319,17 +319,24 @@ void AChartSelectScreen::OnMediaOpened(FString OpenedUrl)
 	// bool isPlayed = MediaPlayer->Play();
 	//
 	// // UE_LOG(LogTemp, Warning, TEXT("MediaPlayer->Play(): %d"), isPlayed);
+	// get dimension
+	auto dim = MediaPlayer->GetVideoTrackDimensions(0, 0);
+	UE_LOG(LogTemp, Warning, TEXT("Video Dimension: %d, %d"), dim.X, dim.Y);
+	ChartSelectUI->BackgroundSizeBox->SetWidthOverride(dim.X);
+	ChartSelectUI->BackgroundSizeBox->SetHeightOverride(dim.Y);
+	
 	
 }
 
 void AChartSelectScreen::OnMediaOpenFailed(FString FailedUrl)
 {
 	UE_LOG(LogTemp, Warning, TEXT("MediaPlayer->OnMediaOpenFailed"));
+	
 }
 
 void AChartSelectScreen::OnPlaybackResumed()
 {
-	ChartSelectUI->BackgroundImage->SetBrushFromMaterial(VideoMaterial);
+	// ChartSelectUI->BackgroundImage->SetBrushFromMaterial(VideoMaterial);
 }
 
 void AChartSelectScreen::OnSeekCompleted()
@@ -447,8 +454,9 @@ void AChartSelectScreen::BeginPlay()
 						{
 							ChartSelectUI->BackgroundImage->SetBrushTintColor(FLinearColor(0.5f, 0.5f, 0.5f, 0.5f));
 							ChartSelectUI->BackgroundImage->SetBrushFromMaterial(VideoMaterial);
-							// aspect ratio
-							ChartSelectUI->BackgroundImage->SetRenderScale(FVector2D(1.0f, 1.0f));
+							// aspect ratio 1:1, add letterbox to texture
+							
+							
 						});
 					} else
 					{

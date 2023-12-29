@@ -9,6 +9,7 @@
 #include "Components/EditableTextBox.h"
 #include "Components/Image.h"
 #include "Components/ListView.h"
+#include "Components/SizeBox.h"
 #include "Components/TextBlock.h"
 
 #include "ChartSelectUI.generated.h"
@@ -56,4 +57,7 @@ public:
 
 	UPROPERTY(meta = (BindWidget))
 	UTextBlock* OverlayInfoText;
+
+	UPROPERTY(meta = (BindWidget))
+	USizeBox* BackgroundSizeBox;
 };

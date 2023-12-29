@@ -167,7 +167,7 @@ int open_output_file(const char *filename, TranscodeContext* ctx)
                 encoder = avcodec_find_encoder(AV_CODEC_ID_H264);
             } else
             {
-                encoder = avcodec_find_encoder(dec_ctx->codec_id);
+                encoder = avcodec_find_encoder(AV_CODEC_ID_AAC);
             }
             if (!encoder) {
                 av_log(NULL, AV_LOG_FATAL, "Necessary encoder not found\n");
@@ -203,9 +203,8 @@ int open_output_file(const char *filename, TranscodeContext* ctx)
                 // log audio codec
                 av_log(NULL, AV_LOG_INFO, "Audio Codec: %d\n", dec_ctx->codec_id);
                 enc_ctx->sample_rate = dec_ctx->sample_rate;
-                ret = av_channel_layout_copy(&enc_ctx->ch_layout, &dec_ctx->ch_layout);
-                if (ret < 0)
-                    return ret;
+                // stereo
+                enc_ctx->channel_layout = AV_CH_LAYOUT_STEREO;
                 /* take first format from list of supported formats */
                 if(encoder->sample_fmts) enc_ctx->sample_fmt = encoder->sample_fmts[0];
                 enc_ctx->time_base = (AVRational){1, enc_ctx->sample_rate};
@@ -268,7 +267,7 @@ int open_output_file(const char *filename, TranscodeContext* ctx)
         return ret;
     }
     
-    ret = avformat_write_header(ctx->ofmt_ctx, &opts2);
+    ret = avformat_write_header(ctx->ofmt_ctx, NULL);
     av_dict_free(&opts2);
     if (ret < 0) {
         av_log(NULL, AV_LOG_ERROR, "Error occurred when opening output file\n");
