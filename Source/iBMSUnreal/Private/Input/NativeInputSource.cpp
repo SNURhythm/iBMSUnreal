@@ -87,7 +87,7 @@ bool FNativeInputSource::StartListen()
 	UE_LOG(LogTemp, Warning, TEXT("Start listen key input"));
 	IsListening = true;
 #if PLATFORM_MAC
-	IOHIDManagerRef hidManager = IOHIDManagerCreate(kCFAllocatorDefault, kIOHIDOptionsTypeNone);
+	hidManager = IOHIDManagerCreate(kCFAllocatorDefault, kIOHIDOptionsTypeNone);
 	if (!hidManager) {
 		UE_LOG(LogTemp, Warning, TEXT("failed to create hid manager"));
 		return false;
@@ -106,8 +106,13 @@ bool FNativeInputSource::StartListen()
 	IOHIDManagerSetDeviceMatchingMultiple(hidManager, matches);
 	IOHIDManagerRegisterInputValueCallback(hidManager, [](void* context, IOReturn result, void* sender, IOHIDValueRef value) {
 		FNativeInputSource* pThis = reinterpret_cast<FNativeInputSource*>(context);
+		if(pThis == nullptr)
+		{
+			CFRunLoopStop(CFRunLoopGetCurrent());
+			return;
+		}
 		if(!pThis->IsListening) {
-			UE_LOG(LogTemp, Warning, TEXT("Stop listen key input - macOS"));
+			UE_LOG(LogTemp, Warning, TEXT("Not listening: Stop listen key input - macOS"));
 			CFRunLoopStop(CFRunLoopGetCurrent());
 			return;
 		}
@@ -127,7 +132,7 @@ bool FNativeInputSource::StartListen()
 
 	UE_LOG(LogTemp, Warning, TEXT("Start listen key input - macOS"));
 
-	ListenTask = UE::Tasks::Launch (UE_SOURCE_LOCATION, [this, hidManager]()
+	ListenTask = UE::Tasks::Launch (UE_SOURCE_LOCATION, [this]()
 	{
 		CurrentCFRunLoop = CFRunLoopGetCurrent();
 		IOHIDManagerScheduleWithRunLoop(hidManager, CFRunLoopGetCurrent(), kCFRunLoopDefaultMode);
@@ -136,6 +141,7 @@ bool FNativeInputSource::StartListen()
 		CFRunLoopRun();
 		UE_LOG(LogTemp, Warning, TEXT("Start listen key input - macOS 3"));
 	});
+	return true;
 #elif PLATFORM_WINDOWS
 	ListenTask = UE::Tasks::Launch (UE_SOURCE_LOCATION, [this]()
 	{
@@ -178,6 +184,7 @@ bool FNativeInputSource::StartListen()
 		}
 		SendMessageW(CurrentHwnd, WM_CLOSE, 0, 0);
 	});
+	return true;
 #endif
 
 	return false;
@@ -196,6 +203,13 @@ void FNativeInputSource::StopListen()
 
 
 #elif PLATFORM_MAC
+	if(hidManager != nullptr)
+	{
+		IOHIDManagerUnscheduleFromRunLoop(hidManager, CurrentCFRunLoop, kCFRunLoopDefaultMode);
+		IOHIDManagerClose(hidManager, kIOHIDOptionsTypeNone);
+		CFRelease(hidManager);
+		hidManager = nullptr;
+	}
 	CFRunLoopStop(CurrentCFRunLoop);
 #endif
 	// ReSharper disable once CppExpressionWithoutSideEffects

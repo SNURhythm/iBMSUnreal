@@ -7,6 +7,7 @@
 #include "fmod.hpp"
 #include "MediaPlayer.h"
 #include "MediaPlaylist.h"
+#include "Tasks/Task.h"
 
 
 /**
@@ -22,6 +23,7 @@ private:
 	FCriticalSection AudioChannelMapLock;
 	TMap<FMOD::Sound*, FMOD::Channel*> AudioChannelMap;
 	long long CurrentBGAStart = -1;
+	UE::Tasks::TTask<void> MainLoopTask;
 	FMOD_RESULT ReadWav(const FString& Path, FMOD::Sound** Sound, std::atomic_bool& bCancelled);
 	unsigned long long MsToDSPClocks(double Ms);
 	void PlaySound(FMOD::Sound* sound, FMOD::ChannelGroup* group, bool paused, FMOD::Channel** channel);
@@ -29,6 +31,7 @@ private:
 	void ScheduleSound(unsigned long long startDspClock, FMOD::Sound* Sound);
 	const FChart* Chart;
 	FCriticalSection SoundQueueLock;
+	FCriticalSection MediaPlayerLock;
 	unsigned long long StartDspClock;
 	UPROPERTY();
 	FCriticalSection BGALock;

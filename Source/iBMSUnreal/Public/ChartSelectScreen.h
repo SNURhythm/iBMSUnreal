@@ -31,6 +31,8 @@ private:
 	FMOD::System* FMODSystem;
 	UE::Tasks::FTask JukeboxTask;
 	UE::Tasks::TTask<void> BGATask;
+	FCriticalSection ChartListLock;
+	FCriticalSection BackgroundImageLock;
 
 	void LoadCharts();
 	void SetChartMetas(const TArray<FChartMeta*>& ChartMetas);

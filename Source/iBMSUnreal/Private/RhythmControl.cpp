@@ -321,13 +321,16 @@ void ARhythmControl::LoadGame()
 		}
 		State = new FRhythmState(Chart, false);
 		Renderer->Init(Chart);
-		InputHandler = new FRhythmInputHandler(this, *Chart->Meta);
-		bool result1 = InputHandler->StartListenNative() || InputHandler->StartListenUnreal(PlayerInputComponent); // fallback to unreal input if native input failed
-		bool result2 = InputHandler->StartListenUnrealTouch(PlayerController, Renderer->NoteArea, 15);
-		if(!result1 && !result2)
+		if(!Options.AutoPlay)
 		{
-			UE_LOG(LogTemp, Warning, TEXT("Failed to start listen"));
-			return;
+			InputHandler = new FRhythmInputHandler(this, *Chart->Meta);
+			bool result1 = InputHandler->StartListenNative() || InputHandler->StartListenUnreal(PlayerInputComponent); // fallback to unreal input if native input failed
+			bool result2 = InputHandler->StartListenUnrealTouch(PlayerController, Renderer->NoteArea, 15);
+			if(!result1 && !result2)
+			{
+				UE_LOG(LogTemp, Warning, TEXT("Failed to start listen"));
+				return;
+			}
 		}
 		UE_LOG(LogTemp, Warning, TEXT("Chart&Jukebox loaded"));
 		if (!IsLoadCancelled)

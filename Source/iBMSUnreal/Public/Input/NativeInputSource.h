@@ -45,6 +45,7 @@ private:
 	HWND CurrentHwnd;
 #elif PLATFORM_MAC
 	CFRunLoopRef CurrentCFRunLoop;
+	IOHIDManagerRef hidManager = nullptr;
 
 	static CGEventRef EventTapCallBack(CGEventTapProxy proxy, CGEventType type, CGEventRef event, void *refcon);
 #endif

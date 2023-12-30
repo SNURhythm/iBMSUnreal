@@ -163,12 +163,10 @@ void AChartSelectScreen::LoadCharts()
 		{
 			return A.Title < B.Title;
 		});
-		auto ChartList = ChartSelectUI->ChartList;
-		AsyncTask(ENamedThreads::GameThread, [chartMetas, ChartList, this]()
+		AsyncTask(ENamedThreads::GameThread, [chartMetas, this]()
 		{
 			if (bCancelled) return;
-			if (IsValid(ChartList))
-				SetChartMetas(chartMetas);
+			SetChartMetas(chartMetas);
 		});
 		// find new charts
 		TArray<FDiff> Diffs;
@@ -259,7 +257,7 @@ void AChartSelectScreen::LoadCharts()
 		}
 		if (bCancelled) goto scan_end;
 
-		AsyncTask(ENamedThreads::GameThread, [ChartList, this]()
+		AsyncTask(ENamedThreads::GameThread, [this]()
 		{
 
 			if (bCancelled) return;
@@ -275,8 +273,7 @@ void AChartSelectScreen::LoadCharts()
 				return A.Title < B.Title;
 			});
 			if (bCancelled) return;
-			if (IsValid(ChartList))
-				SetChartMetas(chartMetas);
+			SetChartMetas(chartMetas);
 			
 		});
 		
@@ -299,7 +296,7 @@ void AChartSelectScreen::OnStartButtonClicked()
 	StartOptions options;
 	options.BmsPath = chartMeta->BmsPath;
 	options.AutoKeysound = false;
-	options.AutoPlay = true;
+	options.AutoPlay = false;
 	gameInstance->SetStartOptions(options);
 	// load level
 	UGameplayStatics::OpenLevel(GetWorld(), "RhythmPlay");
@@ -415,8 +412,10 @@ void AChartSelectScreen::BeginPlay()
 				if (ImagePath.IsEmpty())
 				{
 					// set to blank, black
+					BackgroundImageLock.Lock();
 					ChartSelectUI->BackgroundImage->SetBrushFromTexture(nullptr);
 					ChartSelectUI->BackgroundImage->SetBrushTintColor(FLinearColor::Black);
+					BackgroundImageLock.Unlock();
 					ChartSelectUI->StageFileImage->SetBrushFromTexture(nullptr);
 					ChartSelectUI->StageFileImage->SetBrushTintColor(FLinearColor::Black);
 				} else
@@ -448,15 +447,23 @@ void AChartSelectScreen::BeginPlay()
 					UE_LOG(LogTemp, Warning, TEXT("Loading sound"));
 					jukebox->Stop();
 					jukebox->LoadChart(Chart,  bJukeboxCancelled, MediaPlayer);
+					if(bJukeboxCancelled)
+					{
+						jukebox->Unload();
+						delete Chart;
+						return;
+					}
 					if(!jukebox->BGASourceMap.IsEmpty())
 					{
 						AsyncTask(ENamedThreads::GameThread, [&]()
 						{
-							ChartSelectUI->BackgroundImage->SetBrushTintColor(FLinearColor(0.5f, 0.5f, 0.5f, 0.5f));
-							ChartSelectUI->BackgroundImage->SetBrushFromMaterial(VideoMaterial);
-							// aspect ratio 1:1, add letterbox to texture
-							
-							
+							BackgroundImageLock.Lock();
+							if(IsValid(ChartSelectUI) && IsValid(ChartSelectUI->BackgroundImage))
+							{
+								ChartSelectUI->BackgroundImage->SetBrushTintColor(FLinearColor(0.5f, 0.5f, 0.5f, 0.5f));
+								ChartSelectUI->BackgroundImage->SetBrushFromMaterial(VideoMaterial);
+							}
+							BackgroundImageLock.Unlock();
 						});
 					} else
 					{
@@ -465,12 +472,17 @@ void AChartSelectScreen::BeginPlay()
 							if(!ImagePath.IsEmpty())
 							{
 								UTexture2D* Image = nullptr;
-								bool IsValid = false;
-								ImageUtils::LoadTexture2D(ImagePath, IsValid, -1, -1, Image);
-								if(IsValid)
+								bool IsTextureValid = false;
+								ImageUtils::LoadTexture2D(ImagePath, IsTextureValid, -1, -1, Image);
+								if(IsTextureValid)
 								{
-									ChartSelectUI->BackgroundImage->SetBrushTintColor(FLinearColor(0.5f, 0.5f, 0.5f, 0.5f));
-									ChartSelectUI->BackgroundImage->SetBrushFromTexture(Image);
+									BackgroundImageLock.Lock();
+									if(IsValid(ChartSelectUI) && IsValid(ChartSelectUI->BackgroundImage))
+									{
+										ChartSelectUI->BackgroundImage->SetBrushTintColor(FLinearColor(0.5f, 0.5f, 0.5f, 0.5f));
+										ChartSelectUI->BackgroundImage->SetBrushFromTexture(Image);
+									}
+									BackgroundImageLock.Unlock();
 								}
 							}
 						});
@@ -478,6 +490,7 @@ void AChartSelectScreen::BeginPlay()
 					UE_LOG(LogTemp, Warning, TEXT("Loading sound done"));
 					if (bJukeboxCancelled)
 					{
+						jukebox->Unload();
 						delete Chart;
 						return;
 					}
@@ -504,14 +517,6 @@ void AChartSelectScreen::BeginPlay()
 					}
 				}
 				CurrentEntryData = EntryData;
-				// MediaPlayer->PlayOnOpen = false;
-				// set video to media texture
-				
-				// bool result = MediaPlayer->Play();
-				// UE_LOG(LogTemp, Warning, TEXT("MediaPlayer->Play(): %d"), result);
-				
-
-
 			});
 			// on item bound
 			ChartSelectUI->ChartList->OnEntryWidgetGenerated().AddLambda([&](UUserWidget& Widget)
@@ -550,6 +555,9 @@ void AChartSelectScreen::BeginPlay()
 
 void AChartSelectScreen::SetChartMetas(const TArray<FChartMeta*>& ChartMetas)
 {
+	if (!IsValid(ChartSelectUI)) return;
+	if (!IsValid(ChartSelectUI->ChartList)) return;
+	ChartListLock.Lock();
 	// convert to UChartListEntryData
 	TArray<UChartListEntryData*> EntryDatas;
 	for (auto& meta : ChartMetas)
@@ -559,6 +567,7 @@ void AChartSelectScreen::SetChartMetas(const TArray<FChartMeta*>& ChartMetas)
 		EntryDatas.Add(entryData);
 	}
 	ChartSelectUI->ChartList->SetListItems(EntryDatas);
+	ChartListLock.Unlock();
 }
 
 void AChartSelectScreen::OnSearchBoxTextChanged(const FText& Text)
@@ -582,33 +591,6 @@ void AChartSelectScreen::OnSearchBoxTextCommitted(const FText& Text, ETextCommit
 void AChartSelectScreen::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-	if(MediaPlayer)
-	{
-		// UE_LOG(LogTemp, Warning, TEXT("MediaPlayer->IsPlaying(): %d"), MediaPlayer->IsPlaying());
-		// UE_LOG(LogTemp, Warning, TEXT("MediaPlayer->IsPaused(): %d"), MediaPlayer->IsPaused());
-		// UE_LOG(LogTemp, Warning, TEXT("MediaPlayer->GetTime(): %f"), MediaPlayer->GetTime().GetTotalMicroseconds());
-		//rate
-		// UE_LOG(LogTemp, Warning, TEXT("MediaPlayer->GetRate(): %f"), MediaPlayer->GetRate());
-
-		
-		long long CurrentJukeboxTime = jukebox->GetPositionMicro();
-		if(CurrentJukeboxTime > 0)
-		{
-			// check media player drift
-			long long CurrentMediaPlayerTime = MediaPlayer->GetTime().GetTotalMicroseconds();
-			long long Diff = CurrentMediaPlayerTime - CurrentJukeboxTime;
-			// UE_LOG(LogTemp, Warning, TEXT("Diff: %lld"), Diff);
-			// if(Diff > 50000 || Diff < -50000)
-			// {
-			// 	// seek
-			// 	UE_LOG(LogTemp, Warning, TEXT("Seeking"));
-			// 	MediaPlayer->Pause();
-			// 	bool result = MediaPlayer->Seek(FTimespan::FromMicroseconds(CurrentJukeboxTime));
-			// 	UE_LOG(LogTemp, Warning, TEXT("Seeking result: %d"), result);
-			// 	MediaPlayer->Play();
-			// }
-		}
-	}
 	if(IsScanning)
 	{
 		const int CurrentNewCharts = SuccessNewChartCount;
@@ -646,4 +628,6 @@ void AChartSelectScreen::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	{
 		BGATask.Wait();
 	}
+	BackgroundImageLock.Lock();
+	ChartListLock.Lock();
 }

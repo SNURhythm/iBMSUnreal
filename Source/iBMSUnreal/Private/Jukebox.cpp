@@ -85,6 +85,7 @@ FJukebox::~FJukebox()
 
 void FJukebox::OnMediaOpened(FString OpenedUrl)
 {
+	if(!MediaPlayer) return;
 	MediaPlayer->Play();
 }
 
@@ -235,46 +236,48 @@ void FJukebox::Unpause()
 	}
 	// start Thread to pop SoundQueue
 	IsCorrectingBGADrift = false;
-	UE::Tasks::FTask task = UE::Tasks::Launch(UE_SOURCE_LOCATION, [this](){
-		while(true)
+	
+	MainLoopTask = UE::Tasks::Launch(UE_SOURCE_LOCATION, [this]()
+	{
+		while (true)
 		{
 			bool isPaused;
 			ChannelGroup->getPaused(&isPaused);
-			if(isPaused) break;
+			if (isPaused) break;
 
-			if(MediaPlayer)
+			if (MediaPlayer)
 			{
-				if(CurrentBGAStart>=0 && MediaPlayer->IsPlaying())
+				if (CurrentBGAStart >= 0 && MediaPlayer->IsPlaying())
 				{
 					// check drift
 					auto estimatedTime = GetPositionMicro() - CurrentBGAStart;
 					auto actualTime = MediaPlayer->GetTime().GetTotalMicroseconds();
 					auto driftMicro = actualTime - estimatedTime;
 					auto absDriftMicro = FMath::Abs(driftMicro);
-					
-					if(absDriftMicro > 40*1000 || (IsCorrectingBGADrift && absDriftMicro > 5*1000))
+
+					if (absDriftMicro > 40 * 1000 || (IsCorrectingBGADrift && absDriftMicro > 5 * 1000))
 					{
 						UE_LOG(LogTemp, Warning, TEXT("BGA drift: %f"), driftMicro);
 						// if slower, set playback rate faster
 						// if faster, set playback rate slower
 						// adjustment is a linear function of drift which makes player to catch up estimated time quickly
 
-						auto rateAdjustment = absDriftMicro / 1000.0 / 1000.0*5.0;
+						auto rateAdjustment = absDriftMicro / 1000.0 / 1000.0 * 5.0;
 						UE_LOG(LogTemp, Warning, TEXT("Rate adjustment: %f"), rateAdjustment);
-						auto rate = driftMicro > 0 ? 1.0-rateAdjustment : 1.0+rateAdjustment;
+						auto rate = driftMicro > 0 ? 1.0 - rateAdjustment : 1.0 + rateAdjustment;
 						UE_LOG(LogTemp, Warning, TEXT("Rate: %f"), rate);
 						TArray<FFloatRange> SupportedRates;
 						MediaPlayer->GetSupportedRates(SupportedRates, true);
 						bool IsGood = false;
-						for(auto& range: SupportedRates)
+						for (auto& range : SupportedRates)
 						{
-							if(range.Contains(rate))
+							if (range.Contains(rate))
 							{
 								IsGood = true;
 								break;
 							}
 						}
-						if(!IsGood)
+						if (!IsGood)
 						{
 							// find closest rate
 							// if rate > 1.0, find closest rate > 1.0
@@ -283,11 +286,11 @@ void FJukebox::Unpause()
 							// iterate through all lower/upper bounds
 
 							auto closest = SupportedRates[0].GetLowerBoundValue();
-							for(auto& range: SupportedRates)
+							for (auto& range : SupportedRates)
 							{
 								auto bound = rate > 1.0 ? range.GetUpperBoundValue() : range.GetLowerBoundValue();
-								if(bound == 0.0f) continue;
-								if(FMath::Abs(bound - rate) < FMath::Abs(closest - rate))
+								if (bound == 0.0f) continue;
+								if (FMath::Abs(bound - rate) < FMath::Abs(closest - rate))
 								{
 									closest = bound;
 								}
@@ -297,83 +300,82 @@ void FJukebox::Unpause()
 						UE_LOG(LogTemp, Warning, TEXT("Closest Available Rate: %f"), rate);
 						MediaPlayer->SetRate(rate);
 						IsCorrectingBGADrift = true;
-						
-					} else
+					}
+					else
 					{
-						if(IsCorrectingBGADrift)
+						if (IsCorrectingBGADrift)
 						{
 							IsCorrectingBGADrift = false;
 							MediaPlayer->SetRate(1.0f);
 						}
 					}
 				}
-				// AsyncTask(ENamedThreads::GameThread, [this](){
-					if(MediaPlayer)
-					{
-						BGALock.Lock();
-						TPair<int, long long> pair;
-						
-						bool Valid = BGAStartQueue.Peek(pair);
-						if(!Valid)
-							goto Skip;
-						// UE_LOG(LogTemp, Warning, TEXT("BGA %d at %lld vs current time %lld"), pair.Key, pair.Value, GetPositionMicro());
-						if(GetPositionMicro() >= pair.Value)
-						{
-							if(!BGASourceMap.Contains(pair.Key))
-							{
-								UE_LOG(LogTemp, Warning, TEXT("BGA %d is not loaded"), pair.Key);
-								BGAStartQueue.Dequeue(pair);
-								goto Skip;
-							}
-							const auto Source = BGASourceMap[pair.Key];
-							if(!Source)
-							{
-								UE_LOG(LogTemp, Warning, TEXT("BGA %d is null"), pair.Key);
-								BGAStartQueue.Dequeue(pair);
-								goto Skip;
-							}
-							UE_LOG(LogTemp, Warning, TEXT("Start BGA %d"), pair.Key);
-							AsyncTask(ENamedThreads::GameThread, [Source, this]()
-							{
-								MediaPlayer->OpenSource(Source);
-							});
-							CurrentBGAStart = pair.Value;
+				if (isPaused) break;
+				BGALock.Lock();
+				TPair<int, long long> pair;
 
-							BGAStartQueue.Dequeue(pair);
-						}
-						
-					Skip:
-						BGALock.Unlock();
+				bool Valid = BGAStartQueue.Peek(pair);
+				if (!Valid)
+					goto Skip;
+				// UE_LOG(LogTemp, Warning, TEXT("BGA %d at %lld vs current time %lld"), pair.Key, pair.Value, GetPositionMicro());
+				if (GetPositionMicro() >= pair.Value)
+				{
+					if (!BGASourceMap.Contains(pair.Key))
+					{
+						UE_LOG(LogTemp, Warning, TEXT("BGA %d is not loaded"), pair.Key);
+						BGAStartQueue.Dequeue(pair);
+						goto Skip;
 					}
-				// });
-				
+					const auto Source = BGASourceMap[pair.Key];
+					if (!Source)
+					{
+						UE_LOG(LogTemp, Warning, TEXT("BGA %d is null"), pair.Key);
+						BGAStartQueue.Dequeue(pair);
+						goto Skip;
+					}
+					UE_LOG(LogTemp, Warning, TEXT("Start BGA %d"), pair.Key);
+					AsyncTask(ENamedThreads::GameThread, [Source, this]()
+					{
+						MediaPlayerLock.Lock();
+						if (MediaPlayer && IsValid(Source) && IsValid(MediaPlayer))
+						{
+							MediaPlayer->OpenSource(Source);
+						}
+						MediaPlayerLock.Unlock();
+					});
+					CurrentBGAStart = pair.Value;
+
+					BGAStartQueue.Dequeue(pair);
+				}
+
+			Skip:
+				BGALock.Unlock();
 			}
 			int channels;
 			int realChannels;
 			System->getChannelsPlaying(&channels, &realChannels);
 			int availableChannels = MaxBgRealChannels - realChannels;
-			for(int i=0;i<availableChannels; i++)
+			for (int i = 0; i < availableChannels; i++)
 			{
-				
 				ChannelGroup->getPaused(&isPaused);
-				if(isPaused) {
+				if (isPaused)
+				{
 					break;
 				}
 				TPair<unsigned long long, FMOD::Sound*> pair;
 				SoundQueueLock.Lock();
-				if(!SoundQueue.Dequeue(pair))
+				if (!SoundQueue.Dequeue(pair))
 				{
 					SoundQueueLock.Unlock();
 					break;
 				}
 				SoundQueueLock.Unlock();
-				
+
 				FMOD::Channel* channel;
 				PlaySound(pair.Value, ChannelGroup, true, &channel);
 				channel->setDelay(pair.Key, 0, true);
 
 				channel->setPaused(false);
-				
 			}
 			System->update();
 			// sleep for 1ms
@@ -409,16 +411,18 @@ void FJukebox::Stop()
 {
 	ChannelGroup->setPaused(true);
 	ChannelGroup->stop();
+	MainLoopTask.Wait();
 
 	SoundQueueLock.Lock();
 	SoundQueue.Empty();
 	SoundQueueLock.Unlock();
 
-	
+	MediaPlayerLock.Lock();
 	if(MediaPlayer)
 	{
 		MediaPlayer->Close();
 	}
+	MediaPlayerLock.Unlock();
 }
 
 void FJukebox::PlayKeysound(int id)
@@ -440,10 +444,19 @@ void FJukebox::Unload()
 		pair.Value->release();
 	}
 	SoundTable.Empty();
+	
+	MediaPlayerLock.Lock();
+	if(MediaPlayer)
+	{
+		MediaPlayer->Close();
+		MediaPlayer = nullptr;
+	}
 	BGALock.Lock();
 	BGAStartQueue.Empty();
 	BGASourceMap.Empty();
 	BGALock.Unlock();
+	MediaPlayerLock.Unlock();
+
 }
 
 
