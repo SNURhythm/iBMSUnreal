@@ -72,7 +72,7 @@ public:
 	std::atomic_bool IsMainLoopCancelled;
 	
 	FJukebox* Jukebox;
-	void PressNote(FBMSNote* Note, long long PressedTime);
+	FJudgeResult PressNote(FBMSNote* Note, long long PressedTime);
 	void ReleaseNote(FBMSNote* Note, long long ReleasedTime);
 	virtual void PressLane(int Lane, double InputDelay = 0) override;
 	virtual void ReleaseLane(int Lane, double InputDelay = 0) override;

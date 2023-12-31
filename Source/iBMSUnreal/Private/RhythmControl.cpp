@@ -76,15 +76,22 @@ void ARhythmControl::CheckPassedTimeline(const long long Time)
 							LongNote->Release(Time);
 							const auto JudgeResult = State->Judge->JudgeNow(LongNote->Head, LongNote->Head->PlayedTime);
 							OnJudge(JudgeResult);
-							// TODO: Resume lane beam effect if play mode is Auto
+							if(Options.AutoPlay)
+							{
+								Renderer->OnLaneReleased(Note->Lane, Time);
+							}
 							continue;
 						}
 					}
 					if(Options.AutoPlay) // NormalNote or LongNote's head
 					{
-						PressNote(Note, Time);
-						// TODO: Start lane beam
-						// TODO: Resume lane beam immediately if note is long note head
+						const FJudgeResult JudgeResult = PressNote(Note, Time);
+						Renderer->OnLanePressed(Note->Lane, JudgeResult, Time);
+						if(!Note->IsLongNote())
+						{
+							Renderer->OnLaneReleased(Note->Lane, Time);
+						}
+						
 					}
 					
 				}
@@ -110,7 +117,7 @@ ARhythmControl::ARhythmControl()
 	PrimaryActorTick.bCanEverTick = true;
 }
 
-void ARhythmControl::PressNote(FBMSNote* Note, long long PressedTime)
+FJudgeResult ARhythmControl::PressNote(FBMSNote* Note, long long PressedTime)
 {
 	if(Note->Wav != FBMSParser::NoWav && !Options.AutoKeysound) Jukebox->PlayKeysound(Note->Wav);
 	const auto JudgeResult = State->Judge->JudgeNow(Note, PressedTime);
@@ -123,12 +130,13 @@ void ARhythmControl::PressNote(FBMSNote* Note, long long PressedTime)
 			{
 				const auto& LongNote = static_cast<FBMSLongNote*>(Note);
 				if(!LongNote->IsTail()) LongNote->Press(PressedTime);
-				return;
+				return JudgeResult;
 			}
 			Note->Press(PressedTime);
 		}
 		OnJudge(JudgeResult);
 	}
+	return JudgeResult;
 }
 
 void ARhythmControl::ReleaseNote(FBMSNote* Note, long long ReleasedTime)
@@ -176,7 +184,8 @@ void ARhythmControl::PressLane(int Lane, double InputDelay)
 			if(Note == nullptr) continue;
 			if(Note->IsPlayed) continue;
 			if(Note->IsLandmineNote()) continue;
-			PressNote(Note, PressedTime);
+			const FJudgeResult Judgement = PressNote(Note, PressedTime);
+			Renderer->OnLanePressed(Lane, Judgement, PressedTime);
 			return;
 		}
 	}
@@ -191,6 +200,7 @@ void ARhythmControl::ReleaseLane(int Lane, double InputDelay)
 	if(!State->IsPlaying) return;
 
 	const auto ReleasedTime = Jukebox->GetPositionMicro() - static_cast<long long>(InputDelay * 1000000);
+	Renderer->OnLaneReleased(Lane, ReleasedTime);
 	const auto& Measures = Chart->Measures;
 
 	for(int i = State->PassedMeasureCount; i < Measures.Num(); i++)
@@ -320,7 +330,16 @@ void ARhythmControl::LoadGame()
 			IsLanePressed.Add(Lane, false);
 		}
 		State = new FRhythmState(Chart, false);
-		Renderer->Init(Chart);
+		// init renderer in game thread task and wait for it
+		FCriticalSection RendererInitLock;
+		RendererInitLock.Lock();
+		AsyncTask(ENamedThreads::GameThread, [&]()
+		{
+			Renderer->Init(Chart);
+			RendererInitLock.Unlock();
+		});
+		RendererInitLock.Lock();
+		RendererInitLock.Unlock();
 		if(!Options.AutoPlay)
 		{
 			InputHandler = new FRhythmInputHandler(this, *Chart->Meta);

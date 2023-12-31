@@ -241,6 +241,7 @@ void FJukebox::Unpause()
 	{
 		while (true)
 		{
+			// UE_LOG(LogTemp, Warning, TEXT("Main loop, current position: %lld"), GetPositionMicro());
 			bool isPaused;
 			ChannelGroup->getPaused(&isPaused);
 			if (isPaused) break;

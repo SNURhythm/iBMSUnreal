@@ -2,6 +2,8 @@
 
 
 #include "BMSRenderer.h"
+
+#include "Judge.h"
 #include "NoteActor.h"
 #include "MeasureActor.h"
 #include "PaperSpriteActor.h"
@@ -14,11 +16,13 @@ void FRendererState::Dispose()
 	{
 		item.Value->Destroy();
 	}
+	NoteActors.Empty();
 
 	for(auto& item: MeasureActors)
 	{
 		item.Value->Destroy();
 	}
+	MeasureActors.Empty();
 	for(auto& item: ObjectPool)
 	{
 		while(!item.Value->IsEmpty())
@@ -32,6 +36,10 @@ void FRendererState::Dispose()
 		}
 		delete item.Value;
 	}
+	ObjectPool.Empty();
+
+	LaneStates.Empty();
+	OrphanLongNotes.Empty();
 }
 
 // Sets default values
@@ -109,7 +117,7 @@ APaperSpriteActor* UBMSRenderer::GetInstance(const EBMSObjectType Type) const
 				break;
 		}
 		Instance = GetWorld()->SpawnActor<APaperSpriteActor>(TypeClass);
-		Instance->GetRenderComponent()->SetMaterial(0, LoadObject<UMaterialInterface>(nullptr, TEXT("/Paper2D/TranslucentUnlitSpriteMaterial")));
+		Instance->GetRenderComponent()->SetMaterial(0, Material);
 		Instance->AttachToActor(NoteArea, FAttachmentTransformRules::KeepRelativeTransform);
 		switch(Type)
 		{
@@ -118,7 +126,7 @@ APaperSpriteActor* UBMSRenderer::GetInstance(const EBMSObjectType Type) const
 		case EBMSObjectType::LongNoteTail:
 			{
 				Instance->GetRenderComponent()->SetSprite(NoteSprite);
-				Instance->GetRenderComponent()->TranslucencySortPriority = 2;
+				Instance->GetRenderComponent()->TranslucencySortPriority = 3;
 				break;
 			}
 		case EBMSObjectType::MeasureLine:
@@ -321,10 +329,58 @@ bool UBMSRenderer::IsUnderLowerBound(const double Offset) const
 	return OffsetToTop(Offset) < -0.1;
 }
 
+void UBMSRenderer::OnLanePressed(const int Lane, const FJudgeResult Judge, const long long Time)
+{
+	if(!State) return;
+	UE_LOG(LogTemp, Warning, TEXT("Lane %d pressed"), Lane);
+	State->LaneStates[Lane].IsPressed = true;
+	State->LaneStates[Lane].LastPressedJudge = Judge;
+	State->LaneStates[Lane].LastStateTime = Time;
+}
+
+void UBMSRenderer::OnLaneReleased(const int Lane, const long long Time)
+{
+	if(!State) return;
+	UE_LOG(LogTemp, Warning, TEXT("Lane %d released"), Lane);
+	State->LaneStates[Lane].IsPressed = false;
+	State->LaneStates[Lane].LastStateTime = Time;
+}
+void UBMSRenderer::DrawLaneBeam(const int Lane, const long long Time)
+{
+	auto LaneState = State->LaneStates[Lane];
+	auto LaneBeam = LaneBeams[Lane];
+	LaneBeam->SetActorHiddenInGame(LaneState.LastStateTime == -1);
+	// PGREAT = Orange, None = White, Others = Late: Red, Early: Blue
+	double Alpha;
+	if(LaneState.IsPressed)
+	{
+		Alpha = 0.01;
+	} else
+	{
+		// fade out
+		Alpha = 0.01 - (Time - LaneState.LastStateTime) / 1000000.0 / 10.0;
+	}
+	FLinearColor Color;
+	if (LaneState.LastPressedJudge.Judgement == EJudgement::PGreat)
+	{
+		Color = FLinearColor(1, 0.5, 0, Alpha);
+	} else if (LaneState.LastPressedJudge.Judgement == EJudgement::None)
+	{
+		Color = FLinearColor(1, 1, 1, Alpha);
+	} else
+	{
+		Color = LaneState.LastPressedJudge.Diff > 0 ? FLinearColor(1, 0, 0, Alpha) : FLinearColor(0, 0, 1, Alpha);
+	}
+	LaneBeam->GetRenderComponent()->SetSpriteColor(Color);
+	
+}
 void UBMSRenderer::Draw(const long long CurrentTime)
 {
 	if(!State) return;
-
+	for(auto& LaneState: State->LaneStates)
+	{
+		DrawLaneBeam(LaneState.Key, CurrentTime);
+	}
 	for(int i = State->PassedMeasureCount; i < Chart->Measures.Num(); i++)
 	{
 		const bool IsFirstMeasure = i == State->PassedMeasureCount;
@@ -423,9 +479,35 @@ void UBMSRenderer::Draw(const long long CurrentTime)
 void UBMSRenderer::Init(FChart* ChartInit)
 {
 	this->Chart = ChartInit;
+	Material = LoadObject<UMaterialInterface>(nullptr, TEXT("/Paper2D/TranslucentUnlitSpriteMaterial"));
 	State = new FRendererState();
 	KeyLaneCount = ChartInit->Meta->GetKeyLaneCount(); // main line count except for scratch
+
 	NoteWidth = 1.0f / KeyLaneCount;
+	for(auto Lane: ChartInit->Meta->GetTotalLaneIndices())
+	{
+		State->LaneStates.Add(Lane, FLaneState());
+		APaperSpriteActor* LaneBeam = GetWorld()->SpawnActor<APaperSpriteActor>(ANoteActor::StaticClass());
+		LaneBeam->GetRenderComponent()->SetMaterial(0, Material);
+		LaneBeam->AttachToActor(NoteArea, FAttachmentTransformRules::KeepRelativeTransform);
+		LaneBeam->GetRenderComponent()->SetSprite(NoteSprite);
+		
+		LaneBeam->GetRenderComponent()->TranslucencySortPriority = 2;
+		LaneBeam->GetRenderComponent()->SetMobility(EComponentMobility::Movable);
+		LaneBeam->GetRenderComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		LaneBeam->GetRenderComponent()->SetComponentTickEnabled(false);
+		LaneBeam->SetActorEnableCollision(false);	
+		
+		LaneBeam->SetActorRelativeLocation(FVector(LaneToLeft(Lane), 0, 0));
+		LaneBeam->SetActorRelativeScale3D(FVector(NoteWidth, 0, 1));
+		bool IsScratch = IsScratchLane(Lane);
+		if(IsScratch)
+		{
+			LaneBeam->SetActorRelativeRotation(FRotator(0, 270, 0));
+		}
+		LaneBeam->SetActorHiddenInGame(true);
+		LaneBeams.Add(Lane, LaneBeam);
+	}
 
 	LastTimeLine = ChartInit->Measures[0]->TimeLines[0];
 

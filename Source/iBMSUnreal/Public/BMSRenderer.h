@@ -7,6 +7,7 @@
 #include "BMSLongNote.h"
 #include "TimeLine.h"
 #include "Chart.h"
+#include "Judge.h"
 #include "PaperSpriteActor.h"
 #include "GameFramework/Actor.h"
 #include "BMSRenderer.generated.h"
@@ -20,6 +21,13 @@ enum EBMSObjectType
 	MeasureLine
 };
 
+struct FLaneState
+{
+	long long LastStateTime = -1;
+	bool IsPressed = false;
+	FJudgeResult LastPressedJudge = FJudgeResult(None, 0);
+};
+
 class FRendererState
 {
 public:
@@ -30,6 +38,7 @@ public:
 	int PassedTimelineCount = 0;
 	int PassedMeasureCount = 0;
 	TArray<FBMSLongNote*> OrphanLongNotes;
+	TMap<int, FLaneState> LaneStates;
 	void Dispose();
 	
 };
@@ -41,7 +50,9 @@ class IBMSUNREAL_API UBMSRenderer : public UActorComponent
 private:
 	FChart* Chart;
 	FRendererState* State;
-	
+	TMap<int, APaperSpriteActor*> LaneBeams;
+	UMaterialInterface* Material;
+
 public:	
 	// Sets default values for this actor's properties
 	UBMSRenderer();
@@ -81,6 +92,9 @@ public:
 	double OffsetToTop(double Offset) const;
 	bool IsOverUpperBound(double Offset) const;
 	bool IsUnderLowerBound(double Offset) const;
+	void OnLanePressed(int Lane, const FJudgeResult Judge, long long Time);
+	void OnLaneReleased(int Lane, long long Time);
+	void DrawLaneBeam(const int Lane, const long long Time);
 	void DrawNote(FBMSNote* Note, double Offset);
 	void Draw(long long CurrentTime);
 	void Init(FChart* ChartInit);

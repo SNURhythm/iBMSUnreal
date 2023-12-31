@@ -22,7 +22,7 @@ class FJudgeResult
 {
 public:
 	FJudgeResult(EJudgement Judgement, long long Diff): Judgement(Judgement), Diff(Diff) {}
-	EJudgement Judgement;
+	EJudgement Judgement = None;
 	long long Diff;
 	bool IsComboBreak() const
 	{
