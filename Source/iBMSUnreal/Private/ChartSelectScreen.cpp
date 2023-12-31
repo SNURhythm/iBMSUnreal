@@ -176,7 +176,7 @@ void AChartSelectScreen::LoadCharts()
 		for (auto& meta : chartMetas)
 		{
 			if (bCancelled) break;
-			auto& path = meta->BmsPath;
+			auto path = ChartDBHelper::ToRelativePath(meta->BmsPath);
 			PathSet.Add(path);
 		}
 		IFileManager& FileManager = IFileManager::Get();
