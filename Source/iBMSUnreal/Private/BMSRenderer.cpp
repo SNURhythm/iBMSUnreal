@@ -348,8 +348,9 @@ void UBMSRenderer::OnLaneReleased(const int Lane, const long long Time)
 void UBMSRenderer::DrawLaneBeam(const int Lane, const long long Time)
 {
 	auto LaneState = State->LaneStates[Lane];
+	if(LaneState.LastStateTime == -1) return;
 	auto LaneBeam = LaneBeams[Lane];
-	LaneBeam->SetActorHiddenInGame(LaneState.LastStateTime == -1);
+	
 	// PGREAT = Orange, None = White, Others = Late: Red, Early: Blue
 	double Alpha;
 	if(LaneState.IsPressed)
@@ -360,6 +361,12 @@ void UBMSRenderer::DrawLaneBeam(const int Lane, const long long Time)
 		// fade out
 		Alpha = 0.01 - (Time - LaneState.LastStateTime) / 1000000.0 / 10.0;
 	}
+	if (Alpha <= 0)
+	{
+		LaneBeam->SetActorHiddenInGame(true);
+		return;
+	}
+	LaneBeam->SetActorHiddenInGame(false);
 	FLinearColor Color;
 	if (LaneState.LastPressedJudge.Judgement == EJudgement::PGreat)
 	{
