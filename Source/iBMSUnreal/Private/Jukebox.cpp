@@ -418,12 +418,20 @@ void FJukebox::Stop()
 	SoundQueue.Empty();
 	SoundQueueLock.Unlock();
 
-	MediaPlayerLock.Lock();
-	if(MediaPlayer)
+	FCriticalSection AsyncLock;
+	AsyncLock.Lock();
+	AsyncTask(ENamedThreads::GameThread, [this, &AsyncLock]()
 	{
-		MediaPlayer->Close();
-	}
-	MediaPlayerLock.Unlock();
+		MediaPlayerLock.Lock();
+		if(MediaPlayer)
+		{
+			MediaPlayer->Close();
+		}
+		MediaPlayerLock.Unlock();
+		AsyncLock.Unlock();
+	});
+	AsyncLock.Lock();
+	AsyncLock.Unlock();
 }
 
 void FJukebox::PlayKeysound(int id)
@@ -446,17 +454,15 @@ void FJukebox::Unload()
 	}
 	SoundTable.Empty();
 	
+
 	MediaPlayerLock.Lock();
-	if(MediaPlayer)
-	{
-		MediaPlayer->Close();
-		MediaPlayer = nullptr;
-	}
+	MediaPlayer = nullptr;
+	MediaPlayerLock.Unlock();
+
 	BGALock.Lock();
 	BGAStartQueue.Empty();
 	BGASourceMap.Empty();
 	BGALock.Unlock();
-	MediaPlayerLock.Unlock();
 
 }
 
