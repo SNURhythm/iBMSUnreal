@@ -9,7 +9,7 @@
 #include "FileMediaSource.h"
 #include "transcode.h"
 #include "iBMSUnreal/Public/Utils.h"
-
+#include "ChartDBHelper.h"
 
 FMOD_RESULT FJukebox::ReadWav(const FString& Path, FMOD::Sound** Sound, std::atomic_bool& bCancelled)
 {
@@ -147,7 +147,8 @@ void FJukebox::LoadChart(const FChart* chart, std::atomic_bool& bCancelled, UMed
 		{
 			// transcode into temp file
 			FString Original = FPaths::Combine(Chart->Meta->Folder, Name);
-			FString Hash = FMD5::HashBytes((uint8*)TCHAR_TO_UTF8(*Original), Original.Len());
+			FString OriginalRel = ChartDBHelper::ToRelativePath(Original);
+			FString Hash = FMD5::HashBytes((uint8*)TCHAR_TO_UTF8(*OriginalRel), OriginalRel.Len());
 			FString Directory = FUtils::GetDocumentsPath("Temp");
 			IFileManager::Get().MakeDirectory(*Directory, true);
 			FString TempPath = FPaths::Combine(Directory, Hash + ".mp4");
