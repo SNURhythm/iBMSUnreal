@@ -164,7 +164,10 @@ int open_output_file(const char *filename, TranscodeContext* ctx)
             /* use h264 encoder */
             if(dec_ctx->codec_type == AVMEDIA_TYPE_VIDEO)
             {
-                encoder = avcodec_find_encoder(AV_CODEC_ID_H264);
+                // libx264
+                encoder = avcodec_find_encoder_by_name("libx264");
+                // if not found, fallback
+                if(!encoder) encoder = avcodec_find_encoder(AV_CODEC_ID_H264);
             } else
             {
                 encoder = avcodec_find_encoder(AV_CODEC_ID_AAC);
