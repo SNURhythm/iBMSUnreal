@@ -111,7 +111,7 @@ void ARhythmControl::CheckPassedTimeline(const long long Time)
 			State->PassedTimelineCount = 0;
 		}
 	}
-	UE_LOG(LogTemp, Warning, TEXT("Loop count: %d"), totalLoopCount);
+	// UE_LOG(LogTemp, Warning, TEXT("Loop count: %d"), totalLoopCount);
 }
 
 // Sets default values
