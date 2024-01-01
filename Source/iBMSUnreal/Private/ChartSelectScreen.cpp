@@ -591,6 +591,10 @@ void AChartSelectScreen::OnSearchBoxTextCommitted(const FText& Text, ETextCommit
 void AChartSelectScreen::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+	if(jukebox)
+	{
+		jukebox->OnGameTick();
+	}
 	if(IsScanning)
 	{
 		const int CurrentNewCharts = SuccessNewChartCount;
@@ -630,4 +634,5 @@ void AChartSelectScreen::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	}
 	BackgroundImageLock.Lock();
 	ChartListLock.Lock();
+	MediaPlayer->Close();
 }

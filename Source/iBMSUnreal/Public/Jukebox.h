@@ -44,8 +44,8 @@ public:
 	TMap<int, UMediaSource*> BGASourceMap;
 	FJukebox(FMOD::System* System);
 	~FJukebox();
+	void OnGameTick();
 	UFUNCTION()
-	void OnMediaOpened(FString OpenedUrl);
 	void LoadChart(const FChart* chart, std::atomic_bool& bCancelled, UMediaPlayer* OptionalPlayer = nullptr);
 	void Start(long long PosMicro = 0, bool autoKeysound = false);
 	void Unpause();

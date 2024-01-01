@@ -273,16 +273,16 @@ void ARhythmControl::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
 	Super::EndPlay(EndPlayReason);
 	UE_LOG(LogTemp, Warning, TEXT("Rhythm EndPlay"));
-	if(InputHandler != nullptr)
-	{
-		InputHandler->StopListen();
-		delete InputHandler;
-	}
 	IsLoadCancelled = true;
 	IsLoaded = false;
 	IsMainLoopCancelled = true;
 	// ReSharper disable once CppExpressionWithoutSideEffects
 	LoadTask.Wait();
+	if(InputHandler != nullptr)
+	{
+		InputHandler->StopListen();
+		delete InputHandler;
+	}
 	// ReSharper disable once CppExpressionWithoutSideEffects
 	MainLoopTask.Wait();
 	if(Jukebox != nullptr)
@@ -323,6 +323,7 @@ void ARhythmControl::LoadGame()
 			UE_LOG(LogTemp, Warning, TEXT("Chart is empty"));
 			return;
 		}
+		if (IsLoadCancelled) return;
 		// init IsLanePressed
 		for (const auto& Lane : Chart->Meta->GetTotalLaneIndices())
 		{
@@ -331,10 +332,12 @@ void ARhythmControl::LoadGame()
 		}
 		State = new FRhythmState(Chart, false);
 		// init renderer in game thread task and wait for it
+		if (IsLoadCancelled) return;
 		FCriticalSection RendererInitLock;
 		RendererInitLock.Lock();
 		AsyncTask(ENamedThreads::GameThread, [&]()
 		{
+			if (IsLoadCancelled) return;
 			Renderer->Init(Chart);
 			RendererInitLock.Unlock();
 		});
@@ -369,9 +372,6 @@ void ARhythmControl::Tick(float DeltaTime)
 	if(!IsLoaded) return;
 	if(State == nullptr) return;
 	Renderer->Draw(Jukebox->GetPositionMicro());
-	// draw rectangle on Screen
-	
-	
-	
+	Jukebox->OnGameTick();
 }
 
