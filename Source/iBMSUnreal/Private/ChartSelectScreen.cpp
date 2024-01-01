@@ -294,7 +294,11 @@ void AChartSelectScreen::OnStartButtonClicked()
 	UE_LOG(LogTemp, Warning, TEXT("ChartMeta: %s"), *chartMeta->BmsPath);
 	auto gameInstance = Cast<UBMSGameInstance>(UGameplayStatics::GetGameInstance(GetWorld()));
 	StartOptions options;
-	options.BmsPath = chartMeta->BmsPath;
+	// re-parse chart meta (for in case of db corruption)
+	FBMSParser Parser;
+	FChart* Chart;
+	Parser.Parse(chartMeta->BmsPath, &Chart, false, true, bCancelled);
+	options.ChartMeta = *Chart->Meta;
 	options.AutoKeysound = false;
 	options.AutoPlay = false;
 	gameInstance->SetStartOptions(options);

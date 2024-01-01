@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "Engine/GameInstance.h"
 #include "fmod.hpp"
+#include "Chart.h"
 #include "BMSGameInstance.generated.h"
 
 
@@ -14,7 +15,7 @@
 
 struct StartOptions
 {
-	FString BmsPath;
+	FChartMeta ChartMeta;
 	unsigned long long StartPosition = 0;
 	bool AutoKeysound = false;
 	bool AutoPlay = false;

@@ -78,7 +78,7 @@ void ARhythmControl::CheckPassedTimeline(const long long Time)
 							OnJudge(JudgeResult);
 							if(Options.AutoPlay)
 							{
-								Renderer->OnLaneReleased(Note->Lane, Time);
+								Renderer->OnLaneReleased(Note->Lane, std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch()).count());
 							}
 							continue;
 						}
@@ -89,7 +89,7 @@ void ARhythmControl::CheckPassedTimeline(const long long Time)
 						Renderer->OnLanePressed(Note->Lane, JudgeResult, Time);
 						if(!Note->IsLongNote())
 						{
-							Renderer->OnLaneReleased(Note->Lane, Time);
+							Renderer->OnLaneReleased(Note->Lane, std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch()).count());
 						}
 						
 					}
@@ -166,7 +166,11 @@ void ARhythmControl::PressLane(int Lane, double InputDelay)
 		return;
 	}
 	IsLanePressed[Lane] = true;
-	if(State == nullptr) return;
+	if(State == nullptr)
+	{
+		Renderer->OnLanePressed(Lane, FJudgeResult(None, 0), std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch()).count());
+		return;
+	}
 	if(!State->IsPlaying) return;
 
 	const auto& Measures = Chart->Measures;
@@ -185,7 +189,7 @@ void ARhythmControl::PressLane(int Lane, double InputDelay)
 			if(Note->IsPlayed) continue;
 			if(Note->IsLandmineNote()) continue;
 			const FJudgeResult Judgement = PressNote(Note, PressedTime);
-			Renderer->OnLanePressed(Lane, Judgement, PressedTime);
+			Renderer->OnLanePressed(Lane, Judgement, std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch()).count());
 			return;
 		}
 	}
@@ -196,11 +200,13 @@ void ARhythmControl::ReleaseLane(int Lane, double InputDelay)
 {
 	if(!IsLanePressed.Contains(Lane) || !IsLanePressed[Lane]) return;
 	IsLanePressed[Lane] = false;
+	const auto ReleasedTime = Jukebox->GetPositionMicro() - static_cast<long long>(InputDelay * 1000000);
+	
+	Renderer->OnLaneReleased(Lane, std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch()).count());
 	if(State == nullptr) return;
 	if(!State->IsPlaying) return;
 
-	const auto ReleasedTime = Jukebox->GetPositionMicro() - static_cast<long long>(InputDelay * 1000000);
-	Renderer->OnLaneReleased(Lane, ReleasedTime);
+	
 	const auto& Measures = Chart->Measures;
 
 	for(int i = State->PassedMeasureCount; i < Measures.Num(); i++)
@@ -241,6 +247,15 @@ void ARhythmControl::BeginPlay()
 		CurrentHUD = CreateWidget<URhythmHUD>(GetWorld(), RhythmHUDClass);
 		CurrentHUD->AddToViewport();
 	}
+	// get player controller
+	PlayerController = GetWorld()->GetFirstPlayerController();
+	// Get the input component
+	PlayerInputComponent = PlayerController->InputComponent;
+	if (!PlayerInputComponent)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("InputComponent is null"));
+		return;
+	}
 	LoadGame();
 
 	MainLoopTask = UE::Tasks::Launch(UE_SOURCE_LOCATION, [&]()
@@ -254,15 +269,8 @@ void ARhythmControl::BeginPlay()
 	});
 
 	
-	// get player controller
-	PlayerController = GetWorld()->GetFirstPlayerController();
-	// Get the input component
-	PlayerInputComponent = PlayerController->InputComponent;
-	if (!PlayerInputComponent)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("InputComponent is null"));
-		return;
-	}
+
+
 	// Bind the binding to the input component
 	// InputComponent->KeyBindings.Add(Binding);
 
@@ -309,12 +317,29 @@ void ARhythmControl::LoadGame()
 	UE_LOG(LogTemp, Warning, TEXT("Loading Game"));
 	
 	Options = GameInstance->GetStartOptions();
-	
+	Renderer->InitMeta(Options.ChartMeta);
+	// init IsLanePressed
+	for (const auto& Lane : Options.ChartMeta.GetTotalLaneIndices())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Lane: %d"), Lane);
+		IsLanePressed.Add(Lane, false);
+	}
+	if(!Options.AutoPlay)
+	{
+		InputHandler = new FRhythmInputHandler(this, Options.ChartMeta);
+		bool result1 = InputHandler->StartListenNative() || InputHandler->StartListenUnreal(PlayerInputComponent); // fallback to unreal input if native input failed
+		bool result2 = InputHandler->StartListenUnrealTouch(PlayerController, Renderer->NoteArea, 15);
+		if(!result1 && !result2)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Failed to start listen"));
+			return;
+		}
+	}
 	LoadTask = UE::Tasks::Launch(UE_SOURCE_LOCATION, [&]()
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Loading Chart&Jukebox"));
 		FBMSParser Parser;
-		Parser.Parse(Options.BmsPath, &Chart, false, false, IsLoadCancelled);
+		Parser.Parse(Options.ChartMeta.BmsPath, &Chart, false, false, IsLoadCancelled);
 		if (IsLoadCancelled) return;
 		Jukebox->LoadChart(Chart, IsLoadCancelled, MediaPlayer);
 		if(Chart->Measures.IsEmpty())
@@ -324,36 +349,13 @@ void ARhythmControl::LoadGame()
 			return;
 		}
 		if (IsLoadCancelled) return;
-		// init IsLanePressed
-		for (const auto& Lane : Chart->Meta->GetTotalLaneIndices())
-		{
-			UE_LOG(LogTemp, Warning, TEXT("Lane: %d"), Lane);
-			IsLanePressed.Add(Lane, false);
-		}
+
 		State = new FRhythmState(Chart, false);
 		// init renderer in game thread task and wait for it
 		if (IsLoadCancelled) return;
-		FCriticalSection RendererInitLock;
-		RendererInitLock.Lock();
-		AsyncTask(ENamedThreads::GameThread, [&]()
-		{
-			if (IsLoadCancelled) return;
-			Renderer->Init(Chart);
-			RendererInitLock.Unlock();
-		});
-		RendererInitLock.Lock();
-		RendererInitLock.Unlock();
-		if(!Options.AutoPlay)
-		{
-			InputHandler = new FRhythmInputHandler(this, *Chart->Meta);
-			bool result1 = InputHandler->StartListenNative() || InputHandler->StartListenUnreal(PlayerInputComponent); // fallback to unreal input if native input failed
-			bool result2 = InputHandler->StartListenUnrealTouch(PlayerController, Renderer->NoteArea, 15);
-			if(!result1 && !result2)
-			{
-				UE_LOG(LogTemp, Warning, TEXT("Failed to start listen"));
-				return;
-			}
-		}
+		
+		Renderer->Init(Chart);
+
 		UE_LOG(LogTemp, Warning, TEXT("Chart&Jukebox loaded"));
 		if (!IsLoadCancelled)
 		{
@@ -369,9 +371,9 @@ void ARhythmControl::LoadGame()
 void ARhythmControl::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
+	Renderer->Draw(Jukebox->GetPositionMicro());
 	if(!IsLoaded) return;
 	if(State == nullptr) return;
-	Renderer->Draw(Jukebox->GetPositionMicro());
 	Jukebox->OnGameTick();
 }
 

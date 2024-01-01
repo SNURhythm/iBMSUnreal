@@ -97,6 +97,7 @@ public:
 	void DrawLaneBeam(const int Lane, const long long Time);
 	void DrawNote(FBMSNote* Note, double Offset);
 	void Draw(long long CurrentTime);
+	void InitMeta(FChartMeta& Meta);
 	void Init(FChart* ChartInit);
 	void Reset();
 };

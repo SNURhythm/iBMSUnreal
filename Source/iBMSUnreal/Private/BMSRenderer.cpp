@@ -386,8 +386,9 @@ void UBMSRenderer::Draw(const long long CurrentTime)
 	if(!State) return;
 	for(auto& LaneState: State->LaneStates)
 	{
-		DrawLaneBeam(LaneState.Key, CurrentTime);
+		DrawLaneBeam(LaneState.Key, std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch()).count());
 	}
+	if(!Chart) return;
 	for(int i = State->PassedMeasureCount; i < Chart->Measures.Num(); i++)
 	{
 		const bool IsFirstMeasure = i == State->PassedMeasureCount;
@@ -482,16 +483,14 @@ void UBMSRenderer::Draw(const long long CurrentTime)
 	}
 	
 }
-
-void UBMSRenderer::Init(FChart* ChartInit)
+void UBMSRenderer::InitMeta(FChartMeta& Meta)
 {
-	this->Chart = ChartInit;
-	Material = LoadObject<UMaterialInterface>(nullptr, TEXT("/Paper2D/TranslucentUnlitSpriteMaterial"));
 	State = new FRendererState();
-	KeyLaneCount = ChartInit->Meta->GetKeyLaneCount(); // main line count except for scratch
+	Material = LoadObject<UMaterialInterface>(nullptr, TEXT("/Paper2D/TranslucentUnlitSpriteMaterial"));
+	KeyLaneCount = Meta.GetKeyLaneCount(); // main line count except for scratch
 
 	NoteWidth = 1.0f / KeyLaneCount;
-	for(auto Lane: ChartInit->Meta->GetTotalLaneIndices())
+	for(auto Lane: Meta.GetTotalLaneIndices())
 	{
 		State->LaneStates.Add(Lane, FLaneState());
 		APaperSpriteActor* LaneBeam = GetWorld()->SpawnActor<APaperSpriteActor>(ANoteActor::StaticClass());
@@ -515,6 +514,11 @@ void UBMSRenderer::Init(FChart* ChartInit)
 		LaneBeam->SetActorHiddenInGame(true);
 		LaneBeams.Add(Lane, LaneBeam);
 	}
+}
+void UBMSRenderer::Init(FChart* ChartInit)
+{
+	this->Chart = ChartInit;
+	
 
 	LastTimeLine = ChartInit->Measures[0]->TimeLines[0];
 
