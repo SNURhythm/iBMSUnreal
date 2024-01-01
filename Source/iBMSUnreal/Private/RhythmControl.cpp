@@ -3,6 +3,8 @@
 
 #include "RhythmControl.h"
 
+#include <thread>
+
 #include "BMSGameInstance.h"
 #include "BMSParser.h"
 #include "RhythmHUD.h"
@@ -28,12 +30,14 @@ void ARhythmControl::CheckPassedTimeline(const long long Time)
 {
 	auto Measures = Chart->Measures;
 	if(State == nullptr) return;
+	int totalLoopCount = 0;
 	for(int i = State->PassedMeasureCount; i < Measures.Num(); i++)
 	{
 		const bool IsFirstMeasure = i == State->PassedMeasureCount;
 		const auto& Measure = Measures[i];
 		for(int j = IsFirstMeasure ? State->PassedTimelineCount : 0; j < Measure->TimeLines.Num(); j++)
 		{
+			totalLoopCount++;
 			const auto& Timeline = Measure->TimeLines[j];
 			if(Timeline->Timing < Time - 200000)
 			{
@@ -107,6 +111,7 @@ void ARhythmControl::CheckPassedTimeline(const long long Time)
 			State->PassedTimelineCount = 0;
 		}
 	}
+	UE_LOG(LogTemp, Warning, TEXT("Loop count: %d"), totalLoopCount);
 }
 
 // Sets default values
@@ -262,9 +267,21 @@ void ARhythmControl::BeginPlay()
 	{
 		while(!IsMainLoopCancelled)
 		{
-			if(State == nullptr) continue;
-			if(!State->IsPlaying) continue;
-			CheckPassedTimeline(Jukebox->GetPositionMicro());
+			auto Start = std::chrono::high_resolution_clock::now();
+
+			if(State != nullptr && State->IsPlaying) CheckPassedTimeline(Jukebox->GetPositionMicro());
+
+			auto End = std::chrono::high_resolution_clock::now();
+			auto Elapsed = std::chrono::duration_cast<std::chrono::microseconds>(End - Start).count();
+
+			// If the loop body took less than 125 microseconds, sleep for the remaining time
+			if(Elapsed < 125) {
+				std::this_thread::sleep_for(std::chrono::microseconds(125 - Elapsed));
+			} else
+			{
+				// warn that game loop is taking too long
+				UE_LOG(LogTemp, Warning, TEXT("Game loop took %lld microseconds"), Elapsed);
+			}
 		}
 	});
 

@@ -344,7 +344,9 @@ void FJukebox::Start(long long PosMicro, bool autoKeysound)
 
 void FJukebox::Unpause()
 {
+
 	ChannelGroup->setPaused(false);
+	System->getSoftwareFormat(&SampleRate, nullptr, nullptr);
 	if(IsValid(MediaPlayer))
 	{
 		MediaPlayer->Play();
@@ -464,9 +466,10 @@ void FJukebox::Unload()
 long long FJukebox::GetPositionMicro() const
 {
 	if(!ChannelGroup) return 0;
+	if(SampleRate == -1) return 0;
 	unsigned long long dspClock;
-	int samplerate;
 	ChannelGroup->getDSPClock(&dspClock, nullptr);
-	System->getSoftwareFormat(&samplerate, nullptr, nullptr);
-	return (static_cast<double>(dspClock) / samplerate * 1000000 - static_cast<double>(StartDspClock) / samplerate * 1000000);
+	
+	auto result = (static_cast<double>(dspClock) / SampleRate * 1000000 - static_cast<double>(StartDspClock) / SampleRate * 1000000);
+	return result;
 }

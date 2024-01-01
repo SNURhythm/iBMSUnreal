@@ -24,6 +24,7 @@ private:
 	TMap<FMOD::Sound*, FMOD::Channel*> AudioChannelMap;
 	long long CurrentBGAStart = -1;
 	UE::Tasks::TTask<void> MainLoopTask;
+	int SampleRate = -1;
 	FMOD_RESULT ReadWav(const FString& Path, FMOD::Sound** Sound, std::atomic_bool& bCancelled);
 	unsigned long long MsToDSPClocks(double Ms);
 	void PlaySound(FMOD::Sound* sound, FMOD::ChannelGroup* group, bool paused, FMOD::Channel** channel);

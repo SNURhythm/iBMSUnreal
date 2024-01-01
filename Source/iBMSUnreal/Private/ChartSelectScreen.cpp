@@ -300,7 +300,7 @@ void AChartSelectScreen::OnStartButtonClicked()
 	Parser.Parse(chartMeta->BmsPath, &Chart, false, true, bCancelled);
 	options.ChartMeta = *Chart->Meta;
 	options.AutoKeysound = false;
-	options.AutoPlay = false;
+	options.AutoPlay = true;
 	gameInstance->SetStartOptions(options);
 	// load level
 	UGameplayStatics::OpenLevel(GetWorld(), "RhythmPlay");
