@@ -8,6 +8,7 @@
 #include "Components/TextBlock.h"
 #include "RhythmHUD.generated.h"
 
+class UButton;
 /**
  * 
  */
@@ -18,12 +19,15 @@ class IBMSUNREAL_API URhythmHUD : public UUserWidget
 
 	UPROPERTY(meta = (BindWidget))
 	UTextBlock* JudgementText;
+
 	FString LastJudgeString;
 	int LastCombo;
 
 	virtual int32 NativePaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const override;
 
 public:
+	UPROPERTY(meta = (BindWidget))
+	UButton* PauseButton;
 	void OnJudge(FJudgeResult JudgeResult, int Combo);
 	void Reset();
 };

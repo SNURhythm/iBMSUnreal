@@ -334,6 +334,7 @@ void ARhythmControl::BeginPlay()
 	{
 		CurrentRhythmHUD = CreateWidget<URhythmHUD>(GetWorld(), RhythmHUDClass);
 		CurrentRhythmHUD->AddToViewport();
+		CurrentRhythmHUD->PauseButton->OnClicked.AddDynamic(this, &ARhythmControl::PauseGame);
 	}
 	if(IsValid(PauseHUDClass))
 	{

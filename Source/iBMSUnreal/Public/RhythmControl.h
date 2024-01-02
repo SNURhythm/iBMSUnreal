@@ -96,6 +96,7 @@ protected:
 	UFUNCTION()
 	void RestartGame();
 	void StartGame();
+	UFUNCTION()
 	void PauseGame();
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
