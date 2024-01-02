@@ -166,21 +166,34 @@ void ARhythmControl::ReleaseNote(FBMSNote* Note, long long ReleasedTime)
 	OnJudge(HeadJudgeResult);
 }
 
-void ARhythmControl::PressLane(int Lane, double InputDelay)
+int ARhythmControl::PressLane(int MainLane, int CompensateLane, double InputDelay)
 {
-	if(!IsLanePressed.Contains(Lane) || IsLanePressed[Lane])
+	std::vector<int> AvailableCandidates;
+
+	for(auto Lane: MainLane == CompensateLane ? std::initializer_list<int>{MainLane} : std::initializer_list<int>{MainLane, CompensateLane})
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Ignoring %d"), Lane);
-		return;
+		if(!IsLanePressed.Contains(Lane) || IsLanePressed[Lane])
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Ignoring %d"), Lane);
+			continue;
+		}
+		AvailableCandidates.push_back(Lane);
 	}
-	if(IsGamePaused) return;
-	IsLanePressed[Lane] = true;
+
+
+	if(IsGamePaused) return MainLane;
+	
 	if(State == nullptr)
 	{
-		Renderer->OnLanePressed(Lane, FJudgeResult(None, 0), std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch()).count());
-		return;
+		IsLanePressed[MainLane] = true;
+		Renderer->OnLanePressed(MainLane, FJudgeResult(None, 0), std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch()).count());
+		return MainLane;
 	}
-	if(!State->IsPlaying) return;
+	if(!State->IsPlaying)
+	{
+		IsLanePressed[MainLane] = true;
+		return MainLane;
+	}
 	
 
 	const auto& Measures = Chart->Measures;
@@ -194,17 +207,28 @@ void ARhythmControl::PressLane(int Lane, double InputDelay)
 		{
 			const auto& Timeline = Measure->TimeLines[j];
 			if(Timeline->Timing < PressedTime - 200000) continue;
-			const auto& Note = Timeline->Notes[Lane];
-			if(Note == nullptr) continue;
-			if(Note->IsPlayed) continue;
-			if(Note->IsLandmineNote()) continue;
-			const FJudgeResult Judgement = PressNote(Note, PressedTime);
-			Renderer->OnLanePressed(Lane, Judgement, std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch()).count());
-			return;
+			for(auto Lane: AvailableCandidates)
+			{
+				const auto& Note = Timeline->Notes[Lane];
+				if(Note == nullptr) continue;
+				if(Note->IsPlayed) continue;
+				if(Note->IsLandmineNote()) continue;
+				if(State->Judge->JudgeNow(Note, PressedTime).Judgement == None) continue;
+				const FJudgeResult Judgement = PressNote(Note, PressedTime);
+				IsLanePressed[Lane] = true;
+				Renderer->OnLanePressed(Lane, Judgement, std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch()).count());
+				return Lane;
+			}
 		}
 	}
-	Renderer->OnLanePressed(Lane, FJudgeResult(None, 0), std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch()).count());
-	
+	IsLanePressed[MainLane] = true;
+	Renderer->OnLanePressed(MainLane, FJudgeResult(None, 0), std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch()).count());
+	return MainLane;
+}
+
+int ARhythmControl::PressLane(int Lane, double InputDelay)
+{
+	return PressLane(Lane, Lane, InputDelay);
 }
 
 void ARhythmControl::ReleaseLane(int Lane, double InputDelay)

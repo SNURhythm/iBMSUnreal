@@ -25,7 +25,8 @@ public:
 	virtual void OnKeyUp(int KeyCode, KeySource Source, int CharCode = 0) override;
 	virtual void OnFingerDown(int FingerIndex, FVector Location) override;
 	virtual void OnFingerUp(int FingerIndex, FVector Location) override;
-	int GetLaneFromScreenPosition(FVector2D ScreenPosition) const;
+	int ClampLane(int Lane) const;
+	void GetLaneFromScreenPosition(int* MainLane, int* CompensateLane, FVector2D ScreenPosition) const;
 	bool StartListenNative();
 	bool StartListenUnreal(UInputComponent* InputComponent);
 	bool StartListenUnrealTouch(APlayerController* PController, AActor* NoteArea, float Distance);

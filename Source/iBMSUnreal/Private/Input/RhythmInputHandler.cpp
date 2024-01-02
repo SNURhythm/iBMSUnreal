@@ -78,9 +78,13 @@ void FRhythmInputHandler::OnKeyUp(int KeyCode, KeySource Source, int CharCode)
 void FRhythmInputHandler::OnFingerDown(int FingerIndex, FVector Location)
 {
 	UE_LOG(LogTemp, Warning, TEXT("Finger Down Location: %f, %f"), Location.X, Location.Y);
-	const int Lane = GetLaneFromScreenPosition(FVector2D(Location.X, Location.Y));
-	FingerToLane[FingerIndex] = Lane;
-	RhythmControl->PressLane(Lane);
+	int MainLane, CompensateLane = -1;
+	
+	GetLaneFromScreenPosition(&MainLane, &CompensateLane, FVector2D(Location.X, Location.Y));
+	UE_LOG(LogTemp, Warning, TEXT("MainLane: %d, CompensateLane: %d"), MainLane, CompensateLane);
+	auto EffectiveLane = CompensateLane != -1 ?  RhythmControl->PressLane(MainLane, CompensateLane) : RhythmControl->PressLane(MainLane);
+	UE_LOG(LogTemp, Warning, TEXT("EffectiveLane: %d"), EffectiveLane);
+	FingerToLane[FingerIndex] = EffectiveLane;
 }
 
 void FRhythmInputHandler::OnFingerUp(int FingerIndex, FVector Location)
@@ -91,20 +95,9 @@ void FRhythmInputHandler::OnFingerUp(int FingerIndex, FVector Location)
 	FingerToLane[FingerIndex] = -1;
 }
 
-
-int FRhythmInputHandler::GetLaneFromScreenPosition(FVector2D ScreenPosition) const
+int FRhythmInputHandler::ClampLane(int Lane) const
 {
-	FVector worldPosition;
-	FVector worldDirection;
-	PlayerController->DeprojectScreenPositionToWorld(ScreenPosition.X, ScreenPosition.Y, worldPosition, worldDirection);
-	worldPosition = worldPosition / GNearClippingPlane * TouchDistance;
-	worldPosition.X = worldPosition.X + Area->GetActorLocation().X; // -leftmost~rightmost => 0~width
-	UE_LOG(LogTemp, Warning, TEXT("World Location: %f, %f, %f"), worldPosition.X, worldPosition.Y, worldPosition.Z);
-	const int LaneCount = ChartMeta.KeyMode;
-	const float LaneWidth = Area->GetActorScale().X / LaneCount;
-	UE_LOG(LogTemp, Warning, TEXT("Lane Width: %f"), LaneWidth);
-	int Lane = static_cast<int>(FMath::FloorToInt((worldPosition.X) / LaneWidth));
-	UE_LOG(LogTemp, Warning, TEXT("RawLane: %d"), Lane);
+	int LaneCount = ChartMeta.KeyMode;
 	if(Lane < 0) return 7; // left scratch
 	if(Lane >= LaneCount)
 	{
@@ -118,8 +111,33 @@ int FRhythmInputHandler::GetLaneFromScreenPosition(FVector2D ScreenPosition) con
 		// 10Keys: 5,6 is empty and 7 is scratch, so we should map 5~9 to 8~12
 		Lane += 3;
 	}
-	
 	return Lane;
+}
+
+
+void FRhythmInputHandler::GetLaneFromScreenPosition(int* MainLane, int* CompensateLane, FVector2D ScreenPosition) const
+{
+	FVector worldPosition;
+	FVector worldDirection;
+	PlayerController->DeprojectScreenPositionToWorld(ScreenPosition.X, ScreenPosition.Y, worldPosition, worldDirection);
+	worldPosition = worldPosition / GNearClippingPlane * TouchDistance;
+	worldPosition.X = worldPosition.X + Area->GetActorLocation().X; // -leftmost~rightmost => 0~width
+	UE_LOG(LogTemp, Warning, TEXT("World Location: %f, %f, %f"), worldPosition.X, worldPosition.Y, worldPosition.Z);
+	const int LaneCount = ChartMeta.KeyMode;
+	const float LaneWidth = Area->GetActorScale().X / LaneCount;
+	UE_LOG(LogTemp, Warning, TEXT("Lane Width: %f"), LaneWidth);
+	int Lane = static_cast<int>(FMath::FloorToInt((worldPosition.X) / LaneWidth));
+	int LeftCompensateLane = static_cast<int>(FMath::FloorToInt((worldPosition.X - LaneWidth / 3) / LaneWidth));
+	int RightCompensateLane = static_cast<int>(FMath::FloorToInt((worldPosition.X + LaneWidth / 3) / LaneWidth));
+	UE_LOG(LogTemp, Warning, TEXT("RawLane: %d"), Lane);
+	Lane = ClampLane(Lane);
+	LeftCompensateLane = ClampLane(LeftCompensateLane);
+	RightCompensateLane = ClampLane(RightCompensateLane);
+
+	*MainLane = Lane;
+	if(LeftCompensateLane != Lane) *CompensateLane = LeftCompensateLane;
+	if(RightCompensateLane != Lane) *CompensateLane = RightCompensateLane;
+	
 }
 
 bool FRhythmInputHandler::StartListenNative()

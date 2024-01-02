@@ -81,7 +81,8 @@ public:
 	FJukebox* Jukebox;
 	FJudgeResult PressNote(FBMSNote* Note, long long PressedTime);
 	void ReleaseNote(FBMSNote* Note, long long ReleasedTime);
-	virtual void PressLane(int Lane, double InputDelay = 0) override;
+	virtual int PressLane(int MainLane, int CompensateLane, double InputDelay = 0) override;
+	virtual int PressLane(int Lane, double InputDelay = 0) override;
 	virtual void ReleaseLane(int Lane, double InputDelay = 0) override;
 	virtual UWorld* GetContextWorld() override;
 	std::atomic_bool IsGamePaused = false;
