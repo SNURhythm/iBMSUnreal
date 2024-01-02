@@ -37,8 +37,7 @@ void FRendererState::Dispose()
 		delete item.Value;
 	}
 	ObjectPool.Empty();
-
-	LaneStates.Empty();
+	
 	OrphanLongNotes.Empty();
 }
 
@@ -333,21 +332,21 @@ void UBMSRenderer::OnLanePressed(const int Lane, const FJudgeResult Judge, const
 {
 	if(!State) return;
 	UE_LOG(LogTemp, Warning, TEXT("Lane %d pressed"), Lane);
-	State->LaneStates[Lane].IsPressed = true;
-	State->LaneStates[Lane].LastPressedJudge = Judge;
-	State->LaneStates[Lane].LastStateTime = Time;
+	LaneStates[Lane].IsPressed = true;
+	LaneStates[Lane].LastPressedJudge = Judge;
+	LaneStates[Lane].LastStateTime = Time;
 }
 
 void UBMSRenderer::OnLaneReleased(const int Lane, const long long Time)
 {
 	if(!State) return;
 	UE_LOG(LogTemp, Warning, TEXT("Lane %d released"), Lane);
-	State->LaneStates[Lane].IsPressed = false;
-	State->LaneStates[Lane].LastStateTime = Time;
+	LaneStates[Lane].IsPressed = false;
+	LaneStates[Lane].LastStateTime = Time;
 }
 void UBMSRenderer::DrawLaneBeam(const int Lane, const long long Time)
 {
-	auto LaneState = State->LaneStates[Lane];
+	auto LaneState = LaneStates[Lane];
 	if(LaneState.LastStateTime == -1) return;
 	auto LaneBeam = LaneBeams[Lane];
 	
@@ -384,7 +383,7 @@ void UBMSRenderer::DrawLaneBeam(const int Lane, const long long Time)
 void UBMSRenderer::Draw(const long long CurrentTime)
 {
 	if(!State) return;
-	for(auto& LaneState: State->LaneStates)
+	for(auto& LaneState: LaneStates)
 	{
 		DrawLaneBeam(LaneState.Key, std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch()).count());
 	}
@@ -492,7 +491,7 @@ void UBMSRenderer::InitMeta(FChartMeta& Meta)
 	NoteWidth = 1.0f / KeyLaneCount;
 	for(auto Lane: Meta.GetTotalLaneIndices())
 	{
-		State->LaneStates.Add(Lane, FLaneState());
+		LaneStates.Add(Lane, FLaneState());
 		APaperSpriteActor* LaneBeam = GetWorld()->SpawnActor<APaperSpriteActor>(ANoteActor::StaticClass());
 		LaneBeam->GetRenderComponent()->SetMaterial(0, Material);
 		LaneBeam->AttachToActor(NoteArea, FAttachmentTransformRules::KeepRelativeTransform);

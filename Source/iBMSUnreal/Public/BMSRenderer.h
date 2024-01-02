@@ -38,7 +38,7 @@ public:
 	int PassedTimelineCount = 0;
 	int PassedMeasureCount = 0;
 	TArray<FBMSLongNote*> OrphanLongNotes;
-	TMap<int, FLaneState> LaneStates;
+	
 	void Dispose();
 	
 };
@@ -52,6 +52,7 @@ private:
 	FRendererState* State;
 	TMap<int, APaperSpriteActor*> LaneBeams;
 	UMaterialInterface* Material;
+	TMap<int, FLaneState> LaneStates;
 
 public:	
 	// Sets default values for this actor's properties
@@ -68,6 +69,7 @@ protected:
 	// Paper2D Sprite for rendering notes
 	UPROPERTY(EditAnywhere, Category="BMS Renderer")
 	class UPaperSprite* NoteSprite;
+	
 	FTimeLine* LastTimeLine;
 	float NoteAreaHeight;
 	float NoteAreaWidth;

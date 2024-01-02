@@ -23,3 +23,9 @@ void URhythmHUD::OnJudge(const FJudgeResult JudgeResult, const int Combo)
 	LastJudgeString = JudgeResult.ToString();
 	LastCombo = Combo;
 }
+
+void URhythmHUD::Reset()
+{
+	LastJudgeString = TEXT("");
+	LastCombo = 0;
+}

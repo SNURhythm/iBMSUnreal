@@ -461,6 +461,7 @@ void AChartSelectScreen::BeginPlay()
 					{
 						AsyncTask(ENamedThreads::GameThread, [&]()
 						{
+							if(bJukeboxCancelled) return;
 							BackgroundImageLock.Lock();
 							if(IsValid(ChartSelectUI) && IsValid(ChartSelectUI->BackgroundImage))
 							{
@@ -473,6 +474,7 @@ void AChartSelectScreen::BeginPlay()
 					{
 						AsyncTask(ENamedThreads::GameThread, [&, ImagePath]()
 						{
+							if(bJukeboxCancelled) return;
 							if(!ImagePath.IsEmpty())
 							{
 								UTexture2D* Image = nullptr;

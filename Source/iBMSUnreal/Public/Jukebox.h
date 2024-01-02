@@ -52,6 +52,7 @@ public:
 	void Unpause();
 
 	void Pause();
+	bool IsPaused();
 	void Stop();
 
 	void PlayKeysound(int id);

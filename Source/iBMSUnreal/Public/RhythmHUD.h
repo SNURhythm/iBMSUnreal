@@ -25,4 +25,5 @@ class IBMSUNREAL_API URhythmHUD : public UUserWidget
 
 public:
 	void OnJudge(FJudgeResult JudgeResult, int Combo);
+	void Reset();
 };

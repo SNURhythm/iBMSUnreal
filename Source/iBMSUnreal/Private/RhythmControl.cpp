@@ -8,6 +8,9 @@
 #include "BMSGameInstance.h"
 #include "BMSParser.h"
 #include "RhythmHUD.h"
+#include "PauseHUD.h"
+#include "Components/Button.h"
+#include "Kismet/GameplayStatics.h"
 #include "Tasks/Task.h"
 
 
@@ -22,7 +25,7 @@ void ARhythmControl::OnJudge(const FJudgeResult& JudgeResult) const
 	{
 		State->Combo++;
 	}
-	CurrentHUD->OnJudge(JudgeResult, State->Combo);
+	CurrentRhythmHUD->OnJudge(JudgeResult, State->Combo);
 	// UE_LOG(LogTemp, Warning, TEXT("Judge: %s, Combo: %d, Diff: %lld"), *JudgeResult.ToString(), State->Combo, JudgeResult.Diff);
 }
 
@@ -170,6 +173,7 @@ void ARhythmControl::PressLane(int Lane, double InputDelay)
 		UE_LOG(LogTemp, Warning, TEXT("Ignoring %d"), Lane);
 		return;
 	}
+	if(IsGamePaused) return;
 	IsLanePressed[Lane] = true;
 	if(State == nullptr)
 	{
@@ -177,6 +181,7 @@ void ARhythmControl::PressLane(int Lane, double InputDelay)
 		return;
 	}
 	if(!State->IsPlaying) return;
+	
 
 	const auto& Measures = Chart->Measures;
 	const auto PressedTime = Jukebox->GetPositionMicro() - static_cast<long long>(InputDelay * 1000000);
@@ -198,6 +203,7 @@ void ARhythmControl::PressLane(int Lane, double InputDelay)
 			return;
 		}
 	}
+	Renderer->OnLanePressed(Lane, FJudgeResult(None, 0), std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch()).count());
 	
 }
 
@@ -205,12 +211,11 @@ void ARhythmControl::ReleaseLane(int Lane, double InputDelay)
 {
 	if(!IsLanePressed.Contains(Lane) || !IsLanePressed[Lane]) return;
 	IsLanePressed[Lane] = false;
+	Renderer->OnLaneReleased(Lane, std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch()).count());
 	const auto ReleasedTime = Jukebox->GetPositionMicro() - static_cast<long long>(InputDelay * 1000000);
 	
-	Renderer->OnLaneReleased(Lane, std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch()).count());
 	if(State == nullptr) return;
 	if(!State->IsPlaying) return;
-
 	
 	const auto& Measures = Chart->Measures;
 
@@ -236,6 +241,84 @@ UWorld* ARhythmControl::GetContextWorld()
 	return GetWorld();
 }
 
+void ARhythmControl::ResumeGame()
+{
+	IsGamePaused = false;
+	CurrentPauseHUD->SetVisibility(ESlateVisibility::Hidden);
+	if(!State) return;
+	if(!State->IsPlaying)
+	{
+		StartGame();
+		return;
+	}
+	
+	Jukebox->Unpause();
+}
+
+void ARhythmControl::ExitGame()
+{
+	// exit level
+	UGameplayStatics::OpenLevel(GetWorld(), FName("ChartSelectScreen"));
+}
+
+void ARhythmControl::RestartGame()
+{
+	LastPauseMicro = -1;
+	IsLoaded = false;
+	IsLoadCancelled = true;
+	Jukebox->Stop();
+	MediaPlayer->Close();
+	Renderer->Reset();
+	CurrentRhythmHUD->Reset();
+	if(!Chart)
+	{
+		LoadGame();
+		return;
+	}
+
+	for(auto& Measure: Chart->Measures)
+	{
+		for(auto& TimeLine: Measure->TimeLines)
+		{
+			for(auto& Note: TimeLine->Notes)
+			{
+				if(Note == nullptr) continue;
+				Note->Reset();
+			}
+		}
+	}
+	State = new FRhythmState(Chart, false);
+	IsLoadCancelled = false;
+	IsLoaded = true;
+	StartGame();
+}
+
+void ARhythmControl::StartGame()
+{
+	IsGamePaused = false;
+	Jukebox->Start(Options.StartPosition, Options.AutoKeysound);
+	State->IsPlaying = true;
+	if(IsInGameThread()) CurrentPauseHUD->SetVisibility(ESlateVisibility::Hidden);
+}
+
+void ARhythmControl::PauseGame()
+{
+	auto CurrentMicro = Jukebox->GetPositionMicro();
+	if(LastPauseMicro != -1 && LastPauseMicro + 1000000 > CurrentMicro)
+	{
+		// ignore pause if it's too close to the last pause
+		return;
+	}
+	LastPauseMicro = Jukebox->GetPositionMicro();
+	IsGamePaused = true;
+	Jukebox->Pause();
+	if(IsInGameThread())
+	{
+		CurrentPauseHUD->SetVisibility(ESlateVisibility::Visible);
+		CurrentPauseHUD->ResumeButton->SetFocus();
+	}
+}
+
 // Called when the game starts or when spawned
 void ARhythmControl::BeginPlay()
 {
@@ -249,8 +332,17 @@ void ARhythmControl::BeginPlay()
 	Jukebox = new FJukebox(GameInstance->GetFMODSystem());
 	if(IsValid(RhythmHUDClass))
 	{
-		CurrentHUD = CreateWidget<URhythmHUD>(GetWorld(), RhythmHUDClass);
-		CurrentHUD->AddToViewport();
+		CurrentRhythmHUD = CreateWidget<URhythmHUD>(GetWorld(), RhythmHUDClass);
+		CurrentRhythmHUD->AddToViewport();
+	}
+	if(IsValid(PauseHUDClass))
+	{
+		CurrentPauseHUD = CreateWidget<UPauseHUD>(GetWorld(), PauseHUDClass);
+		CurrentPauseHUD->AddToViewport();
+		CurrentPauseHUD->RestartButton->OnClicked.AddDynamic(this, &ARhythmControl::RestartGame);
+		CurrentPauseHUD->ResumeButton->OnClicked.AddDynamic(this, &ARhythmControl::ResumeGame);
+		CurrentPauseHUD->ExitButton->OnClicked.AddDynamic(this, &ARhythmControl::ExitGame);
+		CurrentPauseHUD->SetVisibility(ESlateVisibility::Hidden);
 	}
 	// get player controller
 	PlayerController = GetWorld()->GetFirstPlayerController();
@@ -261,6 +353,16 @@ void ARhythmControl::BeginPlay()
 		UE_LOG(LogTemp, Warning, TEXT("InputComponent is null"));
 		return;
 	}
+	// on esc
+	FInputKeyBinding Press(FInputChord(EKeys::Escape, false, false, false, false), EInputEvent::IE_Pressed);
+	Press.bConsumeInput = true;
+	Press.bExecuteWhenPaused = false;
+	Press.KeyDelegate.GetDelegateWithKeyForManualSet().BindLambda([this](const FKey& Key)
+	{
+		PauseGame();
+	});
+
+	PlayerInputComponent->KeyBindings.Add(Press);
 	LoadGame();
 
 	MainLoopTask = UE::Tasks::Launch(UE_SOURCE_LOCATION, [&]()
@@ -377,9 +479,9 @@ void ARhythmControl::LoadGame()
 		if (!IsLoadCancelled)
 		{
 			IsLoaded = true;
-			Jukebox->Start(Options.StartPosition, Options.AutoKeysound);
+			if(!IsGamePaused) StartGame();
 		}
-		State->IsPlaying = true;
+		
 	});
 }
 

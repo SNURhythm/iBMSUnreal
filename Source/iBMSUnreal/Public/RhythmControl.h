@@ -37,6 +37,11 @@ public:
 		}
 	}
 
+	~FRhythmState()
+	{
+		delete Judge;
+	}
+
 private:
 	long long FirstTiming = 0;
 	
@@ -47,6 +52,7 @@ class IBMSUNREAL_API ARhythmControl : public AActor, public IRhythmControl
 {
 	GENERATED_BODY()
 private:
+	UFUNCTION()
 	void LoadGame();
 	UPROPERTY()
 	UBMSGameInstance* GameInstance;
@@ -62,8 +68,9 @@ private:
 	FRhythmInputHandler* InputHandler = nullptr;
 
 	UPROPERTY(VisibleInstanceOnly, Category="Runtime")
-	class URhythmHUD* CurrentHUD = nullptr;
-
+	class URhythmHUD* CurrentRhythmHUD = nullptr;
+	UPROPERTY(VisibleInstanceOnly, Category="Runtime")
+	class UPauseHUD* CurrentPauseHUD = nullptr;
 public:	
 	// Sets default values for this actor's properties
 	ARhythmControl();
@@ -77,11 +84,19 @@ public:
 	virtual void PressLane(int Lane, double InputDelay = 0) override;
 	virtual void ReleaseLane(int Lane, double InputDelay = 0) override;
 	virtual UWorld* GetContextWorld() override;
-	
-
+	std::atomic_bool IsGamePaused = false;
+	long long LastPauseMicro = -1;
 protected:
 	UPROPERTY(EditAnywhere, Category="Media")
 	UMediaPlayer* MediaPlayer;
+	UFUNCTION()
+	void ResumeGame();
+	UFUNCTION()
+	void ExitGame();
+	UFUNCTION()
+	void RestartGame();
+	void StartGame();
+	void PauseGame();
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
@@ -90,6 +105,8 @@ protected:
 	UBMSRenderer* Renderer;
 	UPROPERTY(EditAnywhere, Category="Class Types")
 	TSubclassOf<UUserWidget> RhythmHUDClass;
+	UPROPERTY(EditAnywhere, Category="Class Types")
+	TSubclassOf<UUserWidget> PauseHUDClass;
 public:	
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;

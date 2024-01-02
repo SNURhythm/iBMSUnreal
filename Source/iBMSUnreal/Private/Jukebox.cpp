@@ -419,6 +419,13 @@ void FJukebox::Pause()
 	}
 }
 
+bool FJukebox::IsPaused()
+{
+	bool isPaused;
+	ChannelGroup->getPaused(&isPaused);
+	return isPaused;
+}
+
 void FJukebox::Stop()
 {
 	ChannelGroup->setPaused(true);
