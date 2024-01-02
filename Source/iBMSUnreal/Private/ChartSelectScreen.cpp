@@ -167,6 +167,17 @@ void AChartSelectScreen::LoadCharts()
 		{
 			if (bCancelled) return;
 			SetChartMetas(chartMetas);
+			auto prevStartOption = Cast<UBMSGameInstance>(UGameplayStatics::GetGameInstance(GetWorld()))->GetStartOptions();
+			if (prevStartOption.ChartMeta.BmsPath.IsEmpty()) return;
+			auto prevChartMeta = prevStartOption.ChartMeta;
+			// get index
+			int index = chartMetas.IndexOfByPredicate([&](const FChartMeta* ChartMeta)
+			{
+				return ChartMeta->BmsPath == prevChartMeta.BmsPath;
+			});
+			if (index == INDEX_NONE) return;
+			ChartSelectUI->ChartList->NavigateToIndex(index);
+			ChartSelectUI->ChartList->SetSelectedIndex(index);
 		});
 		// find new charts
 		TArray<FDiff> Diffs;
@@ -274,6 +285,19 @@ void AChartSelectScreen::LoadCharts()
 			});
 			if (bCancelled) return;
 			SetChartMetas(chartMetas);
+			// restore selection with CurrentEntryData
+			if (CurrentEntryData)
+			{
+				auto chartMeta = CurrentEntryData->ChartMeta;
+				// get index
+				int index = chartMetas.IndexOfByPredicate([&](const FChartMeta* ChartMeta)
+				{
+					return ChartMeta->BmsPath == chartMeta->BmsPath;
+				});
+				if (index == INDEX_NONE) return;
+				ChartSelectUI->ChartList->NavigateToIndex(index);
+				ChartSelectUI->ChartList->SetSelectedIndex(index);
+			}
 			
 		});
 		
