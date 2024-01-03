@@ -17,7 +17,7 @@ public class iBMSUnreal : ModuleRules
 		PrivateDependencyModuleNames.AddRange(new string[] { "Slate", "SlateCore" });
 		PrivateDependencyModuleNames.AddRange(new string[] { "ImageWrapper", "RenderCore", "Paper2D"});
 		// fmod
-		PublicIncludePaths.Add(System.IO.Path.Combine(ModuleDirectory, "../ThirdParty/fmod/include"));
+		PublicIncludePaths	.Add(System.IO.Path.Combine(ModuleDirectory, "../ThirdParty/fmod/include"));
 		string configName;
 		if (Target.Configuration != UnrealTargetConfiguration.Shipping)
 		{
