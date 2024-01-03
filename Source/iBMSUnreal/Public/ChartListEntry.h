@@ -32,6 +32,9 @@ public:
 	UTextBlock* KeyModeText;
 	
 	UPROPERTY(meta = (BindWidget))
+	UTextBlock* PlayLevelText;
+	
+	UPROPERTY(meta = (BindWidget))
 	UBorder* Border;
 	
 	UPROPERTY(meta = (BindWidget))

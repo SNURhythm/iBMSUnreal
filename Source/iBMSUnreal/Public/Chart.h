@@ -33,7 +33,7 @@ class IBMSUNREAL_API FChartMeta {
 	FString BackBmp;
 	FString Preview;
 	bool BgaPoorDefault = false;
-	int Difficulty;
+	int Difficulty = 0;
 	double PlayLevel = 3;
 	double MinBpm;
 	double MaxBpm;

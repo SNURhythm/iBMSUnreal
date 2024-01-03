@@ -506,6 +506,45 @@ void FBMSParser::Parse(FString path, FChart** chart, bool addReadyMeasure, bool 
 	Chart->Meta->TotalLength = static_cast<long long>(timePassed);
 	Chart->Meta->MinBpm = minBpm;
 	Chart->Meta->MaxBpm = maxBpm;
+	if(Chart->Meta->Difficulty == 0)
+	{
+		FString FullTitle = (Chart->Meta->Title  + Chart->Meta->SubTitle).ToLower();
+		if(FullTitle.Contains("beginner"))
+		{
+			Chart->Meta->Difficulty = 1;
+		} else if (FullTitle.Contains("normal"))
+		{
+			Chart->Meta->Difficulty = 2;
+		} else if (FullTitle.Contains("hyper"))
+		{
+			Chart->Meta->Difficulty = 3;
+		} else if (FullTitle.Contains("another"))
+		{
+			Chart->Meta->Difficulty = 4;
+		} else if (FullTitle.Contains("insane"))
+		{
+			Chart->Meta->Difficulty = 5;
+		} else
+		{
+			if(totalNotes < 250)
+			{
+				Chart->Meta->Difficulty = 1;
+			} else if (totalNotes < 600)
+			{
+				Chart->Meta->Difficulty = 2;
+			} else if (totalNotes < 1000)
+			{
+				Chart->Meta->Difficulty = 3;
+			} else if(totalNotes < 2000)
+			{
+				Chart->Meta->Difficulty = 4;
+			} else
+			{
+				Chart->Meta->Difficulty = 5;
+			}
+		}
+		
+	}
 }
 
 void FBMSParser::ParseHeader(FChart* Chart, const FString& Cmd, const FString& Xx, FString Value) {

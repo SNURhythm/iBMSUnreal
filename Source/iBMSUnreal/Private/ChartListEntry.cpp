@@ -28,9 +28,35 @@ void UChartListEntry::NativeOnListItemObjectSet(UObject* InObject)
 	if (EntryData)
 	{
 		auto ChartMeta = EntryData->ChartMeta;
-		TitleText->SetText(FText::FromString(ChartMeta->Title));
+		TitleText->SetText(FText::FromString(ChartMeta->Title + (ChartMeta->SubTitle.IsEmpty() ? "" : " " + ChartMeta->SubTitle)));
 		ArtistText->SetText(FText::FromString(ChartMeta->Artist));
 		KeyModeText->SetText(FText::FromString(FString::Printf(TEXT("%dK"), ChartMeta->KeyMode)));
+		PlayLevelText->SetText(FText::FromString(FString::Printf(TEXT("%g"), ChartMeta->PlayLevel)));
+		PlayLevelText->SetShadowColorAndOpacity(FLinearColor::Black);
+		// set playlevel text color by difficulty (1~5)
+		switch(ChartMeta->Difficulty)
+		{
+		case 1:
+			PlayLevelText->SetColorAndOpacity(FLinearColor::Green);
+			break;
+		case 2:
+			PlayLevelText->SetColorAndOpacity(FLinearColor::Blue);
+			break;
+		case 3:
+			PlayLevelText->SetColorAndOpacity(FLinearColor::Yellow);
+			break;
+		case 4:
+			PlayLevelText->SetColorAndOpacity(FLinearColor::Red);
+			break;
+		case 5:
+			PlayLevelText->SetColorAndOpacity(FLinearColor::Black);
+			// set shadow color to white
+			PlayLevelText->SetShadowColorAndOpacity(FLinearColor::White);
+			break;
+		default:
+			PlayLevelText->SetColorAndOpacity(FLinearColor::White);
+			break;
+		}
 		auto path = ChartMeta->Banner;
 		if(path.IsEmpty()) {
 			path = ChartMeta->StageFile;
