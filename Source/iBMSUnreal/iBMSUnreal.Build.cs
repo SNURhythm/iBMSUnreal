@@ -112,11 +112,11 @@ public class iBMSUnreal : ModuleRules
 			// fmod
 			// _vc.lib
 			PublicAdditionalLibraries.Add(System.IO.Path.Combine(ModuleDirectory, "../ThirdParty/fmod/lib/win64/fmod"+configName+"_vc.lib"));
-			// dll
-			PublicAdditionalLibraries.Add(System.IO.Path.Combine(ModuleDirectory, "../ThirdParty/fmod/lib/win64/fmod"+configName+".dll"));
+
 			// add runtime
-			RuntimeDependencies.Add("$(BinaryOutputDir)/"+"fmod"+configName+".dll", System.IO.Path.Combine(ModuleDirectory, "../ThirdParty/fmod/lib/win64/fmod"+configName+".dll"));
-			RuntimeDependencies.Add("$(BinaryOutputDir)/"+"fmod"+configName+"_vc.dll", System.IO.Path.Combine(ModuleDirectory, "../ThirdParty/fmod/lib/win64/fmod"+configName+"_vc.dll"));
+			RuntimeDependencies.Add("$(BinaryOutputDir)/"+"fmod"+configName+".dll",System.IO.Path.Combine(ModuleDirectory, "../ThirdParty/fmod/lib/win64/fmod"+configName+".dll"));
+
+			PublicDelayLoadDLLs.Add("fmod"+configName+".dll");
         }
 
 		// Uncomment if you are using online features
