@@ -22,7 +22,8 @@ BMS
 *.dylib
 *.dll
 !**/ThirdParty/**/*.dll
-
+!**/ThirdParty/**/*.so
+!**/ThirdParty/**/*.dylib
 # Fortran module files
 *.mod
 
