@@ -11,11 +11,24 @@ public class iBMSUnreal : ModuleRules
 		
 		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "Paper2D", "MediaAssets" });
 
-		PrivateDependencyModuleNames.AddRange(new string[] { "FMODStudio", "MediaAssets" });
+		PrivateDependencyModuleNames.AddRange(new string[] {  "MediaAssets" });
 		
 		// Uncomment if you are using Slate UI
 		PrivateDependencyModuleNames.AddRange(new string[] { "Slate", "SlateCore" });
 		PrivateDependencyModuleNames.AddRange(new string[] { "ImageWrapper", "RenderCore", "Paper2D"});
+		// fmod
+		PublicIncludePaths.Add(System.IO.Path.Combine(ModuleDirectory, "../ThirdParty/fmod/include"));
+		string configName;
+		if (Target.Configuration != UnrealTargetConfiguration.Shipping)
+		{
+			configName = "L";
+			PublicDefinitions.Add("FMODSTUDIO_LINK_LOGGING=1");
+		}
+		else
+		{
+			configName = "";
+			PublicDefinitions.Add("FMODSTUDIO_LINK_RELEASE=1");
+		}
 		// Add CoreGraphics, bz2,...
 		
 		if (Target.Platform == UnrealTargetPlatform.IOS)
@@ -40,6 +53,9 @@ public class iBMSUnreal : ModuleRules
             PublicAdditionalLibraries.Add(System.IO.Path.Combine(ModuleDirectory, "../ThirdParty/ffmpeg/ios/libx264.a"));
             // add corresponding include path
             PublicIncludePaths.Add(System.IO.Path.Combine(ModuleDirectory, "../ThirdParty/ffmpeg/ios/include"));
+            
+            // fmod
+            PublicAdditionalLibraries.Add(System.IO.Path.Combine(ModuleDirectory, "../ThirdParty/fmod/lib/ios/libfmod"+configName+".a"));
 		} else if (Target.Platform == UnrealTargetPlatform.Mac){
 			PublicFrameworks.AddRange(new string[]
 			{
@@ -64,6 +80,11 @@ public class iBMSUnreal : ModuleRules
           
             // add corresponding include path
             PublicIncludePaths.Add(System.IO.Path.Combine(ModuleDirectory, "../ThirdParty/ffmpeg/mac/include"));
+            
+            // fmod
+            PublicAdditionalLibraries.Add(System.IO.Path.Combine(ModuleDirectory, "../ThirdParty/fmod/lib/mac/libfmod"+configName+".dylib"));
+            // add runtime
+            RuntimeDependencies.Add(System.IO.Path.Combine(ModuleDirectory, "../ThirdParty/fmod/lib/mac/libfmod"+configName+".dylib"));
         } else if (Target.Platform == UnrealTargetPlatform.Win64){
 			PublicAdditionalLibraries.Add(System.IO.Path.Combine(ModuleDirectory, "../ThirdParty/ffmpeg/win64/avcodec.lib"));
 			PublicAdditionalLibraries.Add(System.IO.Path.Combine(ModuleDirectory, "../ThirdParty/ffmpeg/win64/avdevice.lib"));
@@ -87,6 +108,15 @@ public class iBMSUnreal : ModuleRules
 			
 			// add corresponding include path
 			PublicIncludePaths.Add(System.IO.Path.Combine(ModuleDirectory, "../ThirdParty/ffmpeg/win64/include"));
+			
+			// fmod
+			// _vc.lib
+			PublicAdditionalLibraries.Add(System.IO.Path.Combine(ModuleDirectory, "../ThirdParty/fmod/lib/win64/fmod"+configName+"_vc.lib"));
+			// dll
+			PublicAdditionalLibraries.Add(System.IO.Path.Combine(ModuleDirectory, "../ThirdParty/fmod/lib/win64/fmod"+configName+".dll"));
+			// add runtime
+			RuntimeDependencies.Add("$(BinaryOutputDir)/"+"fmod"+configName+".dll", System.IO.Path.Combine(ModuleDirectory, "../ThirdParty/fmod/lib/win64/fmod"+configName+".dll"));
+			RuntimeDependencies.Add("$(BinaryOutputDir)/"+"fmod"+configName+"_vc.dll", System.IO.Path.Combine(ModuleDirectory, "../ThirdParty/fmod/lib/win64/fmod"+configName+"_vc.dll"));
         }
 
 		// Uncomment if you are using online features
