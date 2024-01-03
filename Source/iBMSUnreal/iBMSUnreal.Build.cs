@@ -11,7 +11,7 @@ public class iBMSUnreal : ModuleRules
 		
 		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "Paper2D", "MediaAssets" });
 
-		PrivateDependencyModuleNames.AddRange(new string[] {  "MediaAssets" });
+		PrivateDependencyModuleNames.AddRange(new string[] {  "MediaAssets", "Launch" });
 		
 		// Uncomment if you are using Slate UI
 		PrivateDependencyModuleNames.AddRange(new string[] { "Slate", "SlateCore" });
@@ -114,17 +114,17 @@ public class iBMSUnreal : ModuleRules
 			string[] archs = new string[] { "arm64-v8a", "x86_64" };
 			foreach (string arch in archs)
 			{
-				PublicAdditionalLibraries.Add(System.IO.Path.Combine(ModuleDirectory, "../ThirdParty/ffmpeg/lib/android/" + arch + "/libavcodec.a"));
-				PublicAdditionalLibraries.Add(System.IO.Path.Combine(ModuleDirectory, "../ThirdParty/ffmpeg/lib/android/" + arch + "/libavdevice.a"));
-				PublicAdditionalLibraries.Add(System.IO.Path.Combine(ModuleDirectory, "../ThirdParty/ffmpeg/lib/android/" + arch + "/libavfilter.a"));
-				PublicAdditionalLibraries.Add(System.IO.Path.Combine(ModuleDirectory, "../ThirdParty/ffmpeg/lib/android/" + arch + "/libavformat.a"));
-				PublicAdditionalLibraries.Add(System.IO.Path.Combine(ModuleDirectory, "../ThirdParty/ffmpeg/lib/android/" + arch + "/libavutil.a"));
-				PublicAdditionalLibraries.Add(System.IO.Path.Combine(ModuleDirectory, "../ThirdParty/ffmpeg/lib/android/" + arch + "/libswresample.a"));
-				PublicAdditionalLibraries.Add(System.IO.Path.Combine(ModuleDirectory, "../ThirdParty/ffmpeg/lib/android/" + arch + "/libswscale.a"));
-				PublicAdditionalLibraries.Add(System.IO.Path.Combine(ModuleDirectory, "../ThirdParty/ffmpeg/lib/android/" + arch + "/libpostproc.a"));
+				PublicAdditionalLibraries.Add(System.IO.Path.Combine(ModuleDirectory, "../ThirdParty/ffmpeg/lib/android/" + arch + "/libavcodec.so"));
+				PublicAdditionalLibraries.Add(System.IO.Path.Combine(ModuleDirectory, "../ThirdParty/ffmpeg/lib/android/" + arch + "/libavdevice.so"));
+				PublicAdditionalLibraries.Add(System.IO.Path.Combine(ModuleDirectory, "../ThirdParty/ffmpeg/lib/android/" + arch + "/libavfilter.so"));
+				PublicAdditionalLibraries.Add(System.IO.Path.Combine(ModuleDirectory, "../ThirdParty/ffmpeg/lib/android/" + arch + "/libavformat.so"));
+				PublicAdditionalLibraries.Add(System.IO.Path.Combine(ModuleDirectory, "../ThirdParty/ffmpeg/lib/android/" + arch + "/libavutil.so"));
+				PublicAdditionalLibraries.Add(System.IO.Path.Combine(ModuleDirectory, "../ThirdParty/ffmpeg/lib/android/" + arch + "/libswresample.so"));
+				PublicAdditionalLibraries.Add(System.IO.Path.Combine(ModuleDirectory, "../ThirdParty/ffmpeg/lib/android/" + arch + "/libswscale.so"));
+				PublicAdditionalLibraries.Add(System.IO.Path.Combine(ModuleDirectory, "../ThirdParty/ffmpeg/lib/android/" + arch + "/libpostproc.so"));
 				
 				// fmod
-				PublicAdditionalLibraries.Add(System.IO.Path.Combine(ModuleDirectory, "../ThirdParty/fmod/lib/android/" + arch + "/libfmod"+configName+".a"));
+				PublicAdditionalLibraries.Add(System.IO.Path.Combine(ModuleDirectory, "../ThirdParty/fmod/lib/android/" + arch + "/libfmod"+configName+".so"));
 			}
 		}
 
