@@ -11,7 +11,7 @@ public class iBMSUnreal : ModuleRules
 		
 		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "Paper2D", "MediaAssets" });
 
-		PrivateDependencyModuleNames.AddRange(new string[] {  "MediaAssets", "Launch" });
+		PrivateDependencyModuleNames.AddRange(new string[] {  "MediaAssets"  });
 		
 		// Uncomment if you are using Slate UI
 		PrivateDependencyModuleNames.AddRange(new string[] { "Slate", "SlateCore" });
@@ -111,6 +111,8 @@ public class iBMSUnreal : ModuleRules
 			PublicDelayLoadDLLs.Add("fmod"+configName+".dll");
         } else if (Target.IsInPlatformGroup(UnrealPlatformGroup.Android))
 		{
+            // jni
+            PrivateDependencyModuleNames.AddRange(new string[] { "Launch" });
 			string[] archs = new string[] { "arm64-v8a", "x86_64" };
 			foreach (string arch in archs)
 			{
@@ -124,7 +126,11 @@ public class iBMSUnreal : ModuleRules
 				PublicAdditionalLibraries.Add(System.IO.Path.Combine(ModuleDirectory, "../ThirdParty/ffmpeg/lib/android/" + arch + "/libpostproc.so"));
 				
 				// fmod
-				PublicAdditionalLibraries.Add(System.IO.Path.Combine(ModuleDirectory, "../ThirdParty/fmod/lib/android/" + arch + "/libfmod"+configName+".so"));
+				PublicAdditionalLibraries.Add(System.IO.Path.Combine(ModuleDirectory, "../ThirdParty/fmod/lib/android/" + arch + "/libfmod"+".so"));
+				
+				string RelAPLPath = Utils.MakePathRelativeTo(System.IO.Path.Combine(ModuleDirectory, "APL.xml"), Target.RelativeEnginePath);
+				System.Console.WriteLine("Adding {0}", RelAPLPath);
+				AdditionalPropertiesForReceipt.Add("AndroidPlugin", RelAPLPath);
 			}
 		}
 

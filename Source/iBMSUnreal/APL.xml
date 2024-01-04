@@ -1,0 +1,154 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- init section is always evaluated once per architecture -->
+    <init>
+        <log text="APL init"/>
+    </init>
+
+    <!-- optional additions to proguard -->
+    <proguardAdditions>
+        <insert>
+            -keep class org.fmod.** {
+            *;
+            }
+            -dontwarn org.fmod.**
+        </insert>
+    </proguardAdditions>
+
+    <!-- optional files or directories to copy to Intermediate/Android/APK -->
+    <resourceCopies>
+        <log text="copying files for $S(Architecture)"/>
+        <copyFile src="$S(PluginDir)/../ThirdParty/fmod/lib/android/$S(Architecture)/libfmod.so"
+                  dst="$S(BuildDir)/libs/$S(Architecture)/libfmod.so" />
+        <copyFile src="$S(PluginDir)/../ThirdParty/fmod/lib/android/fmod.jar"
+                  dst="$S(BuildDir)/libs/fmod.jar" />
+        <copyFile src="$S(PluginDir)/../ThirdParty/ffmpeg/lib/android/$S(Architecture)/libavcodec.so"
+                  dst="$S(BuildDir)/libs/$S(Architecture)/libavcodec.so" />
+        <copyFile src="$S(PluginDir)/../ThirdParty/ffmpeg/lib/android/$S(Architecture)/libavformat.so"
+                    dst="$S(BuildDir)/libs/$S(Architecture)/libavformat.so" />
+        <copyFile src="$S(PluginDir)/../ThirdParty/ffmpeg/lib/android/$S(Architecture)/libavutil.so"
+                    dst="$S(BuildDir)/libs/$S(Architecture)/libavutil.so" />
+        <copyFile src="$S(PluginDir)/../ThirdParty/ffmpeg/lib/android/$S(Architecture)/libswresample.so"
+                    dst="$S(BuildDir)/libs/$S(Architecture)/libswresample.so" />
+        <copyFile src="$S(PluginDir)/../ThirdParty/ffmpeg/lib/android/$S(Architecture)/libswscale.so"
+                    dst="$S(BuildDir)/libs/$S(Architecture)/libswscale.so" />
+        <copyFile src="$S(PluginDir)/../ThirdParty/ffmpeg/lib/android/$S(Architecture)/libavfilter.so"
+                    dst="$S(BuildDir)/libs/$S(Architecture)/libavfilter.so" />
+        <copyFile src="$S(PluginDir)/../ThirdParty/ffmpeg/lib/android/$S(Architecture)/libavdevice.so"
+                    dst="$S(BuildDir)/libs/$S(Architecture)/libavdevice.so" />
+        <copyFile src="$S(PluginDir)/../ThirdParty/ffmpeg/lib/android/$S(Architecture)/libpostproc.so"
+                    dst="$S(BuildDir)/libs/$S(Architecture)/libpostproc.so" />
+    </resourceCopies>
+
+    <!-- optional updates applied to AndroidManifest.xml -->
+    <androidManifestUpdates>
+        <!-- update the GameActivity activity -->
+        <loopElements tag="activity">
+            <setStringFromAttribute result="activityName" tag="$" name="android:name"/>
+            <setBoolIsEqual result="bGameActivity" arg1="$S(activityName)" arg2="com.epicgames.unreal.GameActivity"/>
+            <if condition="bGameActivity">
+                <true>
+                    <log text="APL updating $S(activityName)"/>
+                    <!-- add zip file intent filter -->
+                    <setElement result="categoryInfo" value="category"/>
+                    <addAttribute tag="$categoryInfo" name="android:name" value="android.intent.category.DEFAULT"/>
+                    <setElement result="actionInfo" value="action"/>
+                    <addAttribute tag="$actionInfo" name="android:name" value="android.intent.action.VIEW"/>
+                    <setElement result="dataInfo" value="data"/>
+<!--                    <addAttribute tag="$dataInfo" name="android:scheme" value="file"/>-->
+                    <addAttribute tag="$dataInfo" name="android:mimeType" value="application/zip"/>
+                    <setElement result="intentFilter" value="intent-filter"/>
+                    <addElement tag="$" name="intentFilter" />
+                    <addElement tag="intent-filter" name="actionInfo"/>
+                    <addElement tag="intent-filter" name="categoryInfo"/>
+                    <addElement tag="intent-filter" name="dataInfo"/>
+<!--                    <<insert>-->
+<!--                        <intent-filter>-->
+<!--                            <action android:name="android.intent.action.VIEW"/>-->
+<!--                            <category android:name="android.intent.category.DEFAULT"/>-->
+<!--                            <data android:scheme="file" android:mimeType="application/zip"/>-->
+<!--                        </intent-filter>-->
+<!--                    </insert>>-->
+                </true>
+            </if>
+        </loopElements>
+    </androidManifestUpdates>
+    <!-- optional additions to GameActivity onCreate in GameActivity.java -->
+    <gameActivityOnCreateAdditions>
+        <insert>
+            // Initialize FMOD jar file
+            org.fmod.FMOD.init(this);
+        </insert>
+    </gameActivityOnCreateAdditions>
+    <gameActivityOnResumeAdditions>
+        <insert>
+           // copy files to external_storage/imported that is opened with intent-filter
+            Intent intent = getIntent();
+            String action = intent.getAction();
+            android.widget.Toast.makeText(this, "Action: " + action, android.widget.Toast.LENGTH_LONG).show();
+            if (Intent.ACTION_VIEW.equals(action)) {
+                Uri uri = intent.getData();
+                String path = uri.getPath();
+                String filename;
+                // retrieve display name from uri
+                android.database.Cursor cursor = getContentResolver().query(uri, null, null, null, null);
+                if (cursor != null &amp;&amp; cursor.moveToFirst()) {
+                    int nameIndex = cursor.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME);
+                    filename = cursor.getString(nameIndex);
+                    cursor.close();
+                } else {
+                    filename = path.substring(path.lastIndexOf("/") + 1);
+                }
+                File file = new File(getExternalFilesDir(null), "imported/" + filename);
+                File dir = new File(getExternalFilesDir(null), "imported");
+                android.widget.Toast.makeText(this, "Copying " + filename + " to " + file.getAbsolutePath(), android.widget.Toast.LENGTH_LONG).show();
+                // reset intent
+                intent.setAction("");
+                try {
+                    if (!dir.exists()) {
+                        dir.mkdirs();
+                    }
+                    InputStream inputStream = getContentResolver().openInputStream(uri);
+                    OutputStream outputStream = new FileOutputStream(file);
+                    byte[] buffer = new byte[1024];
+                    int length;
+                    while ((length = inputStream.read(buffer)) > 0) {
+                        outputStream.write(buffer, 0, length);
+                    }
+                    inputStream.close();
+                    outputStream.close();
+                } catch (Exception e) {
+                    android.widget.Toast.makeText(this, "Failed to copy file to external storage: " + e.getMessage(), android.widget.Toast.LENGTH_LONG).show();
+                }
+            } 
+        </insert>
+    </gameActivityOnResumeAdditions>
+    <gameActivityClassAdditions>
+        <insert>
+            public String AndroidThunkJava_GetExternalStoragePath() {
+                return getExternalFilesDir(null).getAbsolutePath();
+            }
+        </insert>
+    </gameActivityClassAdditions>
+    <!-- optional additions to GameActivity onDestroy in GameActivity.java -->
+    <gameActivityOnDestroyAdditions>
+        <insert>
+            // Shutdown FMOD jar file
+            org.fmod.FMOD.close();
+        </insert>
+    </gameActivityOnDestroyAdditions>
+
+    <!-- optional libraries to load in GameActivity.java before libUE4.so -->
+    <soLoadLibrary>
+        <log text="APL adding loadLibrary references"/>
+        <loadLibrary name="fmod" failmsg="libfmod not loaded and required!" />
+        <loadLibrary name="avcodec" failmsg="libavcodec not loaded and required!" />
+        <loadLibrary name="avformat" failmsg="libavformat not loaded and required!" />
+        <loadLibrary name="avutil" failmsg="libavutil not loaded and required!" />
+        <loadLibrary name="swresample" failmsg="libswresample not loaded and required!" />
+        <loadLibrary name="swscale" failmsg="libswscale not loaded and required!" />
+        <loadLibrary name="avfilter" failmsg="libavfilter not loaded and required!" />
+        <loadLibrary name="avdevice" failmsg="libavdevice not loaded and required!" />
+        <loadLibrary name="postproc" failmsg="libpostproc not loaded and required!" />
+    </soLoadLibrary>
+</root>

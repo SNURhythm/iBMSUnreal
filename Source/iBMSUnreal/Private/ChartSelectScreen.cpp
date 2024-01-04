@@ -11,7 +11,14 @@
 #include "iOSNatives.h"
 #include "Judge.h"
 #include "MediaPlayer.h"
-
+#include "iBMSUnreal/Public/Utils.h"
+#include "miniz.h"
+#if PLATFORM_ANDROID
+#include "AndroidNatives.h"
+#include "Android/AndroidJNI.h"
+#include "Android/AndroidApplication.h"
+#include "Android/AndroidPlatform.h"
+#endif
 #include "tinyfiledialogs.h"
 #include "Blueprint/UserWidget.h"
 #include "iBMSUnreal/Public/ImageUtils.h"
@@ -85,7 +92,7 @@ static void FindNew(TArray<FDiff>& Diffs, const TSet<FString>& PrevPathSet, cons
 
 void AChartSelectScreen::LoadCharts()
 {
-
+	
 	auto dbHelper = ChartDBHelper::GetInstance();
 	auto db = dbHelper.Connect();
 	dbHelper.CreateChartMetaTable(db);
@@ -131,15 +138,79 @@ void AChartSelectScreen::LoadCharts()
 
 
 	}
-
 #else // not desktop
 	// use iOS Document Directory
+
 #if PLATFORM_IOS
 	// mkdir "BMS"
 	FString DirectoryRel = FPaths::Combine(GetIOSDocumentsPath(), "BMS/");
 	FString DirectoryAbs = IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(*DirectoryRel);
 	UE_LOG(LogTemp, Warning, TEXT("BMSGameModeBase DirectoryAbs: %s"), *DirectoryAbs);
 	IFileManager::Get().MakeDirectory(*DirectoryRel);
+#elif PLATFORM_ANDROID
+	// external storage (/Android/data/[package name]/files)
+	FString DirectoryRel = FUtils::GetDocumentsPath("BMS/");
+	UE_LOG(LogTemp, Warning, TEXT("BMSGameModeBase DirectoryRel: %s"), *DirectoryRel);
+	FString Imported = FUtils::GetDocumentsPath("imported/");
+	// read all zips in imported & extract to BMS/zipname
+	// mkdir BMS
+	IFileManager::Get().MakeDirectory(*DirectoryRel);
+	if (IFileManager::Get().DirectoryExists(*Imported))
+	{
+		IFileManager::Get().IterateDirectory(*Imported, [&](const TCHAR* FilenameOrDirectory, bool bIsDirectory) -> bool
+		{
+			if (bIsDirectory) return true;
+			FString FilePath = FString(FilenameOrDirectory);
+			FString FileExtension = FPaths::GetExtension(FilePath);
+			if (FileExtension != TEXT("zip")) return true;
+			FString FullPath = IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(*FilePath);
+			// extract to BMS
+			FString Extracted = FPaths::Combine(DirectoryRel, FPaths::GetBaseFilename(FilePath));
+			FString ExtractedAbs = IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(*Extracted);
+			IFileManager::Get().MakeDirectory(*ExtractedAbs);
+			// extract
+			mz_zip_archive zip_archive;
+			memset(&zip_archive, 0, sizeof(zip_archive));
+			mz_bool status;
+			status = mz_zip_reader_init_file(&zip_archive, TCHAR_TO_UTF8(*FullPath), 0);
+			if (!status)
+			{
+				UE_LOG(LogTemp, Warning, TEXT("BMSGameModeBase mz_zip_reader_init_file failed"));
+				return true;
+			}
+			int num_files = mz_zip_reader_get_num_files(&zip_archive);
+			for (int i = 0; i < num_files; i++)
+			{
+				if (bCancelled) break;
+				mz_zip_archive_file_stat file_stat;
+				if (!mz_zip_reader_file_stat(&zip_archive, i, &file_stat))
+				{
+					UE_LOG(LogTemp, Warning, TEXT("BMSGameModeBase mz_zip_reader_file_stat failed"));
+					continue;
+				}
+				// mkdir
+				if (file_stat.m_is_directory)
+				{
+					FString Directory = FPaths::Combine(Extracted, file_stat.m_filename);
+					IFileManager::Get().MakeDirectory(*Directory);
+					continue;
+				}
+				// extract
+				FString ExtractedPath = FPaths::Combine(Extracted, file_stat.m_filename);
+				UE_LOG(LogTemp, Warning, TEXT("BMSGameModeBase ExtractedPath: %s"), *ExtractedPath);
+				if (!mz_zip_reader_extract_to_file(&zip_archive, i, TCHAR_TO_UTF8(*ExtractedPath), 0))
+				{
+					UE_LOG(LogTemp, Warning, TEXT("BMSGameModeBase mz_zip_reader_extract_to_file failed"));
+					continue;
+				}
+			}
+			mz_zip_reader_end(&zip_archive);
+			// delete zip
+			IFileManager::Get().Delete(*FullPath);
+			return true;
+		});
+	}
+
 #else
 	// use Project/BMS. Note that this would not work on packaged build, so we need to make it configurable
 	FString DirectoryRel = FPaths::Combine(FPaths::ProjectDir(), "BMS/");

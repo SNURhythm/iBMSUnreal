@@ -1,14 +1,21 @@
 ﻿#pragma once
-
+#if PLATFORM_IOS
+#include "iOSNatives.h"
+#endif
+#if PLATFORM_ANDROID
+#include "AndroidNatives.h"
+#endif
 class FUtils
 {
 public:
 	inline static FString GameName = "iBMSUnreal";
 	inline static FString TeamName = "SNURhythm";
-	static FString GetDocumentsPath(FString SubPath)
+	static FString GetDocumentsPath(FString SubPath = "")
 	{
 #if PLATFORM_IOS
 		return FPaths::Combine(GetIOSDocumentsPath(), SubPath);
+#elif PLATFORM_ANDROID
+		return FPaths::Combine(GetAndroidExternalFilesDir(), SubPath);
 #else
 		// for other platforms, use Documents
 		return FPaths::Combine(FPlatformProcess::UserDir(), TeamName, GameName, SubPath);
@@ -47,8 +54,3 @@ private:
 	/** The function to execute on the Task Graph. */
 	TUniqueFunction<void()> Function;
 };
-
-FGraphEventRef AsyncTaskAndReturn(ENamedThreads::Type Thread, TUniqueFunction<void()> Function)
-{
-	return TGraphTask<FAsyncGraphTask>::CreateTask().ConstructAndDispatchWhenReady(Thread, MoveTemp(Function));
-}
