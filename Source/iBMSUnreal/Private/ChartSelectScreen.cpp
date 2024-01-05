@@ -402,26 +402,10 @@ void AChartSelectScreen::OnStartButtonClicked()
 }
 void AChartSelectScreen::OnMediaOpened(FString OpenedUrl)
 {
-	
-	// long long CurrentJukeboxTime = jukebox->GetPositionMicro();
-	// // Seek
-	//
-	// UE_LOG(LogTemp, Warning, TEXT("MediaPlayer->SupportsSeeking(): %d"), MediaPlayer->SupportsSeeking());
-	// // MediaPlayer->seek
-	// MediaPlayer->Pause();
-	// bool result = MediaPlayer->Seek(FTimespan::FromMicroseconds(CurrentJukeboxTime));
-	// UE_LOG(LogTemp, Warning, TEXT("MediaPlayer->Seek(): %d"), result);
-	// UE_LOG(LogTemp, Warning, TEXT("jukebox->GetPositionMicro(): %lld"), CurrentJukeboxTime);
-	// bool isPlayed = MediaPlayer->Play();
-	//
-	// // UE_LOG(LogTemp, Warning, TEXT("MediaPlayer->Play(): %d"), isPlayed);
-	// get dimension
 	auto dim = MediaPlayer->GetVideoTrackDimensions(0, 0);
 	UE_LOG(LogTemp, Warning, TEXT("Video Dimension: %d, %d"), dim.X, dim.Y);
 	ChartSelectUI->BackgroundSizeBox->SetWidthOverride(dim.X);
 	ChartSelectUI->BackgroundSizeBox->SetHeightOverride(dim.Y);
-	
-	
 }
 
 void AChartSelectScreen::OnMediaOpenFailed(FString FailedUrl)

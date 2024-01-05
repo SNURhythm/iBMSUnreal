@@ -124,6 +124,43 @@ ARhythmControl::ARhythmControl()
  	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 }
+void ARhythmControl::OnMediaOpened(FString OpenedUrl)
+{
+	const auto Dim = MediaPlayer->GetVideoTrackDimensions(0, 0);
+	FVector Origin, BoxExtent;
+	ImagePlate->GetActorBounds(false, Origin, BoxExtent);
+	const float BoxWidth = BoxExtent.X * 2;
+	const float BoxHeight = BoxExtent.Z * 2;
+	
+	// fill the screen
+	FVector2D ViewportSize;
+	GetWorld()->GetGameViewport()->GetViewportSize(ViewportSize);
+	const FVector LeftTopWorld = FVector(-BoxWidth / 2, 0, BoxHeight / 2) + ImagePlate->GetActorLocation();
+	const FVector RightBottomWorld = FVector(BoxWidth / 2, 0, -BoxHeight / 2) + ImagePlate->GetActorLocation();
+	FVector2D LeftTopProjected;
+	UGameplayStatics::ProjectWorldToScreen(GetWorld()->GetFirstPlayerController(), LeftTopWorld, LeftTopProjected);
+	FVector2D RightBottomProjected;
+	UGameplayStatics::ProjectWorldToScreen(GetWorld()->GetFirstPlayerController(), RightBottomWorld, RightBottomProjected);
+	const float ProjectedBoxWidth = RightBottomProjected.X - LeftTopProjected.X;
+	const float ProjectedBoxHeight = RightBottomProjected.Y - LeftTopProjected.Y;
+	float NewWidth;
+	float NewHeight;
+	if(1.0*Dim.X / Dim.Y > ViewportSize.X / ViewportSize.Y)
+	{
+		NewWidth = ViewportSize.X;
+		NewHeight = NewWidth * Dim.Y / Dim.X;
+	} else
+	{
+		NewHeight = ViewportSize.Y;
+		NewWidth = NewHeight * Dim.X / Dim.Y;
+		
+	}
+	const float WScale = NewWidth / ProjectedBoxWidth;
+	const float HScale = NewHeight / ProjectedBoxHeight;
+	const auto OriginalScale = ImagePlate->GetActorScale();
+	ImagePlate->SetActorScale3D(FVector(OriginalScale.X * WScale, OriginalScale.Y * HScale, OriginalScale.Z));
+	
+}
 
 FJudgeResult ARhythmControl::PressNote(FBMSNote* Note, long long PressedTime)
 {
@@ -347,6 +384,7 @@ void ARhythmControl::PauseGame()
 void ARhythmControl::BeginPlay()
 {
 	Super::BeginPlay();
+	MediaPlayer->OnMediaOpened.AddDynamic(this, &ARhythmControl::OnMediaOpened);
 	// force garbage collection
 	CollectGarbage(GARBAGE_COLLECTION_KEEPFLAGS);
 	UE_LOG(LogTemp, Warning, TEXT("Rhythm BeginPlay"));

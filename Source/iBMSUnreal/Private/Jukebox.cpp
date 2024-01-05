@@ -256,28 +256,35 @@ void FJukebox::LoadChart(const FChart* chart, std::atomic_bool& bCancelled, UMed
 	{
 		// find first mpg/mp4/avi/...
 		FString Name = bmp.Value;
-		FString Extension = FPaths::GetExtension(Name);
-		if(Extension == "mpg" || Extension == "mp4" || Extension == "avi" || Extension == "wmv")
+		FString Path = FPaths::Combine(ChartFolder, Name);
+		FString withoutExt = FPaths::Combine(FPaths::GetPath(Path), FPaths::GetBaseFilename(Path));
+		for(FString ext : {".mp4", ".avi", ".mpg", ".mpeg", ".wmv", ".mov", ".flv", ".mkv", ".webm"})
 		{
 			// transcode into temp file
-			FString Original = FPaths::Combine(Chart->Meta->Folder, Name);
-			FString OriginalRel = ChartDBHelper::ToRelativePath(Original);
-			FString Hash = FMD5::HashBytes((uint8*)TCHAR_TO_UTF8(*OriginalRel), OriginalRel.Len());
-			FString Directory = FUtils::GetDocumentsPath("Temp");
-			IFileManager::Get().MakeDirectory(*Directory, true);
-			FString TempPath = FPaths::Combine(Directory, Hash + ".mp4");
-			TempPath = IFileManager::Get().ConvertToAbsolutePathForExternalAppForWrite(*TempPath);
-			if(!FPaths::FileExists(TempPath))
+			FString NewPath = withoutExt + ext;
+			if(!FPaths::FileExists(NewPath)) continue;
+			FString Original = NewPath;
+			FString TempPath = Original;
+			if(ext != ".mp4")
 			{
-				UE_LOG(LogTemp, Warning, TEXT("Transcoding %s to %s"), *Original, *TempPath);
-				int result = transcode(TCHAR_TO_UTF8(*Original), TCHAR_TO_UTF8(*TempPath), &bCancelled);
-				if(result<0||bCancelled)
+				FString OriginalRel = ChartDBHelper::ToRelativePath(Original);
+				FString Hash = FMD5::HashBytes((uint8*)TCHAR_TO_UTF8(*OriginalRel), OriginalRel.Len());
+				FString Directory = FUtils::GetDocumentsPath("Temp");
+				IFileManager::Get().MakeDirectory(*Directory, true);
+				TempPath = FPaths::Combine(Directory, Hash + ".mp4");
+				TempPath = IFileManager::Get().ConvertToAbsolutePathForExternalAppForWrite(*TempPath);
+				if(!FPaths::FileExists(TempPath))
 				{
-					// remove temp file
-					IFileManager::Get().Delete(*TempPath);
-					break;
+					UE_LOG(LogTemp, Warning, TEXT("Transcoding %s to %s"), *Original, *TempPath);
+					int result = transcode(TCHAR_TO_UTF8(*Original), TCHAR_TO_UTF8(*TempPath), &bCancelled);
+					if(result<0||bCancelled)
+					{
+						// remove temp file
+						IFileManager::Get().Delete(*TempPath);
+						break;
+					}
+					UE_LOG(LogTemp, Warning, TEXT("Transcoding done: %d"), result);
 				}
-				UE_LOG(LogTemp, Warning, TEXT("Transcoding done: %d"), result);
 			}
 			const FString FileName = FPaths::GetBaseFilename(TempPath);
 			const FName ObjectName = MakeUniqueObjectName(GetTransientPackage(), UFileMediaSource::StaticClass(), FName(*FileName));
@@ -286,6 +293,7 @@ void FJukebox::LoadChart(const FChart* chart, std::atomic_bool& bCancelled, UMed
 			MediaSource->SetFilePath(TempPath);
 			BGASourceMap.Add(bmp.Key, MediaSource);
 			UE_LOG(LogTemp, Warning, TEXT("Added BGA %d"), bmp.Key);
+			break;
 		}
 	}	
 }

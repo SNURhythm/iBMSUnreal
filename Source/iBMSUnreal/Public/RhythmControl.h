@@ -10,7 +10,6 @@
 #include "GameFramework/Actor.h"
 #include "Tasks/Task.h"
 #include "IRhythmControl.h"
-
 #include "Input/RhythmInputHandler.h"
 #include "RhythmControl.generated.h"
 
@@ -71,9 +70,15 @@ private:
 	class URhythmHUD* CurrentRhythmHUD = nullptr;
 	UPROPERTY(VisibleInstanceOnly, Category="Runtime")
 	class UPauseHUD* CurrentPauseHUD = nullptr;
+
+	// ImagePlate
+	UPROPERTY(EditAnywhere, Category="ImagePlate")
+	AActor *ImagePlate;
 public:	
 	// Sets default values for this actor's properties
 	ARhythmControl();
+	UFUNCTION()
+	void OnMediaOpened(FString OpenedUrl);
 	std::atomic_bool IsLoaded;
 	std::atomic_bool IsLoadCancelled;
 	std::atomic_bool IsMainLoopCancelled;
