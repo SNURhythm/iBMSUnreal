@@ -216,6 +216,7 @@ int ARhythmControl::PressLane(int MainLane, int CompensateLane, double InputDela
 		}
 		AvailableCandidates.push_back(Lane);
 	}
+	if(AvailableCandidates.empty()) return MainLane;
 
 
 	if(IsGamePaused) return MainLane;

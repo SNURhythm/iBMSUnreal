@@ -100,7 +100,7 @@ void AChartSelectScreen::LoadCharts()
 	TArray<FString> entries;
 	// user home dir
 	FString homeDir = FPlatformProcess::UserHomeDir();
-	UE_LOG(LogTemp, Warning, TEXT("BMSGameModeBase UserHomeDir: %s"), *homeDir);
+	UE_LOG(LogTemp, Warning, TEXT("ChartSelectScreen UserHomeDir: %s"), *homeDir);
 #if PLATFORM_DESKTOP
 	entries = dbHelper.SelectAllEntries(db);
 	// check if platform is desktop
@@ -122,7 +122,7 @@ void AChartSelectScreen::LoadCharts()
 		{
 			Directory = tinyfd_selectFolderDialog("Select BMS Folder", nullptr);
 		}
-		UE_LOG(LogTemp, Warning, TEXT("BMSGameModeBase Directory: %s"), *Directory);
+		UE_LOG(LogTemp, Warning, TEXT("ChartSelectScreen Directory: %s"), *Directory);
 		// normalize path
 
 #endif
@@ -145,12 +145,12 @@ void AChartSelectScreen::LoadCharts()
 	// mkdir "BMS"
 	FString DirectoryRel = FPaths::Combine(GetIOSDocumentsPath(), "BMS/");
 	FString DirectoryAbs = IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(*DirectoryRel);
-	UE_LOG(LogTemp, Warning, TEXT("BMSGameModeBase DirectoryAbs: %s"), *DirectoryAbs);
+	UE_LOG(LogTemp, Warning, TEXT("ChartSelectScreen DirectoryAbs: %s"), *DirectoryAbs);
 	IFileManager::Get().MakeDirectory(*DirectoryRel);
 #elif PLATFORM_ANDROID
 	// external storage (/Android/data/[package name]/files)
 	FString DirectoryRel = FUtils::GetDocumentsPath("BMS/");
-	UE_LOG(LogTemp, Warning, TEXT("BMSGameModeBase DirectoryRel: %s"), *DirectoryRel);
+	UE_LOG(LogTemp, Warning, TEXT("ChartSelectScreen DirectoryRel: %s"), *DirectoryRel);
 	FString Imported = FUtils::GetDocumentsPath("imported/");
 	// read all zips in imported & extract to BMS/zipname
 	// mkdir BMS
@@ -175,7 +175,7 @@ void AChartSelectScreen::LoadCharts()
 			status = mz_zip_reader_init_file(&zip_archive, TCHAR_TO_UTF8(*FullPath), 0);
 			if (!status)
 			{
-				UE_LOG(LogTemp, Warning, TEXT("BMSGameModeBase mz_zip_reader_init_file failed"));
+				UE_LOG(LogTemp, Warning, TEXT("ChartSelectScreen mz_zip_reader_init_file failed"));
 				return true;
 			}
 			int num_files = mz_zip_reader_get_num_files(&zip_archive);
@@ -185,7 +185,7 @@ void AChartSelectScreen::LoadCharts()
 				mz_zip_archive_file_stat file_stat;
 				if (!mz_zip_reader_file_stat(&zip_archive, i, &file_stat))
 				{
-					UE_LOG(LogTemp, Warning, TEXT("BMSGameModeBase mz_zip_reader_file_stat failed"));
+					UE_LOG(LogTemp, Warning, TEXT("ChartSelectScreen mz_zip_reader_file_stat failed"));
 					continue;
 				}
 				// mkdir
@@ -197,10 +197,10 @@ void AChartSelectScreen::LoadCharts()
 				}
 				// extract
 				FString ExtractedPath = FPaths::Combine(Extracted, file_stat.m_filename);
-				UE_LOG(LogTemp, Warning, TEXT("BMSGameModeBase ExtractedPath: %s"), *ExtractedPath);
+				UE_LOG(LogTemp, Warning, TEXT("ChartSelectScreen ExtractedPath: %s"), *ExtractedPath);
 				if (!mz_zip_reader_extract_to_file(&zip_archive, i, TCHAR_TO_UTF8(*ExtractedPath), 0))
 				{
-					UE_LOG(LogTemp, Warning, TEXT("BMSGameModeBase mz_zip_reader_extract_to_file failed"));
+					UE_LOG(LogTemp, Warning, TEXT("ChartSelectScreen mz_zip_reader_extract_to_file failed"));
 					continue;
 				}
 			}
@@ -223,11 +223,11 @@ void AChartSelectScreen::LoadCharts()
 		FMOD::Sound* SuccessSound;
 		const FString SoundPathRel = FPaths::Combine(FPaths::ProjectContentDir(), "Sounds/success.wav");
 		const FString SoundPath = IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(*SoundPathRel);
-		UE_LOG(LogTemp, Warning, TEXT("BMSGameModeBase SoundPath: %s"), *SoundPath);
+		UE_LOG(LogTemp, Warning, TEXT("ChartSelectScreen SoundPath: %s"), *SoundPath);
 
 
 		FMODSystem->createSound(TCHAR_TO_ANSI(*SoundPath), FMOD_DEFAULT, 0, &SuccessSound);
-		UE_LOG(LogTemp, Warning, TEXT("BMSGameModeBase Start Task!!"));
+		UE_LOG(LogTemp, Warning, TEXT("ChartSelectScreen Start Task!!"));
 
 		auto chartMetas = dbHelper.SelectAllChartMeta(db);
 		chartMetas.Sort([](const FChartMeta& A, const FChartMeta& B)
@@ -263,15 +263,15 @@ void AChartSelectScreen::LoadCharts()
 		}
 		IFileManager& FileManager = IFileManager::Get();
 
-		UE_LOG(LogTemp, Warning, TEXT("BMSGameModeBase FindNew"));
+		UE_LOG(LogTemp, Warning, TEXT("ChartSelectScreen FindNew"));
 		// print bCancelled
-		UE_LOG(LogTemp, Warning, TEXT("BMSGameModeBase isCancelled: %d"), (bool)bCancelled);
+		UE_LOG(LogTemp, Warning, TEXT("ChartSelectScreen isCancelled: %d"), (bool)bCancelled);
 		for (auto& entry : entries)
 		{
 			if (bCancelled) break;
 			FindNew(Diffs, PathSet, entry, bCancelled);
 		}
-		UE_LOG(LogTemp, Warning, TEXT("BMSGameModeBase FindNew Done: %d"), Diffs.Num());
+		UE_LOG(LogTemp, Warning, TEXT("ChartSelectScreen FindNew Done: %d"), Diffs.Num());
 		TotalNewCharts = Diffs.Num();
 		// find deleted charts
 		for (auto& path : PathSet)
@@ -286,57 +286,62 @@ void AChartSelectScreen::LoadCharts()
 			}
 		}
 
-		if (Diffs.Num() > 0)
+		if (Diffs.Num() == 0)
 		{
-			const bool bSupportMultithreading = FPlatformProcess::SupportsMultithreading();
-			const int TaskNum = FMath::Max(FPlatformMisc::NumberOfWorkerThreadsToSpawn() / 2, 1);
-			UE_LOG(LogTemp, Warning, TEXT("BMSGameModeBase taskNum: %d"), TaskNum);
-			const int TaskSize = Diffs.Num() / TaskNum;
-			dbHelper.BeginTransaction(db);
-			std::atomic_bool isCommitting;
-			ParallelFor(TaskNum, [&](int32 idx)
+			UE_LOG(LogTemp, Warning, TEXT("ChartSelectScreen No new charts"));
+			IsScanning = false;
+			return;
+		}
+	
+		const bool bSupportMultithreading = FPlatformProcess::SupportsMultithreading();
+		const int TaskNum = FMath::Max(FPlatformMisc::NumberOfWorkerThreadsToSpawn() / 2, 1);
+		UE_LOG(LogTemp, Warning, TEXT("ChartSelectScreen taskNum: %d"), TaskNum);
+		const int TaskSize = Diffs.Num() / TaskNum;
+		dbHelper.BeginTransaction(db);
+		std::atomic_bool isCommitting;
+		ParallelFor(TaskNum, [&](int32 idx)
+		{
+			if (bCancelled) return;
+			const int Start = idx * TaskSize;
+			if (Start >= Diffs.Num()) return;
+			int end = (idx + 1) * TaskSize;
+			if (idx == TaskNum - 1) end = Diffs.Num();
+			if (end > Diffs.Num()) end = Diffs.Num();
+			for (int i = Start; i < end; i++)
 			{
 				if (bCancelled) return;
-				const int Start = idx * TaskSize;
-				if (Start >= Diffs.Num()) return;
-				int end = (idx + 1) * TaskSize;
-				if (idx == TaskNum - 1) end = Diffs.Num();
-				if (end > Diffs.Num()) end = Diffs.Num();
-				for (int i = Start; i < end; i++)
+				auto& diff = Diffs[i];
+
+				if (diff.type == EDiffType::Added)
 				{
+					FBMSParser Parser;
+					FChart* Chart;
+					Parser.Parse(diff.path, &Chart, false, true, bCancelled);
 					if (bCancelled) return;
-					auto& diff = Diffs[i];
-
-					if (diff.type == EDiffType::Added)
+					++SuccessNewChartCount;
+					if (SuccessNewChartCount % 100 == 0)
 					{
-						FBMSParser Parser;
-						FChart* Chart;
-						Parser.Parse(diff.path, &Chart, false, true, bCancelled);
-						if (bCancelled) return;
-						++SuccessNewChartCount;
-						if (SuccessNewChartCount % 100 == 0)
-						{
-							UE_LOG(LogTemp, Warning, TEXT("success count: %d"), (int)SuccessNewChartCount);
-							if (isCommitting) continue;
-							isCommitting = true;
-							dbHelper.CommitTransaction(db);
-							dbHelper.BeginTransaction(db);
-							isCommitting = false;
-						}
-
-						// UE_LOG(LogTemp,Warning,TEXT("TITLE: %s"), *Chart->Meta->Title);
-
-						dbHelper.InsertChartMeta(db, *Chart->Meta);
-						// close db
-						delete Chart;
-					} else
-					{
-						dbHelper.DeleteChartMeta(db, diff.path);
+						UE_LOG(LogTemp, Warning, TEXT("success count: %d"), (int)SuccessNewChartCount);
+						if (isCommitting) continue;
+						isCommitting = true;
+						dbHelper.CommitTransaction(db);
+						dbHelper.BeginTransaction(db);
+						isCommitting = false;
 					}
+
+					// UE_LOG(LogTemp,Warning,TEXT("TITLE: %s"), *Chart->Meta->Title);
+
+					dbHelper.InsertChartMeta(db, *Chart->Meta);
+					// close db
+					delete Chart;
+				} else
+				{
+					dbHelper.DeleteChartMeta(db, diff.path);
 				}
-			}, !bSupportMultithreading);
-			dbHelper.CommitTransaction(db);
-		}
+			}
+		}, !bSupportMultithreading);
+		dbHelper.CommitTransaction(db);
+	
 		if (bCancelled) goto scan_end;
 
 		AsyncTask(ENamedThreads::GameThread, [this]()
@@ -372,7 +377,7 @@ void AChartSelectScreen::LoadCharts()
 			
 		});
 		
-		UE_LOG(LogTemp, Warning, TEXT("BMSGameModeBase End Task"));
+		UE_LOG(LogTemp, Warning, TEXT("ChartSelectScreen End Task"));
 		UE_LOG(LogTemp, Warning, TEXT("success count: %d"), (int)SuccessNewChartCount);
 		if (bCancelled) goto scan_end;
 		UE_LOG(LogTemp, Warning, TEXT("FMODSystem->playSound: %d"), FMODSystem->playSound(SuccessSound, nullptr, false, nullptr));
