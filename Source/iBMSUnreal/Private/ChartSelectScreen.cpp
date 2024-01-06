@@ -239,12 +239,11 @@ void AChartSelectScreen::LoadCharts()
 			if (bCancelled) return;
 			SetChartMetas(chartMetas);
 			auto prevStartOption = Cast<UBMSGameInstance>(UGameplayStatics::GetGameInstance(GetWorld()))->GetStartOptions();
-			if (prevStartOption.ChartMeta.BmsPath.IsEmpty()) return;
-			auto prevChartMeta = prevStartOption.ChartMeta;
+			if (prevStartOption.BmsPath.IsEmpty()) return;
 			// get index
 			int index = chartMetas.IndexOfByPredicate([&](const FChartMeta* ChartMeta)
 			{
-				return ChartMeta->BmsPath == prevChartMeta.BmsPath;
+				return ChartMeta->BmsPath == prevStartOption.BmsPath;
 			});
 			if (index == INDEX_NONE) return;
 			ChartSelectUI->ChartList->NavigateToIndex(index);
@@ -394,11 +393,7 @@ void AChartSelectScreen::OnStartButtonClicked()
 	UE_LOG(LogTemp, Warning, TEXT("ChartMeta: %s"), *chartMeta->BmsPath);
 	auto gameInstance = Cast<UBMSGameInstance>(UGameplayStatics::GetGameInstance(GetWorld()));
 	StartOptions options;
-	// re-parse chart meta (for in case of db corruption)
-	FBMSParser Parser;
-	FChart* Chart;
-	Parser.Parse(chartMeta->BmsPath, &Chart, false, true, bCancelled);
-	options.ChartMeta = *Chart->Meta;
+	options.BmsPath = chartMeta->BmsPath;
 	options.AutoKeysound = false;
 	options.AutoPlay = false;
 	gameInstance->SetStartOptions(options);
@@ -509,7 +504,9 @@ void AChartSelectScreen::BeginPlay()
 				} else
 				{
 					ImagePath = FPaths::Combine(chartMeta->Folder, ImagePath);
-					ImageUtils::LoadTexture2D(ImagePath, IsImageValid, -1, -1, BackgroundImage);
+					TArray<uint8> ImageBytes;
+					FFileHelper::LoadFileToArray(ImageBytes, *ImagePath);
+					ImageUtils::LoadTexture2D(ImagePath, ImageBytes, IsImageValid, -1, -1, BackgroundImage);
 					if(IsImageValid)
 					{
 						ChartSelectUI->StageFileImage->SetBrushTintColor(FLinearColor::White);
@@ -517,22 +514,19 @@ void AChartSelectScreen::BeginPlay()
 					}
 				}
 				MediaPlayer->Close();
-				
+
 				// full-parse chart
 				JukeboxTask = Launch(UE_SOURCE_LOCATION, [&, BmsPath, ImagePath]()
 				{
-					
 					FBMSParser Parser;
 					FChart* Chart;
+					
 					UE_LOG(LogTemp, Warning, TEXT("Full-parsing %s"), *BmsPath);
+					
 					Parser.Parse(BmsPath, &Chart, false, false, bJukeboxCancelled);
 					UE_LOG(LogTemp, Warning, TEXT("Full-parsing done"));
-					auto BmpTable = Chart->BmpTable;
-					auto Folder = Chart->Meta->Folder;
-
-					
-
 					UE_LOG(LogTemp, Warning, TEXT("Loading sound"));
+
 					jukebox->Stop();
 					jukebox->LoadChart(Chart,  bJukeboxCancelled, MediaPlayer);
 					if(bJukeboxCancelled)
@@ -563,7 +557,9 @@ void AChartSelectScreen::BeginPlay()
 							{
 								UTexture2D* Image = nullptr;
 								bool IsTextureValid = false;
-								ImageUtils::LoadTexture2D(ImagePath, IsTextureValid, -1, -1, Image);
+								TArray<uint8> ImageBytes;
+								FFileHelper::LoadFileToArray(ImageBytes, *ImagePath);
+								ImageUtils::LoadTexture2D(ImagePath, ImageBytes, IsTextureValid, -1, -1, Image);
 								if(IsTextureValid)
 								{
 									BackgroundImageLock.Lock();
@@ -584,7 +580,7 @@ void AChartSelectScreen::BeginPlay()
 						delete Chart;
 						return;
 					}
-					jukebox->Start(0, true);
+					jukebox->Start(bCancelled, 0, true);
 					delete Chart;
 				});
 

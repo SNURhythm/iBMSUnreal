@@ -482,14 +482,16 @@ void UBMSRenderer::Draw(const long long CurrentTime)
 	}
 	
 }
-void UBMSRenderer::InitMeta(FChartMeta& Meta)
+
+void UBMSRenderer::Init(FChart* ChartInit)
 {
+	this->Chart = ChartInit;
 	State = new FRendererState();
 	Material = LoadObject<UMaterialInterface>(nullptr, TEXT("/Paper2D/TranslucentUnlitSpriteMaterial"));
-	KeyLaneCount = Meta.GetKeyLaneCount(); // main line count except for scratch
+	KeyLaneCount = ChartInit->Meta->GetKeyLaneCount(); // main line count except for scratch
 
 	NoteWidth = 1.0f / KeyLaneCount;
-	for(auto Lane: Meta.GetTotalLaneIndices())
+	for(auto Lane: ChartInit->Meta->GetTotalLaneIndices())
 	{
 		LaneStates.Add(Lane, FLaneState());
 		APaperSpriteActor* LaneBeam = GetWorld()->SpawnActor<APaperSpriteActor>(ANoteActor::StaticClass());
@@ -513,11 +515,6 @@ void UBMSRenderer::InitMeta(FChartMeta& Meta)
 		LaneBeam->SetActorHiddenInGame(true);
 		LaneBeams.Add(Lane, LaneBeam);
 	}
-}
-void UBMSRenderer::Init(FChart* ChartInit)
-{
-	this->Chart = ChartInit;
-	
 
 	LastTimeLine = ChartInit->Measures[0]->TimeLines[0];
 

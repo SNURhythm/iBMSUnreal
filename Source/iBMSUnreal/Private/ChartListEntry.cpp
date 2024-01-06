@@ -7,6 +7,7 @@
 #include "IImageWrapper.h"
 #include "IImageWrapperModule.h"
 #include "iBMSUnreal/Public/ImageUtils.h"
+#include "Tasks/Task.h"
 
 void UChartListEntry::OnButtonClicked()
 {
@@ -73,20 +74,54 @@ void UChartListEntry::NativeOnListItemObjectSet(UObject* InObject)
 			Banner->SetBrushTintColor(FLinearColor::Black);
 			return;
 		}
-		Banner->SetBrushTintColor(FLinearColor::White);
-		
+		Banner->SetBrushTintColor(FLinearColor::Black);
+		Banner->SetBrushFromTexture(nullptr);
+
 		path = FPaths::Combine(ChartMeta->Folder, path);
-		UTexture2D* Texture = nullptr;
-		bool IsValid = false;
-		ImageUtils::LoadTexture2D(path, IsValid, 375, 100, Texture);
-		if (IsValid)
-		{
-			Banner->SetBrushFromTexture(Texture);
-		}
-		else
-		{
-			Banner->SetBrushFromTexture(nullptr);
-			Banner->SetBrushTintColor(FLinearColor::Black);
-		}
+		UE::Tasks::Launch(UE_SOURCE_LOCATION, [this, path]() {
+
+			TArray<uint8>* ImageBytes = new TArray<uint8>();
+			FFileHelper::LoadFileToArray(*ImageBytes, *path);
+			
+			
+			AsyncTask(ENamedThreads::GameThread, [this, path, ImageBytes]()
+			{
+				FScopeLock Lock(&BannerTextureLock);
+				if(IsValid(CurrentBannerTexture)) {
+					CurrentBannerTexture->ReleaseResource();
+					CurrentBannerTexture->GetPlatformData()->Mips[0].BulkData.RemoveBulkData();
+					CurrentBannerTexture = nullptr;
+				}
+				// check if entry is re-bound
+				if (EntryData == nullptr || EntryData->ChartMeta == nullptr || EntryData->ChartMeta->Folder != FPaths::GetPath(path))
+				{
+					UE_LOG(LogTemp, Warning, TEXT("ChartListEntry: Entry is re-bound, aborting image load"));
+					delete ImageBytes;
+					return;
+				}
+				UTexture2D* Texture = nullptr;
+				bool IsImageValid = false;
+				ImageUtils::LoadTexture2D(path, *ImageBytes, IsImageValid, 375, 100, Texture, false);
+				delete ImageBytes;
+				if (IsImageValid)
+				{
+					// this macro is a hacky way to avoid winbase.h's UpdateResource macro
+					#define UpdateResource UpdateResource
+					Texture->UpdateResource();
+					#undef UpdateResource
+					CurrentBannerTexture = Texture;
+					Banner->SetBrushTintColor(FLinearColor::White);
+					Banner->SetBrushFromTexture(Texture);
+				}
+				else
+				{
+					Banner->SetBrushFromTexture(nullptr);
+					Banner->SetBrushTintColor(FLinearColor::Black);
+				}
+			});
+		});
+
+		
+
 	}
 }

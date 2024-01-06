@@ -41,6 +41,7 @@ FMOD_RESULT FJukebox::ReadWav(const FString& Path, FMOD::Sound** Sound, const st
 	FMOD_CREATESOUNDEXINFO exinfo = {};
 	exinfo.cbsize = sizeof(FMOD_CREATESOUNDEXINFO);
 	exinfo.length = Bytes.Num();
+	if(Cancelled) return FMOD_ERR_FILE_NOTFOUND;
 	return System->createSound(reinterpret_cast<const char*>(Bytes.GetData()),  FMOD_LOOP_OFF | FMOD_DEFAULT | FMOD_2D | FMOD_3D_WORLDRELATIVE | FMOD_3D_INVERSEROLLOFF | FMOD_OPENMEMORY | FMOD_ACCURATETIME | FMOD_MPEGSEARCH | FMOD_IGNORETAGS | FMOD_LOWMEM | FMOD_OPENMEMORY | FMOD_CREATESAMPLE | FMOD_ACCURATETIME, &exinfo, Sound);
 }
 
@@ -82,6 +83,7 @@ FJukebox::FJukebox(FMOD::System* System)
 
 FJukebox::~FJukebox()
 {
+	ChannelGroup->release();
 	Unload();
 }
 void FJukebox::OnGameTick()
@@ -235,19 +237,20 @@ void FJukebox::LoadChart(const FChart* chart, std::atomic_bool& bCancelled, UMed
 			
 			FMOD::Sound* Sound;
 			const FMOD_RESULT Result = ReadWav(FPaths::Combine(ChartFolder, Wav), &Sound, bCancelled);
-			if(bCancelled) return;
-			Sound->setLoopCount(0);
 			if(Result != FMOD_OK)
 			{
 				UE_LOG(LogTemp, Error, TEXT("Failed to load wav: %s, error code: %d"), *Wav, Result);
+				
 				continue;
 			}
+			Sound->setLoopCount(0);
 
 			SoundTableLock.Lock();
 			SoundTable.Add(j, Sound);
 			SoundTableLock.Unlock();
 		}
 	}, !bSupportMultiThreading);
+	
 	if(OptionalPlayer == nullptr) return;
 	
 	MediaPlayer = OptionalPlayer;
@@ -255,13 +258,16 @@ void FJukebox::LoadChart(const FChart* chart, std::atomic_bool& bCancelled, UMed
 
 	for(auto& Bmp: Chart->BmpTable)
 	{
+		if(bCancelled) return;
 		FString Name = Bmp.Value;
 		FString Path = FPaths::Combine(ChartFolder, Name);
 		FString WithoutExt = FPaths::Combine(FPaths::GetPath(Path), FPaths::GetBaseFilename(Path));
 		for(FString ExtraDot : {"", "."})
 		{
+			if(bCancelled) return;
 			for(FString Ext : {".mp4", ".avi", ".wmv", ".mkv", ".mpg", ".mpeg", ".mov", ".flv", ".webm"})
 			{
+				if(bCancelled) return;
 				// transcode into temp file
 				FString NewPath = WithoutExt + ExtraDot + Ext;
 				if(!FPaths::FileExists(NewPath)) continue;
@@ -288,7 +294,7 @@ void FJukebox::LoadChart(const FChart* chart, std::atomic_bool& bCancelled, UMed
 						UE_LOG(LogTemp, Warning, TEXT("Transcoding done: %d"), Result);
 					}
 				}
-			
+				if(bCancelled) return;
 				const FString FileName = FPaths::GetBaseFilename(TempPath);
 				const FName ObjectName = MakeUniqueObjectName(GetTransientPackage(), UFileMediaSource::StaticClass(), FName(*FileName));
 
@@ -302,9 +308,10 @@ void FJukebox::LoadChart(const FChart* chart, std::atomic_bool& bCancelled, UMed
 	}	
 }
 
-void FJukebox::Start(const long long PosMicro, const bool AutoKeySound)
+void FJukebox::Start(std::atomic_bool& bCancelled, const long long PosMicro, const bool AutoKeySound)
 {
 	Stop();
+	if(bCancelled) return;
 	if(!Chart)
 	{
 		UE_LOG(LogTemp, Error, TEXT("Chart is not loaded"));
@@ -320,6 +327,7 @@ void FJukebox::Start(const long long PosMicro, const bool AutoKeySound)
 	{
 		for(const auto& Timeline: Measure->TimeLines)
 		{
+			if(bCancelled) return;
 			if(Timeline->BgaBase != -1)
 			{
 				UE_LOG(LogTemp, Warning, TEXT("BGA %d at %lld"), Timeline->BgaBase, Timeline->Timing);
@@ -351,6 +359,7 @@ void FJukebox::Start(const long long PosMicro, const bool AutoKeySound)
 			}
 		}
 	}
+	if(bCancelled) return;
 	Unpause();
 }
 
@@ -466,7 +475,7 @@ void FJukebox::Unload()
 	Stop();
 	for(const auto& Pair: SoundTable)
 	{
-		Pair.Value->release();
+		if(Pair.Value) Pair.Value->release();
 	}
 	SoundTable.Empty();
 	
@@ -477,8 +486,19 @@ void FJukebox::Unload()
 
 	BGALock.Lock();
 	BGAStartQueue.Empty();
+	for(const auto& Pair: BGASourceMap)
+	{
+		Pair.Value->RemoveFromRoot();
+		Pair.Value->ConditionalBeginDestroy();
+	}
 	BGASourceMap.Empty();
 	BGALock.Unlock();
+	AudioChannelMapLock.Lock();
+	for(const auto& Pair: AudioChannelMap)
+	{
+		Pair.Value->stop();
+	}
+	AudioChannelMapLock.Unlock();
 
 }
 

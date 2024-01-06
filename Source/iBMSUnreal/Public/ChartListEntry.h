@@ -43,6 +43,9 @@ public:
 	UPROPERTY()
 	UChartListEntryData* EntryData;
 	
+	UPROPERTY()
+	UTexture2D* CurrentBannerTexture = nullptr;
+	FCriticalSection BannerTextureLock;
 	// OnEntryClicked is a delegate that will be bound to the OnClicked event of the button
 	DECLARE_DELEGATE_OneParam(FOnEntryClicked, UChartListEntryData*);
 	FOnEntryClicked OnEntryClicked;

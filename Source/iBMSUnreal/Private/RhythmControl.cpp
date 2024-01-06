@@ -358,7 +358,7 @@ void ARhythmControl::RestartGame()
 void ARhythmControl::StartGame()
 {
 	IsGamePaused = false;
-	Jukebox->Start(Options.StartPosition, Options.AutoKeysound);
+	Jukebox->Start(IsLoadCancelled, Options.StartPosition, Options.AutoKeysound);
 	State->IsPlaying = true;
 	if(IsInGameThread()) CurrentPauseHUD->SetVisibility(ESlateVisibility::Hidden);
 }
@@ -500,16 +500,18 @@ void ARhythmControl::LoadGame()
 	UE_LOG(LogTemp, Warning, TEXT("Loading Game"));
 	
 	Options = GameInstance->GetStartOptions();
-	Renderer->InitMeta(Options.ChartMeta);
+	FBMSParser Parser;
+	Parser.Parse(Options.BmsPath, &Chart, false, false, IsLoadCancelled);
+	Renderer->Init(Chart);
 	// init IsLanePressed
-	for (const auto& Lane : Options.ChartMeta.GetTotalLaneIndices())
+	for (const auto& Lane : Chart->Meta->GetTotalLaneIndices())
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Lane: %d"), Lane);
 		IsLanePressed.Add(Lane, false);
 	}
 	if(!Options.AutoPlay)
 	{
-		InputHandler = new FRhythmInputHandler(this, Options.ChartMeta);
+		InputHandler = new FRhythmInputHandler(this, *Chart->Meta);
 		bool result1 = InputHandler->StartListenNative() || InputHandler->StartListenUnreal(PlayerInputComponent); // fallback to unreal input if native input failed
 		bool result2 = InputHandler->StartListenUnrealTouch(PlayerController, Renderer->NoteArea, 15);
 		if(!result1 && !result2)
@@ -521,8 +523,7 @@ void ARhythmControl::LoadGame()
 	LoadTask = UE::Tasks::Launch(UE_SOURCE_LOCATION, [&]()
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Loading Chart&Jukebox"));
-		FBMSParser Parser;
-		Parser.Parse(Options.ChartMeta.BmsPath, &Chart, false, false, IsLoadCancelled);
+		
 		if (IsLoadCancelled) return;
 		Jukebox->LoadChart(Chart, IsLoadCancelled, MediaPlayer);
 		if(Chart->Measures.IsEmpty())
@@ -535,9 +536,6 @@ void ARhythmControl::LoadGame()
 
 		State = new FRhythmState(Chart, false);
 		// init renderer in game thread task and wait for it
-		if (IsLoadCancelled) return;
-		
-		Renderer->Init(Chart);
 
 		UE_LOG(LogTemp, Warning, TEXT("Chart&Jukebox loaded"));
 		if (!IsLoadCancelled)

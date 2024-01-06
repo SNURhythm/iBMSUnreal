@@ -46,9 +46,9 @@ public:
 	FJukebox(FMOD::System* System);
 	~FJukebox();
 	void OnGameTick();
-	UFUNCTION()
+	
 	void LoadChart(const FChart* chart, std::atomic_bool& bCancelled, UMediaPlayer* OptionalPlayer = nullptr);
-	void Start(long long PosMicro = 0, bool AutoKeySound = false);
+	void Start(std::atomic_bool& bCancelled, long long PosMicro = 0, bool AutoKeySound = false);
 	void Unpause();
 
 	void Pause() const;

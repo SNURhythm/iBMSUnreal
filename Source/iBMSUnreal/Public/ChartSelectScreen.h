@@ -33,6 +33,7 @@ private:
 	UE::Tasks::TTask<void> BGATask;
 	FCriticalSection ChartListLock;
 	FCriticalSection BackgroundImageLock;
+	FCriticalSection JukeboxLock;
 
 	void LoadCharts();
 	void SetChartMetas(const TArray<FChartMeta*>& ChartMetas);

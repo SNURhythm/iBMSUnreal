@@ -13,5 +13,8 @@ FChart::~FChart()
 	{
 		delete measure;
 	}
+	
 	Measures.Empty();
+	if(Meta)
+		delete Meta;
 }

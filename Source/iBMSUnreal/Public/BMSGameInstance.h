@@ -15,7 +15,7 @@
 
 struct StartOptions
 {
-	FChartMeta ChartMeta;
+	FString BmsPath;
 	unsigned long long StartPosition = 0;
 	bool AutoKeysound = false;
 	bool AutoPlay = false;
