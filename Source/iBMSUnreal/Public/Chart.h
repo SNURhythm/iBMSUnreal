@@ -20,7 +20,7 @@ class IBMSUNREAL_API FChartMeta {
 	FString Folder;
 	FString Artist = "";
 	FString SubArtist = "";
-	double Bpm;
+	double Bpm;	
 	FString Genre = "";
 	FString Title = "";
 	FString SubTitle = "";

@@ -2,6 +2,7 @@
 
 
 #include "BMSParser.h"
+#include <random>
 #include "BMSLongNote.h"
 #include "BMSNote.h"
 #include "BMSLandmineNote.h"
@@ -38,8 +39,15 @@ const int Scroll = 1020;
 
 FBMSParser::FBMSParser(): BpmTable{}, StopLengthTable{}
 {
-
+	std::random_device seeder;
+	Seed = seeder();
 }
+
+void FBMSParser::SetRandomSeed(int RandomSeed)
+{
+	Seed = RandomSeed;
+}
+
 int FBMSParser::NoWav = -1;
 int FBMSParser::MetronomeWav = -2;
 
@@ -63,7 +71,12 @@ void FBMSParser::Parse(FString path, FChart** chart, bool addReadyMeasure, bool 
 	// bytes to FString
 	FString content;
 	ShiftJISConverter::BytesToUTF8(content, bytes.GetData(), bytes.Num());
-
+	TArray<int> RandomStack;
+	TArray<bool> SkipStack;
+	// init prng with seed
+	std::mt19937_64 Prng(Seed);
+	
+	
 	auto lines = TArray<FString>();
 	content.ParseIntoArrayLines(lines);
 	auto lastMeasure = -1;
@@ -72,8 +85,73 @@ void FBMSParser::Parse(FString path, FChart** chart, bool addReadyMeasure, bool 
 	{
 		if(bCancelled) return;
 		if (!line.StartsWith("#")) continue;
-		if (line.Len() < 7) continue;
-		if (FChar::IsDigit(line[1]) && FChar::IsDigit(line[2]) && FChar::IsDigit(line[3]) && line[6] == ':')
+		auto upperLine = line.ToUpper();
+		if(upperLine.StartsWith("#IF")) // #IF n
+		{
+			if(RandomStack.IsEmpty())
+			{
+				UE_LOG(LogTemp, Warning, TEXT("RandomStack is empty!"));
+				continue;
+			}
+			int CurrentRandom = RandomStack.Last();
+			int n = FCString::Atoi(*line.Mid(4));
+			SkipStack.Push(CurrentRandom != n);
+			continue;
+		}
+		if(upperLine.StartsWith("#ELSE"))
+		{
+			
+			if(SkipStack.IsEmpty())
+			{
+				UE_LOG(LogTemp, Warning, TEXT("SkipStack is empty!"));
+				continue;
+			}
+			bool CurrentSkip = SkipStack.Pop();
+			SkipStack.Push(!CurrentSkip);
+			continue;
+		}
+		if(upperLine.StartsWith("#ELSEIF"))
+		{
+			if(SkipStack.IsEmpty())
+			{
+				UE_LOG(LogTemp, Warning, TEXT("SkipStack is empty!"));
+				continue;
+			}
+			bool CurrentSkip = SkipStack.Pop();
+			int CurrentRandom = RandomStack.Last();
+			int n = FCString::Atoi(*line.Mid(8));
+			SkipStack.Push(CurrentSkip && CurrentRandom != n);
+			continue;
+		}
+		if(upperLine.StartsWith("#ENDIF") || upperLine.StartsWith("#END IF"))
+		{
+			if(SkipStack.IsEmpty())
+			{
+				UE_LOG(LogTemp, Warning, TEXT("SkipStack is empty!"));
+				continue;
+			}
+			SkipStack.Pop();
+			continue;
+		}
+		if(!SkipStack.IsEmpty() && SkipStack.Last()) continue;
+		if(upperLine.StartsWith("#RANDOM") || upperLine.StartsWith("#RONDAM")) // #RANDOM n
+		{
+			int n = FCString::Atoi(*line.Mid(7));
+			std::uniform_int_distribution<int> dist(1, n);
+			RandomStack.Push(dist(Prng));
+			continue;
+		}
+		if(upperLine.StartsWith("#ENDRANDOM"))
+		{
+			if(RandomStack.IsEmpty())
+			{
+				UE_LOG(LogTemp, Warning, TEXT("RandomStack is empty!"));
+				continue;
+			}
+			RandomStack.Pop();
+			continue;
+		}
+		if (line.Len() >= 7 && FChar::IsDigit(line[1]) && FChar::IsDigit(line[2]) && FChar::IsDigit(line[3]) && line[6] == ':')
 		{
 			auto measure = FCString::Atoi(*line.Mid(1, 3));
 			lastMeasure = FMath::Max(lastMeasure, measure);
@@ -90,7 +168,7 @@ void FBMSParser::Parse(FString path, FChart** chart, bool addReadyMeasure, bool 
 		}
 		else
 		{
-			auto upperLine = line.ToUpper();
+			
 			if (upperLine.StartsWith("#WAV") || upperLine.StartsWith("#BMP"))
 			{
 				if (line.Len() < 7) continue;
@@ -697,7 +775,7 @@ void FBMSParser::ParseHeader(FChart* Chart, const FString& Cmd, const FString& X
 		Chart->Meta->LnMode = FCString::Atoi(*Value);
 	}
 	else {
-		//UE_LOG(LogTemp, Warning, TEXT("Unknown command: %s"), *CmdUpper);
+		UE_LOG(LogTemp, Warning, TEXT("Unknown command: %s"), *CmdUpper);
 	}	
 }
 
