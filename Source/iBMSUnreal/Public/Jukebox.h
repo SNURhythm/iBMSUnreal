@@ -25,11 +25,11 @@ private:
 	long long CurrentBGAStart = -1;
 	UE::Tasks::TTask<void> MainLoopTask;
 	int SampleRate = -1;
-	FMOD_RESULT ReadWav(const FString& Path, FMOD::Sound** Sound, std::atomic_bool& bCancelled);
-	unsigned long long MsToDSPClocks(double Ms);
-	void PlaySound(FMOD::Sound* sound, FMOD::ChannelGroup* group, bool paused, FMOD::Channel** channel);
+	FMOD_RESULT ReadWav(const FString& Path, FMOD::Sound** Sound, const std::atomic_bool& Cancelled) const;
+	unsigned long long MsToDspClocks(double Ms) const;
+	void PlaySound(FMOD::Sound* Sound, FMOD::ChannelGroup* Group, bool Paused, FMOD::Channel** Channel);
 	TQueue<TPair<unsigned long long, FMOD::Sound*>> SoundQueue;
-	void ScheduleSound(unsigned long long startDspClock, FMOD::Sound* Sound);
+	void ScheduleSound(unsigned long long DspClock, FMOD::Sound* Sound);
 	const FChart* Chart;
 	FCriticalSection SoundQueueLock;
 	FCriticalSection MediaPlayerLock;
@@ -48,14 +48,14 @@ public:
 	void OnGameTick();
 	UFUNCTION()
 	void LoadChart(const FChart* chart, std::atomic_bool& bCancelled, UMediaPlayer* OptionalPlayer = nullptr);
-	void Start(long long PosMicro = 0, bool autoKeysound = false);
+	void Start(long long PosMicro = 0, bool AutoKeySound = false);
 	void Unpause();
 
-	void Pause();
-	bool IsPaused();
+	void Pause() const;
+	bool IsPaused() const;
 	void Stop();
 
-	void PlayKeysound(int id);
+	void PlayKeySound(int Wav);
 	void Unload();
 
 	long long GetPositionMicro() const;

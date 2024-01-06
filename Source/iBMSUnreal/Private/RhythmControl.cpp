@@ -164,7 +164,7 @@ void ARhythmControl::OnMediaOpened(FString OpenedUrl)
 
 FJudgeResult ARhythmControl::PressNote(FBMSNote* Note, long long PressedTime)
 {
-	if(Note->Wav != FBMSParser::NoWav && !Options.AutoKeysound) Jukebox->PlayKeysound(Note->Wav);
+	if(Note->Wav != FBMSParser::NoWav && !Options.AutoKeysound) Jukebox->PlayKeySound(Note->Wav);
 	const auto JudgeResult = State->Judge->JudgeNow(Note, PressedTime);
 	if(JudgeResult.Judgement != None)
 	{

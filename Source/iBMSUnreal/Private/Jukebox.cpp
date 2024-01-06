@@ -11,58 +11,60 @@
 #include "iBMSUnreal/Public/Utils.h"
 #include "ChartDBHelper.h"
 
-FMOD_RESULT FJukebox::ReadWav(const FString& Path, FMOD::Sound** Sound, std::atomic_bool& bCancelled)
+FMOD_RESULT FJukebox::ReadWav(const FString& Path, FMOD::Sound** Sound, const std::atomic_bool& Cancelled) const
 {
-	TArray<uint8> bytes;
+	TArray<uint8> Bytes;
 	// ignore extension, and try .mp3, .ogg, .wav, .flac
-	FString withoutExt = FPaths::Combine(FPaths::GetPath(Path), FPaths::GetBaseFilename(Path));
-	bool found = false;
-	for(auto ext : {".mp3", ".ogg", ".wav", ".flac"})
+	const FString WithoutExt = FPaths::Combine(FPaths::GetPath(Path), FPaths::GetBaseFilename(Path));
+	bool Found = false;
+	for(const auto ExtraDot : {"", "."}) // some kusofumens have filename..wav (ura_63..wav in http://www.comeup.info/bofoon2007/automation.zip)
 	{
-		if(bCancelled) return FMOD_ERR_FILE_NOTFOUND;
-		FString newPath = withoutExt + ext;
-		if(FPaths::FileExists(newPath))
+		for(const auto Ext : {".flac", ".wav", ".ogg", ".mp3" })
 		{
-			FFileHelper::LoadFileToArray(bytes, *newPath);
-			found = true;
-			break;
+			if(Cancelled) return FMOD_ERR_FILE_NOTFOUND;
+		
+			FString NewPath = WithoutExt + ExtraDot + Ext;
+			if(FPaths::FileExists(NewPath))
+			{
+				FFileHelper::LoadFileToArray(Bytes, *NewPath);
+				Found = true;
+				break;
+			}
+		
 		}
 	}
-	if(!found)
+	if(!Found)
 	{
 		UE_LOG(LogTemp, Error, TEXT("File not found: %s"), *Path);
 		return FMOD_ERR_FILE_NOTFOUND;
 	}
 	FMOD_CREATESOUNDEXINFO exinfo = {};
 	exinfo.cbsize = sizeof(FMOD_CREATESOUNDEXINFO);
-	exinfo.length = bytes.Num();
-	return System->createSound(reinterpret_cast<const char*>(bytes.GetData()),  FMOD_LOOP_OFF | FMOD_DEFAULT | FMOD_2D | FMOD_3D_WORLDRELATIVE | FMOD_3D_INVERSEROLLOFF | FMOD_OPENMEMORY | FMOD_ACCURATETIME | FMOD_MPEGSEARCH | FMOD_IGNORETAGS | FMOD_LOWMEM | FMOD_OPENMEMORY | FMOD_CREATESAMPLE | FMOD_ACCURATETIME, &exinfo, Sound);
+	exinfo.length = Bytes.Num();
+	return System->createSound(reinterpret_cast<const char*>(Bytes.GetData()),  FMOD_LOOP_OFF | FMOD_DEFAULT | FMOD_2D | FMOD_3D_WORLDRELATIVE | FMOD_3D_INVERSEROLLOFF | FMOD_OPENMEMORY | FMOD_ACCURATETIME | FMOD_MPEGSEARCH | FMOD_IGNORETAGS | FMOD_LOWMEM | FMOD_OPENMEMORY | FMOD_CREATESAMPLE | FMOD_ACCURATETIME, &exinfo, Sound);
 }
 
-unsigned long long FJukebox::MsToDSPClocks(double Ms)
-{
-	int samplerate;
-	
-	System->getSoftwareFormat(&samplerate, nullptr, nullptr);
-	return Ms * static_cast<unsigned long long>(samplerate) / 1000;
+unsigned long long FJukebox::MsToDspClocks(const double Ms) const
+{	
+	return Ms * static_cast<unsigned long long>(SampleRate) / 1000;
 }
 
-void FJukebox::ScheduleSound(unsigned long long startDspClock, FMOD::Sound* Sound)
+void FJukebox::ScheduleSound(unsigned long long DspClock, FMOD::Sound* Sound)
 {
-	int channels;
-	int realChannels;
-	System->getChannelsPlaying(&channels, &realChannels);
-	if(realChannels >= MaxBgRealChannels)
+	int Channels;
+	int RealChannels;
+	System->getChannelsPlaying(&Channels, &RealChannels);
+	if(RealChannels >= MaxBgRealChannels)
 	{
 		SoundQueueLock.Lock();
 		// enqueue
-		SoundQueue.Enqueue(TPair<unsigned long long, FMOD::Sound*>(startDspClock, Sound));
+		SoundQueue.Enqueue(TPair<unsigned long long, FMOD::Sound*>(DspClock, Sound));
 		SoundQueueLock.Unlock();
 		return;
 	}
 	FMOD::Channel* channel;
 	PlaySound(Sound, ChannelGroup, true, &channel);
-	channel->setDelay(startDspClock, 0, true);
+	channel->setDelay(DspClock, 0, true);
 	channel->setPaused(false);
 }
 
@@ -90,28 +92,28 @@ void FJukebox::OnGameTick()
 		if (CurrentBGAStart >= 0 && MediaPlayer->IsPlaying())
 		{
 			// check drift
-			auto estimatedTime = GetPositionMicro() - CurrentBGAStart;
-			auto actualTime = MediaPlayer->GetTime().GetTotalMicroseconds();
-			auto driftMicro = actualTime - estimatedTime;
-			auto absDriftMicro = FMath::Abs(driftMicro);
+			const auto EstimatedTime = GetPositionMicro() - CurrentBGAStart;
+			const auto ActualTime = MediaPlayer->GetTime().GetTotalMicroseconds();
+			const auto DriftMicro = ActualTime - EstimatedTime;
+			const auto AbsDriftMicro = FMath::Abs(DriftMicro);
 
-			if (absDriftMicro > 40 * 1000 || (IsCorrectingBGADrift && absDriftMicro > 5 * 1000))
+			if (AbsDriftMicro > 40 * 1000 || (IsCorrectingBGADrift && AbsDriftMicro > 5 * 1000))
 			{
-				UE_LOG(LogTemp, Warning, TEXT("BGA drift: %f"), driftMicro);
+				// UE_LOG(LogTemp, Warning, TEXT("BGA drift: %f"), DriftMicro);
 				// if slower, set playback rate faster
 				// if faster, set playback rate slower
 				// adjustment is a linear function of drift which makes player to catch up estimated time quickly
 
-				auto rateAdjustment = absDriftMicro / 1000.0 / 1000.0 * 5.0;
-				UE_LOG(LogTemp, Warning, TEXT("Rate adjustment: %f"), rateAdjustment);
-				auto rate = driftMicro > 0 ? 1.0 - rateAdjustment : 1.0 + rateAdjustment;
-				UE_LOG(LogTemp, Warning, TEXT("Rate: %f"), rate);
+				const auto RateAdjustment = AbsDriftMicro / 1000.0 / 1000.0 * 5.0;
+				// UE_LOG(LogTemp, Warning, TEXT("Rate adjustment: %f"), rateAdjustment);
+				auto Rate = DriftMicro > 0 ? 1.0 - RateAdjustment : 1.0 + RateAdjustment;
+				// UE_LOG(LogTemp, Warning, TEXT("Rate: %f"), rate);
 				TArray<FFloatRange> SupportedRates;
 				MediaPlayer->GetSupportedRates(SupportedRates, true);
 				bool IsGood = false;
-				for (auto& range : SupportedRates)
+				for (auto& Range : SupportedRates)
 				{
-					if (range.Contains(rate))
+					if (Range.Contains(Rate))
 					{
 						IsGood = true;
 						break;
@@ -125,20 +127,20 @@ void FJukebox::OnGameTick()
 
 					// iterate through all lower/upper bounds
 
-					auto closest = SupportedRates[0].GetLowerBoundValue();
-					for (auto& range : SupportedRates)
+					auto Closest = SupportedRates[0].GetLowerBoundValue();
+					for (auto& Range : SupportedRates)
 					{
-						auto bound = rate > 1.0 ? range.GetUpperBoundValue() : range.GetLowerBoundValue();
-						if (bound == 0.0f) continue;
-						if (FMath::Abs(bound - rate) < FMath::Abs(closest - rate))
+						const auto Bound = Rate > 1.0 ? Range.GetUpperBoundValue() : Range.GetLowerBoundValue();
+						if (Bound == 0.0f) continue;
+						if (FMath::Abs(Bound - Rate) < FMath::Abs(Closest - Rate))
 						{
-							closest = bound;
+							Closest = Bound;
 						}
 					}
-					rate = closest;
+					Rate = Closest;
 				}
-				UE_LOG(LogTemp, Warning, TEXT("Closest Available Rate: %f"), rate);
-				MediaPlayer->SetRate(rate);
+				// UE_LOG(LogTemp, Warning, TEXT("Closest Available Rate: %f"), Rate);
+				MediaPlayer->SetRate(Rate);
 				IsCorrectingBGADrift = true;
 			}
 			else
@@ -154,9 +156,8 @@ void FJukebox::OnGameTick()
 		if (IsPaused) return;
 		BGALock.Lock();
 		TPair<int, long long> pair;
-
-		bool Valid = BGAStartQueue.Peek(pair);
-		if (!Valid)
+		
+		if (!BGAStartQueue.Peek(pair))
 			goto Skip;
 		// UE_LOG(LogTemp, Warning, TEXT("BGA %d at %lld vs current time %lld"), pair.Key, pair.Value, GetPositionMicro());
 		if (GetPositionMicro() >= pair.Value)
@@ -209,41 +210,41 @@ void FJukebox::LoadChart(const FChart* chart, std::atomic_bool& bCancelled, UMed
 	Chart = chart;
 	const bool bSupportMultiThreading = FPlatformProcess::SupportsMultithreading();
 	const int TaskNum = FMath::Max(FPlatformMisc::NumberOfWorkerThreadsToSpawn()/2,1);
-	const int32 WavNum = 36*36;
+	constexpr int32 WavNum = 36*36;
 	const int TaskSize = WavNum / TaskNum;
 	FString ChartFolder = Chart->Meta->Folder;
 	FCriticalSection SoundTableLock;
-	ParallelFor(TaskNum, [&](int32 i){
+	ParallelFor(TaskNum, [&](const int32 Index){
 		if(bCancelled) return;
-		int32 start = i * TaskSize;
-		if(start >= WavNum) return;
-		int32 end = (i+1) * TaskSize;
-		if(i == TaskNum - 1)
+		const int32 Start = Index * TaskSize;
+		if(Start >= WavNum) return;
+		int32 End = (Index+1) * TaskSize;
+		if(Index == TaskNum - 1)
 		{
-			end = WavNum;
+			End = WavNum;
 		}
-		if(end > WavNum)
+		if(End > WavNum)
 		{
-			end = WavNum;
+			End = WavNum;
 		}
-		for(int32 j=start; j<end; j++)
+		for(int32 j=Start; j<End; j++)
 		{
 			if(bCancelled) return;
 			if(!Chart->WavTable.Contains(j)) continue;
-			auto& wav = Chart->WavTable[j];
+			auto& Wav = Chart->WavTable[j];
 			
-			FMOD::Sound* sound;
-			FMOD_RESULT result = ReadWav(FPaths::Combine(ChartFolder, wav), &sound, bCancelled);
+			FMOD::Sound* Sound;
+			const FMOD_RESULT Result = ReadWav(FPaths::Combine(ChartFolder, Wav), &Sound, bCancelled);
 			if(bCancelled) return;
-			sound->setLoopCount(0);
-			if(result != FMOD_OK)
+			Sound->setLoopCount(0);
+			if(Result != FMOD_OK)
 			{
-				UE_LOG(LogTemp, Error, TEXT("Failed to load wav: %s, error code: %d"), *wav, result);
+				UE_LOG(LogTemp, Error, TEXT("Failed to load wav: %s, error code: %d"), *Wav, Result);
 				continue;
 			}
 
 			SoundTableLock.Lock();
-			SoundTable.Add(j, sound);
+			SoundTable.Add(j, Sound);
 			SoundTableLock.Unlock();
 		}
 	}, !bSupportMultiThreading);
@@ -252,53 +253,56 @@ void FJukebox::LoadChart(const FChart* chart, std::atomic_bool& bCancelled, UMed
 	MediaPlayer = OptionalPlayer;
 	MediaPlayer->PlayOnOpen = true;
 
-	for(auto& bmp: Chart->BmpTable)
+	for(auto& Bmp: Chart->BmpTable)
 	{
-		// find first mpg/mp4/avi/...
-		FString Name = bmp.Value;
+		FString Name = Bmp.Value;
 		FString Path = FPaths::Combine(ChartFolder, Name);
-		FString withoutExt = FPaths::Combine(FPaths::GetPath(Path), FPaths::GetBaseFilename(Path));
-		for(FString ext : {".mp4", ".avi", ".mpg", ".mpeg", ".wmv", ".mov", ".flv", ".mkv", ".webm"})
+		FString WithoutExt = FPaths::Combine(FPaths::GetPath(Path), FPaths::GetBaseFilename(Path));
+		for(FString ExtraDot : {"", "."})
 		{
-			// transcode into temp file
-			FString NewPath = withoutExt + ext;
-			if(!FPaths::FileExists(NewPath)) continue;
-			FString Original = NewPath;
-			FString TempPath = Original;
-			if(ext != ".mp4")
+			for(FString Ext : {".mp4", ".avi", ".wmv", ".mkv", ".mpg", ".mpeg", ".mov", ".flv", ".webm"})
 			{
-				FString OriginalRel = ChartDBHelper::ToRelativePath(Original);
-				FString Hash = FMD5::HashBytes((uint8*)TCHAR_TO_UTF8(*OriginalRel), OriginalRel.Len());
-				FString Directory = FUtils::GetDocumentsPath("Temp");
-				IFileManager::Get().MakeDirectory(*Directory, true);
-				TempPath = FPaths::Combine(Directory, Hash + ".mp4");
-				TempPath = IFileManager::Get().ConvertToAbsolutePathForExternalAppForWrite(*TempPath);
-				if(!FPaths::FileExists(TempPath))
+				// transcode into temp file
+				FString NewPath = WithoutExt + ExtraDot + Ext;
+				if(!FPaths::FileExists(NewPath)) continue;
+				FString Original = NewPath;
+				FString TempPath = Original;
+				if(Ext != ".mp4")
 				{
-					UE_LOG(LogTemp, Warning, TEXT("Transcoding %s to %s"), *Original, *TempPath);
-					int result = transcode(TCHAR_TO_UTF8(*Original), TCHAR_TO_UTF8(*TempPath), &bCancelled);
-					if(result<0||bCancelled)
+					FString OriginalRel = ChartDBHelper::ToRelativePath(Original);
+					FString Hash = FMD5::HashBytes((uint8*)TCHAR_TO_UTF8(*OriginalRel), OriginalRel.Len());
+					FString Directory = FUtils::GetDocumentsPath("Temp");
+					IFileManager::Get().MakeDirectory(*Directory, true);
+					TempPath = FPaths::Combine(Directory, Hash + ".mp4");
+					TempPath = IFileManager::Get().ConvertToAbsolutePathForExternalAppForWrite(*TempPath);
+					if(!FPaths::FileExists(TempPath))
 					{
-						// remove temp file
-						IFileManager::Get().Delete(*TempPath);
-						break;
+						UE_LOG(LogTemp, Warning, TEXT("Transcoding %s to %s"), *Original, *TempPath);
+						const int Result = transcode(TCHAR_TO_UTF8(*Original), TCHAR_TO_UTF8(*TempPath), &bCancelled);
+						if(Result<0||bCancelled)
+						{
+							// remove temp file
+							IFileManager::Get().Delete(*TempPath);
+							break;
+						}
+						UE_LOG(LogTemp, Warning, TEXT("Transcoding done: %d"), Result);
 					}
-					UE_LOG(LogTemp, Warning, TEXT("Transcoding done: %d"), result);
 				}
-			}
-			const FString FileName = FPaths::GetBaseFilename(TempPath);
-			const FName ObjectName = MakeUniqueObjectName(GetTransientPackage(), UFileMediaSource::StaticClass(), FName(*FileName));
+			
+				const FString FileName = FPaths::GetBaseFilename(TempPath);
+				const FName ObjectName = MakeUniqueObjectName(GetTransientPackage(), UFileMediaSource::StaticClass(), FName(*FileName));
 
-			auto MediaSource = NewObject<UFileMediaSource>(GetTransientPackage(), ObjectName, RF_Transactional | RF_Transient);
-			MediaSource->SetFilePath(TempPath);
-			BGASourceMap.Add(bmp.Key, MediaSource);
-			UE_LOG(LogTemp, Warning, TEXT("Added BGA %d"), bmp.Key);
-			break;
+				auto MediaSource = NewObject<UFileMediaSource>(GetTransientPackage(), ObjectName, RF_Transactional | RF_Transient);
+				MediaSource->SetFilePath(TempPath);
+				BGASourceMap.Add(Bmp.Key, MediaSource);
+				UE_LOG(LogTemp, Warning, TEXT("Added BGA %d"), Bmp.Key);
+				break;
+			}
 		}
 	}	
 }
 
-void FJukebox::Start(long long PosMicro, bool autoKeysound)
+void FJukebox::Start(const long long PosMicro, const bool AutoKeySound)
 {
 	Stop();
 	if(!Chart)
@@ -308,41 +312,41 @@ void FJukebox::Start(long long PosMicro, bool autoKeysound)
 	}
 	// schedule all sounds
 	ChannelGroup->setPaused(true);
-
+	System->getSoftwareFormat(&SampleRate, nullptr, nullptr);
 
 	ChannelGroup->getDSPClock(&StartDspClock, nullptr);
 	
-	for(auto& measure: Chart->Measures)
+	for(auto& Measure: Chart->Measures)
 	{
-		for(auto& timeline: measure->TimeLines)
+		for(const auto& Timeline: Measure->TimeLines)
 		{
-			if(timeline->BgaBase != -1)
+			if(Timeline->BgaBase != -1)
 			{
-				UE_LOG(LogTemp, Warning, TEXT("BGA %d at %lld"), timeline->BgaBase, timeline->Timing);
-				BGAStartQueue.Enqueue({timeline->BgaBase, timeline->Timing});
+				UE_LOG(LogTemp, Warning, TEXT("BGA %d at %lld"), Timeline->BgaBase, Timeline->Timing);
+				BGAStartQueue.Enqueue({Timeline->BgaBase, Timeline->Timing});
 			}
-			auto timing = timeline->Timing - PosMicro;
-			if(timing < 0) continue;
-			auto dspClock = StartDspClock + MsToDSPClocks(static_cast<double>(timing)/1000.0);
-			for(auto& note: timeline->BackgroundNotes)
+			const auto Timing = Timeline->Timing - PosMicro;
+			if(Timing < 0) continue;
+			const auto DspClock = StartDspClock + MsToDspClocks(static_cast<double>(Timing)/1000.0);
+			for(const auto& Note: Timeline->BackgroundNotes)
 			{
-				if(!note) continue;
-				auto id = note->Wav;
-				if(id == FBMSParser::NoWav) continue;
-				auto sound = SoundTable.FindRef(id);
-				if(!sound) continue;
-				ScheduleSound(dspClock, sound);
+				if(!Note) continue;
+				const auto Wav = Note->Wav;
+				if(Wav == FBMSParser::NoWav) continue;
+				const auto Sound = SoundTable.FindRef(Wav);
+				if(!Sound) continue;
+				ScheduleSound(DspClock, Sound);
 			}
-			if(autoKeysound)
+			if(AutoKeySound)
 			{
-				for(auto& note: timeline->Notes)
+				for(const auto& Note: Timeline->Notes)
 				{
-					if(!note) continue;
-					auto id = note->Wav;
-					if(id == FBMSParser::NoWav) continue;
-					auto sound = SoundTable.FindRef(id);
-					if(!sound) continue;
-					ScheduleSound(dspClock, sound);
+					if(!Note) continue;
+					const auto Wav = Note->Wav;
+					if(Wav == FBMSParser::NoWav) continue;
+					const auto Sound = SoundTable.FindRef(Wav);
+					if(!Sound) continue;
+					ScheduleSound(DspClock, Sound);
 				}
 			}
 		}
@@ -354,7 +358,7 @@ void FJukebox::Unpause()
 {
 
 	ChannelGroup->setPaused(false);
-	System->getSoftwareFormat(&SampleRate, nullptr, nullptr);
+	
 	if(IsValid(MediaPlayer))
 	{
 		MediaPlayer->Play();
@@ -371,11 +375,11 @@ void FJukebox::Unpause()
 			ChannelGroup->getPaused(&isPaused);
 			if (isPaused) break;
 			
-			int channels;
-			int realChannels;
-			System->getChannelsPlaying(&channels, &realChannels);
-			int availableChannels = MaxBgRealChannels - realChannels;
-			for (int i = 0; i < availableChannels; i++)
+			int Channels;
+			int RealChannels;
+			System->getChannelsPlaying(&Channels, &RealChannels);
+			const int AvailableChannels = MaxBgRealChannels - RealChannels;
+			for (int i = 0; i < AvailableChannels; i++)
 			{
 				ChannelGroup->getPaused(&isPaused);
 				if (isPaused)
@@ -391,11 +395,11 @@ void FJukebox::Unpause()
 				}
 				SoundQueueLock.Unlock();
 
-				FMOD::Channel* channel;
-				PlaySound(pair.Value, ChannelGroup, true, &channel);
-				channel->setDelay(pair.Key, 0, true);
+				FMOD::Channel* Channel;
+				PlaySound(pair.Value, ChannelGroup, true, &Channel);
+				Channel->setDelay(pair.Key, 0, true);
 
-				channel->setPaused(false);
+				Channel->setPaused(false);
 			}
 			System->update();
 			// sleep for 1ms
@@ -404,7 +408,7 @@ void FJukebox::Unpause()
 	});
 }
 
-void FJukebox::PlaySound(FMOD::Sound* sound, FMOD::ChannelGroup* group, bool paused, FMOD::Channel** channel)
+void FJukebox::PlaySound(FMOD::Sound* Sound, FMOD::ChannelGroup* Group, const bool Paused, FMOD::Channel** Channel)
 {
 	// THIS IS BUGGY RIGHT NOW
 	// if(const auto PreviousChannel = AudioChannelMap.FindRef(sound))
@@ -412,13 +416,13 @@ void FJukebox::PlaySound(FMOD::Sound* sound, FMOD::ChannelGroup* group, bool pau
 	// 	UE_LOG(LogTemp, Warning, TEXT("Sound %p already playing, stop it"), sound);
 	// 	PreviousChannel->stop();
 	// }
-	System->playSound(sound, group, paused, channel);
+	System->playSound(Sound, Group, Paused, Channel);
 	AudioChannelMapLock.Lock();
-	AudioChannelMap.Add(sound, *channel);
+	AudioChannelMap.Add(Sound, *Channel);
 	AudioChannelMapLock.Unlock();
 }
 
-void FJukebox::Pause()
+void FJukebox::Pause() const
 {
 	ChannelGroup->setPaused(true);
 	if(IsValid(MediaPlayer))
@@ -427,17 +431,18 @@ void FJukebox::Pause()
 	}
 }
 
-bool FJukebox::IsPaused()
+bool FJukebox::IsPaused() const
 {
-	bool isPaused;
-	ChannelGroup->getPaused(&isPaused);
-	return isPaused;
+	bool IsPaused;
+	ChannelGroup->getPaused(&IsPaused);
+	return IsPaused;
 }
 
 void FJukebox::Stop()
 {
 	ChannelGroup->setPaused(true);
 	ChannelGroup->stop();
+	// ReSharper disable once CppExpressionWithoutSideEffects
 	MainLoopTask.Wait();
 
 	SoundQueueLock.Lock();
@@ -445,23 +450,23 @@ void FJukebox::Stop()
 	SoundQueueLock.Unlock();
 }
 
-void FJukebox::PlayKeysound(int id)
+void FJukebox::PlayKeySound(const int Wav)
 {
-	FMOD::Sound* sound = SoundTable.FindRef(id);
-	if(!sound) return;
-	UE::Tasks::Launch(UE_SOURCE_LOCATION, [this, sound](){
-		FMOD::Channel* channel;
+	FMOD::Sound* Sound = SoundTable.FindRef(Wav);
+	if(!Sound) return;
+	UE::Tasks::Launch(UE_SOURCE_LOCATION, [this, Sound](){
+		FMOD::Channel* Channel;
 		if(!ChannelGroup) return;
-		PlaySound(sound, ChannelGroup, false, &channel);
+		PlaySound(Sound, ChannelGroup, false, &Channel);
 	});
 }
 
 void FJukebox::Unload()
 {
 	Stop();
-	for(auto& pair: SoundTable)
+	for(const auto& Pair: SoundTable)
 	{
-		pair.Value->release();
+		Pair.Value->release();
 	}
 	SoundTable.Empty();
 	
@@ -482,9 +487,9 @@ long long FJukebox::GetPositionMicro() const
 {
 	if(!ChannelGroup) return 0;
 	if(SampleRate == -1) return 0;
-	unsigned long long dspClock;
-	ChannelGroup->getDSPClock(&dspClock, nullptr);
-	
-	auto result = (static_cast<double>(dspClock) / SampleRate * 1000000 - static_cast<double>(StartDspClock) / SampleRate * 1000000);
-	return result;
+	unsigned long long DspClock;
+	ChannelGroup->getDSPClock(&DspClock, nullptr);
+
+	const auto Result = (static_cast<double>(DspClock) / SampleRate * 1000000 - static_cast<double>(StartDspClock) / SampleRate * 1000000);
+	return Result;
 }
