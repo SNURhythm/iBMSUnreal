@@ -53,6 +53,7 @@ public:
 	UFUNCTION()
 	void OnButtonClicked();
 	virtual void NativeConstruct() override;
+	virtual void NativeDestruct() override;
 	virtual void NativeOnListItemObjectSet(UObject* InObject) override;
 	
 	

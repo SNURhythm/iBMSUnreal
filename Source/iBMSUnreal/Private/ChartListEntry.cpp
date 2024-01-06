@@ -22,7 +22,16 @@ void UChartListEntry::NativeConstruct()
 	Super::NativeConstruct();
 	//Button->OnClicked.AddDynamic(this, &UChartListEntry::OnButtonClicked);
 }
-
+void UChartListEntry::NativeDestruct()
+{
+	Super::NativeDestruct();
+	FScopeLock Lock(&BannerTextureLock);
+	if(IsValid(CurrentBannerTexture)) {
+		CurrentBannerTexture->ReleaseResource();
+		CurrentBannerTexture->GetPlatformData()->Mips[0].BulkData.RemoveBulkData();
+		CurrentBannerTexture = nullptr;
+	}
+}
 void UChartListEntry::NativeOnListItemObjectSet(UObject* InObject)
 {
 	EntryData = Cast<UChartListEntryData>(InObject);

@@ -234,6 +234,7 @@ void AChartSelectScreen::LoadCharts()
 		{
 			return A.Title < B.Title;
 		});
+		
 		AsyncTask(ENamedThreads::GameThread, [chartMetas, this]()
 		{
 			if (bCancelled) return;
@@ -249,6 +250,7 @@ void AChartSelectScreen::LoadCharts()
 			ChartSelectUI->ChartList->NavigateToIndex(index);
 			ChartSelectUI->ChartList->SetSelectedIndex(index);
 		});
+		
 		// find new charts
 		TArray<FDiff> Diffs;
 		TSet<FString> PathSet;
@@ -321,11 +323,13 @@ void AChartSelectScreen::LoadCharts()
 					if (SuccessNewChartCount % 100 == 0)
 					{
 						UE_LOG(LogTemp, Warning, TEXT("success count: %d"), (int)SuccessNewChartCount);
-						if (isCommitting) continue;
-						isCommitting = true;
-						dbHelper.CommitTransaction(db);
-						dbHelper.BeginTransaction(db);
-						isCommitting = false;
+						if (!isCommitting)
+						{
+							isCommitting = true;
+							dbHelper.CommitTransaction(db);
+							dbHelper.BeginTransaction(db);
+							isCommitting = false;
+						}
 					}
 
 					// UE_LOG(LogTemp,Warning,TEXT("TITLE: %s"), *Chart->Meta->Title);
@@ -501,13 +505,14 @@ void AChartSelectScreen::BeginPlay()
 					BackgroundImageLock.Unlock();
 					ChartSelectUI->StageFileImage->SetBrushFromTexture(nullptr);
 					ChartSelectUI->StageFileImage->SetBrushTintColor(FLinearColor::Black);
-				} else
+				}
+				else
 				{
 					ImagePath = FPaths::Combine(chartMeta->Folder, ImagePath);
 					TArray<uint8> ImageBytes;
 					FFileHelper::LoadFileToArray(ImageBytes, *ImagePath);
 					ImageUtils::LoadTexture2D(ImagePath, ImageBytes, IsImageValid, -1, -1, BackgroundImage);
-					if(IsImageValid)
+					if (IsImageValid)
 					{
 						ChartSelectUI->StageFileImage->SetBrushTintColor(FLinearColor::White);
 						ChartSelectUI->StageFileImage->SetBrushFromTexture(BackgroundImage);
@@ -714,6 +719,7 @@ void AChartSelectScreen::EndPlay(const EEndPlayReason::Type EndPlayReason)
 	}
 	jukebox->Unload();
 	delete jukebox;
+	UE_LOG(LogTemp, Warning, TEXT("ChartSelectScreen jukebox unloaded"));
 	if (BGATask.IsValid())
 	{
 		BGATask.Wait();
