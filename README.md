@@ -16,6 +16,11 @@ A crossplatform BMS player
 - Touch input on mobile devices
 - Independent input thread (currently, only for macOS and Windows)
 
+## TODOs
+- S-RANDOM
+- In-game chart viewer
+- Custom skin support
+  
 ## Caveats
 
 ### Android
