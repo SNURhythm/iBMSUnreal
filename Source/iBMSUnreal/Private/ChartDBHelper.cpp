@@ -180,7 +180,7 @@ bool ChartDBHelper::InsertChartMeta(sqlite3* db, FChartMeta& chartMeta) {
 	return true;
 }
 
-TArray<FChartMeta*> ChartDBHelper::SelectAllChartMeta(sqlite3* db) {
+void ChartDBHelper::SelectAllChartMeta(sqlite3* db, TArray<FChartMeta>& chartMetas) {
 	auto query = "SELECT "
 		"path,"
 		"md5,"
@@ -216,19 +216,18 @@ TArray<FChartMeta*> ChartDBHelper::SelectAllChartMeta(sqlite3* db) {
 		FString err = UTF8_TO_TCHAR(sqlite3_errmsg(db));
 		UE_LOG(LogTemp, Error, TEXT("SQL error while getting all charts: %s"), *err);
 		sqlite3_free(stmt);
-		return TArray<FChartMeta*>();
+		return;
 	}
-	TArray<FChartMeta*> chartMetas;
+
 	while (sqlite3_step(stmt) == SQLITE_ROW)
 	{
 		auto chartMeta = ReadChartMeta(stmt);
 		chartMetas.Add(chartMeta);
 	}
 	sqlite3_finalize(stmt);
-	return chartMetas;
 }
 
-TArray<FChartMeta*> ChartDBHelper::SearchChartMeta(sqlite3* db, FString& text) {
+void ChartDBHelper::SearchChartMeta(sqlite3* db, FString& text, TArray<FChartMeta>& chartMetas) {
 	auto query = "SELECT "
 		"path,"
 		"md5,"
@@ -264,18 +263,16 @@ TArray<FChartMeta*> ChartDBHelper::SearchChartMeta(sqlite3* db, FString& text) {
 		FString err = UTF8_TO_TCHAR(sqlite3_errmsg(db));
 		UE_LOG(LogTemp, Error, TEXT("SQL error while searching for charts: %s"), *err);
 		sqlite3_free(stmt);
-		return TArray<FChartMeta*>();
+		return;
 	}
 	sqlite3_bind_text(stmt, 1, TCHAR_TO_UTF8(*("%" + text + "%")), -1, SQLITE_TRANSIENT);
-
-	TArray<FChartMeta*> chartMetas;
+	
 	while (sqlite3_step(stmt) == SQLITE_ROW)
 	{
 		auto chartMeta = ReadChartMeta(stmt);
 		chartMetas.Add(chartMeta);
 	}
 	sqlite3_finalize(stmt);
-	return chartMetas;
 }
 
 bool ChartDBHelper::DeleteChartMeta(sqlite3* db, FString& path) {
@@ -322,38 +319,38 @@ bool ChartDBHelper::ClearChartMeta(sqlite3* db) {
 	return true;
 }
 
-FChartMeta* ChartDBHelper::ReadChartMeta(sqlite3_stmt* stmt) {
+FChartMeta ChartDBHelper::ReadChartMeta(sqlite3_stmt* stmt) {
 	int idx = 0;
-	FChartMeta* chartMeta = new FChartMeta();
+	FChartMeta chartMeta;
 	FString path = UTF8_TO_TCHAR(sqlite3_column_text(stmt, idx++));
-	chartMeta->BmsPath = ToAbsolutePath(path);
-	chartMeta->MD5 = UTF8_TO_TCHAR(sqlite3_column_text(stmt, idx++));
-	chartMeta->SHA256 = UTF8_TO_TCHAR(sqlite3_column_text(stmt, idx++));
-	chartMeta->Title = UTF8_TO_TCHAR(sqlite3_column_text(stmt, idx++));
-	chartMeta->SubTitle = UTF8_TO_TCHAR(sqlite3_column_text(stmt, idx++));
-	chartMeta->Genre = UTF8_TO_TCHAR(sqlite3_column_text(stmt, idx++));
-	chartMeta->Artist = UTF8_TO_TCHAR(sqlite3_column_text(stmt, idx++));
-	chartMeta->SubArtist = UTF8_TO_TCHAR(sqlite3_column_text(stmt, idx++));
+	chartMeta.BmsPath = ToAbsolutePath(path);
+	chartMeta.MD5 = UTF8_TO_TCHAR(sqlite3_column_text(stmt, idx++));
+	chartMeta.SHA256 = UTF8_TO_TCHAR(sqlite3_column_text(stmt, idx++));
+	chartMeta.Title = UTF8_TO_TCHAR(sqlite3_column_text(stmt, idx++));
+	chartMeta.SubTitle = UTF8_TO_TCHAR(sqlite3_column_text(stmt, idx++));
+	chartMeta.Genre = UTF8_TO_TCHAR(sqlite3_column_text(stmt, idx++));
+	chartMeta.Artist = UTF8_TO_TCHAR(sqlite3_column_text(stmt, idx++));
+	chartMeta.SubArtist = UTF8_TO_TCHAR(sqlite3_column_text(stmt, idx++));
 	FString folder = UTF8_TO_TCHAR(sqlite3_column_text(stmt, idx++));
-	chartMeta->Folder = ToAbsolutePath(folder);
-	chartMeta->StageFile = UTF8_TO_TCHAR(sqlite3_column_text(stmt, idx++));
-	chartMeta->Banner = UTF8_TO_TCHAR(sqlite3_column_text(stmt, idx++));
-	chartMeta->BackBmp = UTF8_TO_TCHAR(sqlite3_column_text(stmt, idx++));
-	chartMeta->Preview = UTF8_TO_TCHAR(sqlite3_column_text(stmt, idx++));
-	chartMeta->PlayLevel = sqlite3_column_double(stmt, idx++);
-	chartMeta->Difficulty = sqlite3_column_int(stmt, idx++);
-	chartMeta->Total = sqlite3_column_double(stmt, idx++);
-	chartMeta->Bpm = sqlite3_column_double(stmt, idx++);
-	chartMeta->MaxBpm = sqlite3_column_double(stmt, idx++);
-	chartMeta->MinBpm = sqlite3_column_double(stmt, idx++);
-	chartMeta->PlayLength = sqlite3_column_int64(stmt, idx++);
-	chartMeta->Rank = sqlite3_column_int(stmt, idx++);
-	chartMeta->Player = sqlite3_column_int(stmt, idx++);
-	chartMeta->KeyMode = sqlite3_column_int(stmt, idx++);
-	chartMeta->TotalNotes = sqlite3_column_int(stmt, idx++);
-	chartMeta->TotalLongNotes = sqlite3_column_int(stmt, idx++);
-	chartMeta->TotalScratchNotes = sqlite3_column_int(stmt, idx++);
-	chartMeta->TotalBackSpinNotes = sqlite3_column_int(stmt, idx++);
+	chartMeta.Folder = ToAbsolutePath(folder);
+	chartMeta.StageFile = UTF8_TO_TCHAR(sqlite3_column_text(stmt, idx++));
+	chartMeta.Banner = UTF8_TO_TCHAR(sqlite3_column_text(stmt, idx++));
+	chartMeta.BackBmp = UTF8_TO_TCHAR(sqlite3_column_text(stmt, idx++));
+	chartMeta.Preview = UTF8_TO_TCHAR(sqlite3_column_text(stmt, idx++));
+	chartMeta.PlayLevel = sqlite3_column_double(stmt, idx++);
+	chartMeta.Difficulty = sqlite3_column_int(stmt, idx++);
+	chartMeta.Total = sqlite3_column_double(stmt, idx++);
+	chartMeta.Bpm = sqlite3_column_double(stmt, idx++);
+	chartMeta.MaxBpm = sqlite3_column_double(stmt, idx++);
+	chartMeta.MinBpm = sqlite3_column_double(stmt, idx++);
+	chartMeta.PlayLength = sqlite3_column_int64(stmt, idx++);
+	chartMeta.Rank = sqlite3_column_int(stmt, idx++);
+	chartMeta.Player = sqlite3_column_int(stmt, idx++);
+	chartMeta.KeyMode = sqlite3_column_int(stmt, idx++);
+	chartMeta.TotalNotes = sqlite3_column_int(stmt, idx++);
+	chartMeta.TotalLongNotes = sqlite3_column_int(stmt, idx++);
+	chartMeta.TotalScratchNotes = sqlite3_column_int(stmt, idx++);
+	chartMeta.TotalBackSpinNotes = sqlite3_column_int(stmt, idx++);
 	return chartMeta;
 }
 

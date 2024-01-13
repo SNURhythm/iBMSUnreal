@@ -88,7 +88,7 @@ class IBMSUNREAL_API FChart
 public:
 	FChart();
 	~FChart();
-	FChartMeta* Meta = nullptr;
+	FChartMeta Meta;
 	TArray<FMeasure*> Measures;
 	TMap<int, FString> WavTable;
 	TMap<int, FString> BmpTable;

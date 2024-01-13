@@ -29,7 +29,7 @@ public:
 	TMap<EJudgement, int> JudgeCount;
 	explicit FRhythmState(const FChart* Chart, bool AddReadyMeasure)
 	{
-		Judge = new FJudge(Chart->Meta->Rank);
+		Judge = new FJudge(Chart->Meta.Rank);
 		for(int i = 0; i < EJudgementCount; i++)
 		{
 			JudgeCount.Add(static_cast<EJudgement>(i), 0);

@@ -30,8 +30,8 @@ public:
 
 	// Insert ChartMeta
 	bool InsertChartMeta(sqlite3* db, FChartMeta& chartMeta);
-	TArray<FChartMeta*> SelectAllChartMeta(sqlite3* db);
-	TArray<FChartMeta*> SearchChartMeta(sqlite3* db, FString& keyword);
+	void SelectAllChartMeta(sqlite3* db, TArray<FChartMeta>& chartMetas);
+	void SearchChartMeta(sqlite3* db, FString& keyword, TArray<FChartMeta>& chartMetas);
 	bool DeleteChartMeta(sqlite3* db, FString& path);
 	bool ClearChartMeta(sqlite3* db);
 	void Close(sqlite3* db);
@@ -46,6 +46,6 @@ public:
 	static FString ToRelativePath(FString& path);
 	static FString ToAbsolutePath(FString& path);
 private:
-	FChartMeta* ReadChartMeta(sqlite3_stmt* stmt);
+	FChartMeta ReadChartMeta(sqlite3_stmt* stmt);
 
 };

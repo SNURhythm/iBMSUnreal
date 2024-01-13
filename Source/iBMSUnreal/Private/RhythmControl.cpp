@@ -378,6 +378,8 @@ void ARhythmControl::PauseGame()
 	{
 		CurrentPauseHUD->SetVisibility(ESlateVisibility::Visible);
 		CurrentPauseHUD->ResumeButton->SetFocus();
+		// force garbage collection
+		GEngine->ForceGarbageCollection(true);
 	}
 }
 
@@ -387,7 +389,7 @@ void ARhythmControl::BeginPlay()
 	Super::BeginPlay();
 	MediaPlayer->OnMediaOpened.AddDynamic(this, &ARhythmControl::OnMediaOpened);
 	// force garbage collection
-	CollectGarbage(GARBAGE_COLLECTION_KEEPFLAGS);
+	GEngine->ForceGarbageCollection(true);
 	UE_LOG(LogTemp, Warning, TEXT("Rhythm BeginPlay"));
 	// get BMSRenderer actor component
 	GameInstance = Cast<UBMSGameInstance>(GetGameInstance());
@@ -504,14 +506,14 @@ void ARhythmControl::LoadGame()
 	Parser.Parse(Options.BmsPath, &Chart, false, false, IsLoadCancelled);
 	Renderer->Init(Chart);
 	// init IsLanePressed
-	for (const auto& Lane : Chart->Meta->GetTotalLaneIndices())
+	for (const auto& Lane : Chart->Meta.GetTotalLaneIndices())
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Lane: %d"), Lane);
 		IsLanePressed.Add(Lane, false);
 	}
 	if(!Options.AutoPlay)
 	{
-		InputHandler = new FRhythmInputHandler(this, *Chart->Meta);
+		InputHandler = new FRhythmInputHandler(this, Chart->Meta);
 		bool result1 = InputHandler->StartListenNative() || InputHandler->StartListenUnreal(PlayerInputComponent); // fallback to unreal input if native input failed
 		bool result2 = InputHandler->StartListenUnrealTouch(PlayerController, Renderer->NoteArea, 15);
 		if(!result1 && !result2)

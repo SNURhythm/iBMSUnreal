@@ -38,13 +38,13 @@ void UChartListEntry::NativeOnListItemObjectSet(UObject* InObject)
 	if (EntryData)
 	{
 		auto ChartMeta = EntryData->ChartMeta;
-		TitleText->SetText(FText::FromString(ChartMeta->Title + (ChartMeta->SubTitle.IsEmpty() ? "" : " " + ChartMeta->SubTitle)));
-		ArtistText->SetText(FText::FromString(ChartMeta->Artist));
-		KeyModeText->SetText(FText::FromString(FString::Printf(TEXT("%dK"), ChartMeta->KeyMode)));
-		PlayLevelText->SetText(FText::FromString(FString::Printf(TEXT("%g"), ChartMeta->PlayLevel)));
+		TitleText->SetText(FText::FromString(ChartMeta.Title + (ChartMeta.SubTitle.IsEmpty() ? "" : " " + ChartMeta.SubTitle)));
+		ArtistText->SetText(FText::FromString(ChartMeta.Artist));
+		KeyModeText->SetText(FText::FromString(FString::Printf(TEXT("%dK"), ChartMeta.KeyMode)));
+		PlayLevelText->SetText(FText::FromString(FString::Printf(TEXT("%g"), ChartMeta.PlayLevel)));
 		PlayLevelText->SetShadowColorAndOpacity(FLinearColor::Black);
 		// set playlevel text color by difficulty (1~5)
-		switch(ChartMeta->Difficulty)
+		switch(ChartMeta.Difficulty)
 		{
 		case 1:
 			PlayLevelText->SetColorAndOpacity(FLinearColor::Green);
@@ -67,15 +67,15 @@ void UChartListEntry::NativeOnListItemObjectSet(UObject* InObject)
 			PlayLevelText->SetColorAndOpacity(FLinearColor::White);
 			break;
 		}
-		auto path = ChartMeta->Banner;
+		auto path = ChartMeta.Banner;
 		if(path.IsEmpty()) {
-			path = ChartMeta->StageFile;
+			path = ChartMeta.StageFile;
 		}
 		if(path.IsEmpty()) {
-			path = ChartMeta->BackBmp;
+			path = ChartMeta.BackBmp;
 		}
 		if(path.IsEmpty()) {
-			path = ChartMeta->Preview;
+			path = ChartMeta.Preview;
 		}
 		if(path.IsEmpty()) {
 			// set to blank, black
@@ -86,7 +86,7 @@ void UChartListEntry::NativeOnListItemObjectSet(UObject* InObject)
 		Banner->SetBrushTintColor(FLinearColor::Black);
 		Banner->SetBrushFromTexture(nullptr);
 
-		path = FPaths::Combine(ChartMeta->Folder, path);
+		path = FPaths::Combine(ChartMeta.Folder, path);
 		UE::Tasks::Launch(UE_SOURCE_LOCATION, [this, path]() {
 
 			TArray<uint8>* ImageBytes = new TArray<uint8>();
@@ -102,7 +102,7 @@ void UChartListEntry::NativeOnListItemObjectSet(UObject* InObject)
 					CurrentBannerTexture = nullptr;
 				}
 				// check if entry is re-bound
-				if (EntryData == nullptr || EntryData->ChartMeta == nullptr || EntryData->ChartMeta->Folder != FPaths::GetPath(path))
+				if (EntryData == nullptr || EntryData->ChartMeta.Folder != FPaths::GetPath(path))
 				{
 					UE_LOG(LogTemp, Warning, TEXT("ChartListEntry: Entry is re-bound, aborting image load"));
 					delete ImageBytes;

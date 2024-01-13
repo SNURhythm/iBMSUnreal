@@ -229,7 +229,8 @@ void AChartSelectScreen::LoadCharts()
 		FMODSystem->createSound(TCHAR_TO_ANSI(*SoundPath), FMOD_DEFAULT, 0, &SuccessSound);
 		UE_LOG(LogTemp, Warning, TEXT("ChartSelectScreen Start Task!!"));
 
-		auto chartMetas = dbHelper.SelectAllChartMeta(db);
+		TArray<FChartMeta> chartMetas;
+		dbHelper.SelectAllChartMeta(db, chartMetas);
 		chartMetas.Sort([](const FChartMeta& A, const FChartMeta& B)
 		{
 			return A.Title < B.Title;
@@ -242,9 +243,9 @@ void AChartSelectScreen::LoadCharts()
 			auto prevStartOption = Cast<UBMSGameInstance>(UGameplayStatics::GetGameInstance(GetWorld()))->GetStartOptions();
 			if (prevStartOption.BmsPath.IsEmpty()) return;
 			// get index
-			int index = chartMetas.IndexOfByPredicate([&](const FChartMeta* ChartMeta)
+			int index = chartMetas.IndexOfByPredicate([&](const FChartMeta ChartMeta)
 			{
-				return ChartMeta->BmsPath == prevStartOption.BmsPath;
+				return ChartMeta.BmsPath == prevStartOption.BmsPath;
 			});
 			if (index == INDEX_NONE) return;
 			ChartSelectUI->ChartList->NavigateToIndex(index);
@@ -259,7 +260,7 @@ void AChartSelectScreen::LoadCharts()
 		for (auto& meta : chartMetas)
 		{
 			if (bCancelled) break;
-			auto path = ChartDBHelper::ToRelativePath(meta->BmsPath);
+			auto path = ChartDBHelper::ToRelativePath(meta.BmsPath);
 			PathSet.Add(path);
 		}
 		IFileManager& FileManager = IFileManager::Get();
@@ -291,6 +292,7 @@ void AChartSelectScreen::LoadCharts()
 		{
 			UE_LOG(LogTemp, Warning, TEXT("ChartSelectScreen No new charts"));
 			IsScanning = false;
+			dbHelper.Close(db);
 			return;
 		}
 	
@@ -334,7 +336,7 @@ void AChartSelectScreen::LoadCharts()
 
 					// UE_LOG(LogTemp,Warning,TEXT("TITLE: %s"), *Chart->Meta->Title);
 
-					dbHelper.InsertChartMeta(db, *Chart->Meta);
+					dbHelper.InsertChartMeta(db, Chart->Meta);
 					// close db
 					delete Chart;
 				} else
@@ -344,6 +346,7 @@ void AChartSelectScreen::LoadCharts()
 			}
 		}, !bSupportMultithreading);
 		dbHelper.CommitTransaction(db);
+		dbHelper.Close(db);
 	
 		if (bCancelled) goto scan_end;
 
@@ -356,8 +359,10 @@ void AChartSelectScreen::LoadCharts()
 			const auto db = dbHelper.Connect();
 			const auto SearchText = ChartSelectUI->SearchBox->GetText();
 			FString SearchString = SearchText.ToString();
-			auto chartMetas = SearchString.IsEmpty() ? dbHelper.SelectAllChartMeta(db) :
-				dbHelper.SearchChartMeta(db, SearchString);
+			TArray<FChartMeta> chartMetas;
+			if(SearchString.IsEmpty())dbHelper.SelectAllChartMeta(db, chartMetas);
+			else dbHelper.SearchChartMeta(db, SearchString, chartMetas);
+			dbHelper.Close(db);
 			chartMetas.Sort([](const FChartMeta& A, const FChartMeta& B)
 			{
 				return A.Title < B.Title;
@@ -369,9 +374,9 @@ void AChartSelectScreen::LoadCharts()
 			{
 				auto chartMeta = CurrentEntryData->ChartMeta;
 				// get index
-				int index = chartMetas.IndexOfByPredicate([&](const FChartMeta* ChartMeta)
+				int index = chartMetas.IndexOfByPredicate([&](const FChartMeta ChartMeta)
 				{
-					return ChartMeta->BmsPath == chartMeta->BmsPath;
+					return ChartMeta.BmsPath == chartMeta.BmsPath;
 				});
 				if (index == INDEX_NONE) return;
 				ChartSelectUI->ChartList->NavigateToIndex(index);
@@ -394,10 +399,10 @@ void AChartSelectScreen::OnStartButtonClicked()
 {
 	if (!CurrentEntryData) return;
 	auto chartMeta = CurrentEntryData->ChartMeta;
-	UE_LOG(LogTemp, Warning, TEXT("ChartMeta: %s"), *chartMeta->BmsPath);
+	UE_LOG(LogTemp, Warning, TEXT("ChartMeta: %s"), *chartMeta.BmsPath);
 	auto gameInstance = Cast<UBMSGameInstance>(UGameplayStatics::GetGameInstance(GetWorld()));
 	StartOptions options;
-	options.BmsPath = chartMeta->BmsPath;
+	options.BmsPath = chartMeta.BmsPath;
 	options.AutoKeysound = false;
 	options.AutoPlay = false;
 	gameInstance->SetStartOptions(options);
@@ -457,44 +462,44 @@ void AChartSelectScreen::BeginPlay()
 				auto EntryData = Cast<UChartListEntryData>(Item);
 				if (!IsValid(EntryData)) return;
 				auto chartMeta = EntryData->ChartMeta;
-				UE_LOG(LogTemp, Warning, TEXT("ChartMeta: %s"), *chartMeta->BmsPath);
-				ChartSelectUI->TitleText->SetText(FText::FromString(chartMeta->Title));
-				ChartSelectUI->ArtistText->SetText(FText::FromString(chartMeta->Artist));
+				UE_LOG(LogTemp, Warning, TEXT("ChartMeta: %s"), *chartMeta.BmsPath);
+				ChartSelectUI->TitleText->SetText(FText::FromString(chartMeta.Title));
+				ChartSelectUI->ArtistText->SetText(FText::FromString(chartMeta.Artist));
 
-				ChartSelectUI->GenreText->SetText(FText::FromString(chartMeta->Genre));
-				if (chartMeta->MaxBpm == chartMeta->MinBpm)
+				ChartSelectUI->GenreText->SetText(FText::FromString(chartMeta.Genre));
+				if (chartMeta.MaxBpm == chartMeta.MinBpm)
 				{
-					ChartSelectUI->BPMText->SetText(FText::FromString(FString::Printf(TEXT("%.1f"), chartMeta->Bpm)));
+					ChartSelectUI->BPMText->SetText(FText::FromString(FString::Printf(TEXT("%.1f"), chartMeta.Bpm)));
 				}
 				else
 				{
 					//min~max
 					ChartSelectUI->BPMText->SetText(
-						FText::FromString(FString::Printf(TEXT("%.1f~%.1f"), chartMeta->MinBpm, chartMeta->MaxBpm)));
+						FText::FromString(FString::Printf(TEXT("%.1f~%.1f"), chartMeta.MinBpm, chartMeta.MaxBpm)));
 				}
-				ChartSelectUI->TotalText->SetText(FText::FromString(FString::Printf(TEXT("%.2lf"), chartMeta->Total)));
+				ChartSelectUI->TotalText->SetText(FText::FromString(FString::Printf(TEXT("%.2lf"), chartMeta.Total)));
 				ChartSelectUI->NotesText->
-				               SetText(FText::FromString(FString::Printf(TEXT("%d"), chartMeta->TotalNotes)));
+				               SetText(FText::FromString(FString::Printf(TEXT("%d"), chartMeta.TotalNotes)));
 				ChartSelectUI->JudgementText->SetText(
-					FText::FromString(FString::Printf(TEXT("%s"), *FJudge::GetRankDescription(chartMeta->Rank))));
+					FText::FromString(FString::Printf(TEXT("%s"), *FJudge::GetRankDescription(chartMeta.Rank))));
 				bJukeboxCancelled = true;
 				if (JukeboxTask.IsValid())
 				{
 					JukeboxTask.Wait();
 				}
 				bJukeboxCancelled = false;
-				FString BmsPath = chartMeta->BmsPath;
+				FString BmsPath = chartMeta.BmsPath;
 				
 				bool IsImageValid = false;
 				UTexture2D* BackgroundImage = nullptr;
-				auto ImagePath = chartMeta->StageFile;
+				auto ImagePath = chartMeta.StageFile;
 				if (ImagePath.IsEmpty())
 				{
-					ImagePath = chartMeta->BackBmp;
+					ImagePath = chartMeta.BackBmp;
 				}
 				if (ImagePath.IsEmpty())
 				{
-					ImagePath = chartMeta->Preview;
+					ImagePath = chartMeta.Preview;
 				}
 				if (ImagePath.IsEmpty())
 				{
@@ -508,7 +513,7 @@ void AChartSelectScreen::BeginPlay()
 				}
 				else
 				{
-					ImagePath = FPaths::Combine(chartMeta->Folder, ImagePath);
+					ImagePath = FPaths::Combine(chartMeta.Folder, ImagePath);
 					TArray<uint8> ImageBytes;
 					FFileHelper::LoadFileToArray(ImageBytes, *ImagePath);
 					ImageUtils::LoadTexture2D(ImagePath, ImageBytes, IsImageValid, -1, -1, BackgroundImage);
@@ -644,11 +649,13 @@ void AChartSelectScreen::BeginPlay()
 	LoadCharts();
 }
 
-void AChartSelectScreen::SetChartMetas(const TArray<FChartMeta*>& ChartMetas)
+void AChartSelectScreen::SetChartMetas(const TArray<FChartMeta>& ChartMetas)
 {
 	if (!IsValid(ChartSelectUI)) return;
 	if (!IsValid(ChartSelectUI->ChartList)) return;
 	ChartListLock.Lock();
+	
+	auto old = ChartSelectUI->ChartList->GetListItems();
 	// convert to UChartListEntryData
 	TArray<UChartListEntryData*> EntryDatas;
 	for (auto& meta : ChartMetas)
@@ -658,6 +665,14 @@ void AChartSelectScreen::SetChartMetas(const TArray<FChartMeta*>& ChartMetas)
 		EntryDatas.Add(entryData);
 	}
 	ChartSelectUI->ChartList->SetListItems(EntryDatas);
+	// delete old entry datas
+	for (auto& entryData : old)
+	{
+		entryData->ConditionalBeginDestroy();
+		entryData = nullptr;
+	}
+	// force garbage collection
+	GEngine->ForceGarbageCollection(true);
 	ChartListLock.Unlock();
 }
 
@@ -670,12 +685,14 @@ void AChartSelectScreen::OnSearchBoxTextCommitted(const FText& Text, ETextCommit
 	auto dbHelper = ChartDBHelper::GetInstance();
 	auto db = dbHelper.Connect();
 	auto str = Text.ToString();
-	auto chartMetas = dbHelper.SearchChartMeta(db, str);
+	TArray<FChartMeta> chartMetas;
+	dbHelper.SearchChartMeta(db, str, chartMetas);
 	chartMetas.Sort([](const FChartMeta& A, const FChartMeta& B)
 	{
 		return A.Title < B.Title;
 	});
 	SetChartMetas(chartMetas);
+	dbHelper.Close(db);
 }
 
 // Called every frame

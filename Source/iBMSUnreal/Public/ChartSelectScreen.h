@@ -36,7 +36,7 @@ private:
 	FCriticalSection JukeboxLock;
 
 	void LoadCharts();
-	void SetChartMetas(const TArray<FChartMeta*>& ChartMetas);
+	void SetChartMetas(const TArray<FChartMeta>& ChartMetas);
 
 	// On Search Box Text Changed
 	UFUNCTION()

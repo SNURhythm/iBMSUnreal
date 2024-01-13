@@ -214,7 +214,7 @@ void FJukebox::LoadChart(const FChart* chart, std::atomic_bool& bCancelled, UMed
 	const int TaskNum = FMath::Max(FPlatformMisc::NumberOfWorkerThreadsToSpawn()/2,1);
 	constexpr int32 WavNum = 36*36;
 	const int TaskSize = WavNum / TaskNum;
-	FString ChartFolder = Chart->Meta->Folder;
+	FString ChartFolder = Chart->Meta.Folder;
 	FCriticalSection SoundTableLock;
 	ParallelFor(TaskNum, [&](const int32 Index){
 		if(bCancelled) return;

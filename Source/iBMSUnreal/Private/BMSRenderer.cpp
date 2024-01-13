@@ -404,7 +404,7 @@ void UBMSRenderer::Draw(const long long CurrentTime)
 
 	// draw notes
 	const double CurrentPos = (CurrentTime < LastTimeLine->Timing + LastTimeLine->GetStopDuration()) ? LastTimeLine->Pos :
-		                          LastTimeLine->Pos + (CurrentTime - (LastTimeLine->Timing + LastTimeLine->GetStopDuration())) * LastTimeLine->Bpm / Chart->Meta->Bpm;
+		                          LastTimeLine->Pos + (CurrentTime - (LastTimeLine->Timing + LastTimeLine->GetStopDuration())) * LastTimeLine->Bpm / Chart->Meta.Bpm;
 
 	for (int i = State->PassedMeasureCount; i < Chart->Measures.Num(); i++)
 	{
@@ -488,10 +488,10 @@ void UBMSRenderer::Init(FChart* ChartInit)
 	this->Chart = ChartInit;
 	State = new FRendererState();
 	Material = LoadObject<UMaterialInterface>(nullptr, TEXT("/Paper2D/TranslucentUnlitSpriteMaterial"));
-	KeyLaneCount = ChartInit->Meta->GetKeyLaneCount(); // main line count except for scratch
+	KeyLaneCount = ChartInit->Meta.GetKeyLaneCount(); // main line count except for scratch
 
 	NoteWidth = 1.0f / KeyLaneCount;
-	for(auto Lane: ChartInit->Meta->GetTotalLaneIndices())
+	for(auto Lane: ChartInit->Meta.GetTotalLaneIndices())
 	{
 		LaneStates.Add(Lane, FLaneState());
 		APaperSpriteActor* LaneBeam = GetWorld()->SpawnActor<APaperSpriteActor>(ANoteActor::StaticClass());
@@ -522,10 +522,10 @@ void UBMSRenderer::Init(FChart* ChartInit)
 	_lastTimeLine->Pos = 0.0;
 	for(const auto& Measure: ChartInit->Measures)
 	{
-		Measure->Pos = _lastTimeLine->Pos + (Measure->Timing - (_lastTimeLine->Timing + _lastTimeLine->GetStopDuration())) * _lastTimeLine->Bpm / ChartInit->Meta->Bpm;
+		Measure->Pos = _lastTimeLine->Pos + (Measure->Timing - (_lastTimeLine->Timing + _lastTimeLine->GetStopDuration())) * _lastTimeLine->Bpm / ChartInit->Meta.Bpm;
 		for(const auto& Timeline: Measure->TimeLines)
 		{
-			Timeline->Pos = _lastTimeLine->Pos + (Timeline->Timing - (_lastTimeLine->Timing + _lastTimeLine->GetStopDuration())) * _lastTimeLine->Bpm / ChartInit->Meta->Bpm;
+			Timeline->Pos = _lastTimeLine->Pos + (Timeline->Timing - (_lastTimeLine->Timing + _lastTimeLine->GetStopDuration())) * _lastTimeLine->Bpm / ChartInit->Meta.Bpm;
 			_lastTimeLine = Timeline;
 		}
 	}

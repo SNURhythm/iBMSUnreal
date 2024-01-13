@@ -15,9 +15,9 @@ class IBMSUNREAL_API UChartListEntryData : public UObject
 {
 	GENERATED_BODY()
 public:
-	FChartMeta* ChartMeta;
+	FChartMeta ChartMeta;
 	// convert from FChartMeta to UChartListEntryData
-	UChartListEntryData(FChartMeta* ChartMeta);
+	UChartListEntryData(FChartMeta ChartMeta);
 	UChartListEntryData();
 	
 };

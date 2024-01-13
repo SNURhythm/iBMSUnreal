@@ -3,12 +3,11 @@
 
 #include "ChartListEntryData.h"
 
-UChartListEntryData::UChartListEntryData(FChartMeta* ChartMeta)
+UChartListEntryData::UChartListEntryData(FChartMeta ChartMeta)
 {
 	this->ChartMeta = ChartMeta;
 }
 
 UChartListEntryData::UChartListEntryData()
 {
-	this->ChartMeta = nullptr;
 }
