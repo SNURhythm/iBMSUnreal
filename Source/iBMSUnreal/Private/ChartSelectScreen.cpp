@@ -337,7 +337,7 @@ void AChartSelectScreen::LoadCharts()
 					// UE_LOG(LogTemp,Warning,TEXT("TITLE: %s"), *Chart->Meta->Title);
 
 					dbHelper.InsertChartMeta(db, Chart->Meta);
-					// close db
+
 					delete Chart;
 				} else
 				{
