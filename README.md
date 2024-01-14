@@ -30,3 +30,7 @@ Due to Android's scope storage policy, iBMSUnreal cannot read arbitrary BMS fold
 - Connect the phone to your PC
   - If you want to import unzipped files, copy files into Android/data/com.YourCompany.iBMSUnreal/files/BMS (this method is super slow if you have a large number of files)
   - If you want to import zip files, copy files into Android/data/com.YourCompany.iBMSUnreal/files/imported
+
+## License 
+
+Although iBMSUnreal is licensed under GPLv3.0, it includes non-free GPL-incompatible libraries like fmod. We are planning to address this issue by supporting free audio library as an alternative.
