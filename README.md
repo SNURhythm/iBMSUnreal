@@ -17,9 +17,12 @@ A crossplatform BMS player
 - Independent input thread (currently, only for macOS and Windows)
 
 ## TODOs
+- Groove Gauge
 - S-RANDOM
 - In-game chart viewer
 - Custom skin support
+- ASIO support
+- Add free audio library (OpenAL?)
   
 ## Caveats
 
