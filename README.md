@@ -19,10 +19,12 @@ A crossplatform BMS player
 ## TODOs
 - Groove Gauge
 - S-RANDOM
+- Classic 2D VSRG gear for desktop
 - In-game chart viewer
 - Custom skin support
 - ASIO support
 - Add free audio library (OpenAL?)
+- Controller support
   
 ## Caveats
 
