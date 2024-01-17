@@ -20,13 +20,14 @@ A crossplatform BMS player
 - Groove Gauge
 - S-RANDOM
 - Classic 2D VSRG gear for desktop
+- Course play
 - In-game chart viewer
 - Custom skin support
 - ASIO support
 - Add free audio library (OpenAL?)
 - Controller support
-  
-## Caveats
+
+## How to import BMS
 
 ### Android
 
@@ -35,6 +36,14 @@ Due to Android's scope storage policy, iBMSUnreal cannot read arbitrary BMS fold
 - Connect the phone to your PC
   - If you want to import unzipped files, copy files into Android/data/com.YourCompany.iBMSUnreal/files/BMS (this method is super slow if you have a large number of files)
   - If you want to import zip files, copy files into Android/data/com.YourCompany.iBMSUnreal/files/imported
+
+### iOS
+1. Open Files app
+2. Put your BMS folder under iBMSUnreal/BMS
+
+### macOS, Windows
+
+Simply run the game and select your BMS folder in the dialog.
 
 ## License 
 
