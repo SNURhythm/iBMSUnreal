@@ -26,6 +26,7 @@ A crossplatform BMS player
 - ASIO support
 - Add free audio library (OpenAL?)
 - Controller support
+- Consider implementing vlc-for-unreal to play BGA without transcoding
 
 ## How to import BMS
 
