@@ -20,6 +20,8 @@ A crossplatform BMS player
 - Groove Gauge
 - S-RANDOM
 - Play options (HI-SPEED, LIFT, SUDDEN, etc.)
+- Result screen 
+- Key bomb effect
 - Classic 2D VSRG gear for desktop
 - Course play
 - In-game chart viewer
