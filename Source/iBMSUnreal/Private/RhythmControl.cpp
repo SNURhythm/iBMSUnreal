@@ -14,8 +14,9 @@
 #include "Tasks/Task.h"
 
 
-void ARhythmControl::OnJudge(const FJudgeResult& JudgeResult) const
+void ARhythmControl::OnJudge(const FJudgeResult& JudgeResult)
 {
+	FScopeLock Lock(&JudgeLock);
 	State->LatestJudgeResult = JudgeResult;
 	State->JudgeCount[JudgeResult.Judgement]++;
 	if(JudgeResult.IsComboBreak())

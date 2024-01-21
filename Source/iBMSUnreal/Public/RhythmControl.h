@@ -61,11 +61,12 @@ private:
 	UE::Tasks::TTask<void> MainLoopTask;
 	TObjectPtr<UInputComponent> PlayerInputComponent;
 	APlayerController* PlayerController = nullptr;
-	void OnJudge(const FJudgeResult& JudgeResult) const;
+	void OnJudge(const FJudgeResult& JudgeResult);
 	void CheckPassedTimeline(long long Time);
 	FRhythmState* State = nullptr;
 	TMap<int, bool> IsLanePressed;
 	FRhythmInputHandler* InputHandler = nullptr;
+	FCriticalSection JudgeLock;
 
 	UPROPERTY(VisibleInstanceOnly, Category="Runtime")
 	class URhythmHUD* CurrentRhythmHUD = nullptr;
