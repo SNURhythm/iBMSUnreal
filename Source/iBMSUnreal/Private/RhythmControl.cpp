@@ -16,16 +16,17 @@
 
 void ARhythmControl::OnJudge(const FJudgeResult& JudgeResult) const
 {
-	State->LatestJudgement = JudgeResult.Judgement;
+	State->LatestJudgeResult = JudgeResult;
 	State->JudgeCount[JudgeResult.Judgement]++;
 	if(JudgeResult.IsComboBreak())
 	{
 		State->Combo = 0;
+		State->ComboBreak++;
 	} else if(JudgeResult.Judgement != Kpoor)
 	{
 		State->Combo++;
 	}
-	CurrentRhythmHUD->OnJudge(JudgeResult, State->Combo);
+	CurrentRhythmHUD->OnJudge(State);
 	// UE_LOG(LogTemp, Warning, TEXT("Judge: %s, Combo: %d, Diff: %lld"), *JudgeResult.ToString(), State->Combo, JudgeResult.Diff);
 }
 

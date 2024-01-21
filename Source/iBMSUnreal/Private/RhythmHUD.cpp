@@ -3,29 +3,42 @@
 
 #include "RhythmHUD.h"
 
+#include "RhythmControl.h"
 
-int32 URhythmHUD::NativePaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry,
-	const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId,
-	const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
+
+
+
+void URhythmHUD::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
 {
+	Super::NativeTick(MyGeometry, InDeltaTime);
+	if(LastRenderRequestState == LastRenderedState)
+	{
+		return;
+	}
+	LastRenderedState = LastRenderRequestState;
 	FString JudgeComboString = LastJudgeString;
 	if(LastCombo > 0)
 	{
 		JudgeComboString += FString::Printf(TEXT(" %d"), LastCombo);
 	}
 	JudgementText->SetText(FText::FromString(JudgeComboString));
-	return Super::NativePaint(Args, AllottedGeometry, MyCullingRect, OutDrawElements, LayerId, InWidgetStyle,
-	                          bParentEnabled);
+	ExScoreText->SetText(FText::FromString(FString::Printf(TEXT("%d"), LastExScore)));
 }
 
-void URhythmHUD::OnJudge(const FJudgeResult JudgeResult, const int Combo)
+void URhythmHUD::OnJudge(const FRhythmState* State)
 {
-	LastJudgeString = JudgeResult.ToString();
-	LastCombo = Combo;
+	LastJudgeString = State->LatestJudgeResult.ToString();
+	LastCombo = State->Combo;
+	LastExScore = State->JudgeCount[PGreat] * 2 + State->JudgeCount[Great];
+	LastJudgeCount = State->JudgeCount;
+	LastRenderRequestState++;
 }
 
 void URhythmHUD::Reset()
 {
 	LastJudgeString = TEXT("");
 	LastCombo = 0;
+	LastExScore = 0;
+	LastJudgeCount.Empty();
+	LastRenderRequestState++;
 }

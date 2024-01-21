@@ -24,7 +24,8 @@ public:
 	int PassedTimelineCount = 0;
 
 	int Combo = 0;
-	EJudgement LatestJudgement = None;
+	int ComboBreak = 0;
+	FJudgeResult LatestJudgeResult = FJudgeResult(None, 0);
 	// judge count. default 0
 	TMap<EJudgement, int> JudgeCount;
 	explicit FRhythmState(const FChart* Chart, bool AddReadyMeasure)

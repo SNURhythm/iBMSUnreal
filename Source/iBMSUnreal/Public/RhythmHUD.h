@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Judge.h"
+#include "RhythmControl.h"
 #include "Blueprint/UserWidget.h"
 #include "Components/TextBlock.h"
 #include "RhythmHUD.generated.h"
@@ -19,15 +19,21 @@ class IBMSUNREAL_API URhythmHUD : public UUserWidget
 
 	UPROPERTY(meta = (BindWidget))
 	UTextBlock* JudgementText;
+	
+	UPROPERTY(meta = (BindWidget))
+	UTextBlock* ExScoreText;
 
 	FString LastJudgeString;
-	int LastCombo;
+	int LastCombo = 0;
+	int LastExScore = 0;
+	int LastRenderRequestState = 0;
+	int LastRenderedState = 0;
+	TMap<EJudgement, int> LastJudgeCount;
 
-	virtual int32 NativePaint(const FPaintArgs& Args, const FGeometry& AllottedGeometry, const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId, const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const override;
-
+	virtual void NativeTick(const FGeometry & MyGeometry, float InDeltaTime) override;
 public:
 	UPROPERTY(meta = (BindWidget))
 	UButton* PauseButton;
-	void OnJudge(FJudgeResult JudgeResult, int Combo);
+	void OnJudge(const FRhythmState* State);
 	void Reset();
 };
