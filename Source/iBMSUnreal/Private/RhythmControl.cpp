@@ -438,7 +438,16 @@ void ARhythmControl::BeginPlay()
 		{
 			auto Start = std::chrono::high_resolution_clock::now();
 
-			if(State != nullptr && State->IsPlaying) CheckPassedTimeline(Jukebox->GetPositionMicro());
+			if(State != nullptr && State->IsPlaying)
+			{
+				CheckPassedTimeline(Jukebox->GetPositionMicro());
+				if(State->PassedMeasureCount == Chart->Measures.Num())
+				{
+					UE_LOG(LogTemp, Warning, TEXT("Game finished"));
+					IsMainLoopCancelled = true;
+					
+				}
+			}
 
 			auto End = std::chrono::high_resolution_clock::now();
 			auto Elapsed = std::chrono::duration_cast<std::chrono::microseconds>(End - Start).count();
