@@ -1,6 +1,6 @@
 # iBMSUnreal
 
-A crossplatform BMS player
+A crossplatform BMS player, powered by Unreal Engine 5
 
 ## Supported platforms
 
@@ -17,20 +17,23 @@ A crossplatform BMS player
 - Independent input thread (currently, only for macOS and Windows)
 
 ## TODOs
-- Groove Gauge
-- S-RANDOM
-- Play options (HI-SPEED, LIFT, SUDDEN, LNMODE, etc.)
-- Result screen 
-- Key bomb effect
-- Classic 2D VSRG gear for desktop
-- Course play
-- Replay
-- In-game chart viewer
-- Custom skin support
-- ASIO support
-- Add free audio library (OpenAL?)
-- Controller support
-- Consider implementing vlc-for-unreal to play BGA without transcoding
+- Gameplay
+  - Groove Gauge
+  - S-RANDOM, HALF-RANDOM, ...
+  - Play options (HI-SPEED, LIFT, SUDDEN, LNMODE, etc.)
+  - Result screen 
+  - Key bomb effect
+  - Classic 2D VSRG gear for desktop
+  - Course play
+- Additional features
+  - Replay
+  - In-game chart viewer
+  - Custom skin support
+  - ASIO support
+  - Add free audio library (OpenAL?)
+  - Controller support
+- Miscellaneous
+  - Consider implementing vlc-for-unreal to play BGA without transcoding
 
 ## How to import BMS
 
