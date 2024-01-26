@@ -17,6 +17,9 @@ A crossplatform BMS player, powered by Unreal Engine 5
 - Independent input thread (currently, only for macOS and Windows)
 
 ## TODOs
+- Parser
+  - #SCROLL
+  - BMSON support
 - Gameplay
   - Groove Gauge
   - S-RANDOM, HALF-RANDOM, ...
