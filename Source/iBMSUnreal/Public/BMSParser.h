@@ -9,8 +9,6 @@
  */
 class IBMSUNREAL_API FBMSParser
 {
-
-
 public:
 	FBMSParser();
 	void SetRandomSeed(int RandomSeed);
@@ -18,14 +16,15 @@ public:
 	~FBMSParser();
 	static int NoWav;
 	static int MetronomeWav;
+
 private:
 	// bpmTable
 	TMap<int, double> BpmTable;
 	TMap<int, double> StopLengthTable;
-	
+
 	// abstract analysis for control branches
-	TPair<int, int> BpmInterval; 
-	
+	TPair<int, int> BpmInterval;
+
 	int Lnobj = -1;
 	int Lntype = 1;
 	int Seed;

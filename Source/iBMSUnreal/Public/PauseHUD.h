@@ -14,6 +14,7 @@ UCLASS()
 class IBMSUNREAL_API UPauseHUD : public UUserWidget
 {
 	GENERATED_BODY()
+
 public:
 	UPROPERTY(meta = (BindWidget))
 	UButton* ResumeButton;
@@ -21,5 +22,4 @@ public:
 	UButton* RestartButton;
 	UPROPERTY(meta = (BindWidget))
 	UButton* ExitButton;
-	
 };

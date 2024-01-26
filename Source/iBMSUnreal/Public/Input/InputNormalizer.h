@@ -13,6 +13,7 @@ enum KeySource
 	ScanCode,
 	UnrealKey
 };
+
 namespace InputNormalizer
 {
 	FKey Normalize(int KeyCode, KeySource Source, int CharCode = 0);

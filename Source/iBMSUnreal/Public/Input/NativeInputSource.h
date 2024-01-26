@@ -26,12 +26,11 @@ class FChartMeta;
 /**
  * 
  */
-class IBMSUNREAL_API FNativeInputSource: public IInputSource
+class IBMSUNREAL_API FNativeInputSource : public IInputSource
 {
-
 public:
 	FNativeInputSource();
-	~FNativeInputSource();
+	virtual ~FNativeInputSource() override;
 
 	virtual bool StartListen() override;
 	virtual void StopListen() override;

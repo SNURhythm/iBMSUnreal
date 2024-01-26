@@ -21,28 +21,29 @@ UCLASS()
 class IBMSUNREAL_API UChartListEntry : public UUserWidget, public IUserObjectListEntry
 {
 	GENERATED_BODY()
+
 public:
 	UPROPERTY(meta = (BindWidget))
 	UTextBlock* TitleText;
-	
+
 	UPROPERTY(meta = (BindWidget))
 	UTextBlock* ArtistText;
-	
+
 	UPROPERTY(meta = (BindWidget))
 	UTextBlock* KeyModeText;
-	
+
 	UPROPERTY(meta = (BindWidget))
 	UTextBlock* PlayLevelText;
-	
+
 	UPROPERTY(meta = (BindWidget))
 	UBorder* Border;
-	
+
 	UPROPERTY(meta = (BindWidget))
 	UImage* Banner;
 
 	UPROPERTY()
 	UChartListEntryData* EntryData;
-	
+
 	UPROPERTY()
 	UTexture2D* CurrentBannerTexture = nullptr;
 	FCriticalSection BannerTextureLock;
@@ -55,6 +56,4 @@ public:
 	virtual void NativeConstruct() override;
 	virtual void NativeDestruct() override;
 	virtual void NativeOnListItemObjectSet(UObject* InObject) override;
-	
-	
 };

@@ -19,7 +19,7 @@ class IBMSUNREAL_API URhythmHUD : public UUserWidget
 
 	UPROPERTY(meta = (BindWidget))
 	UTextBlock* JudgementText;
-	
+
 	UPROPERTY(meta = (BindWidget))
 	UTextBlock* ExScoreText;
 
@@ -30,7 +30,8 @@ class IBMSUNREAL_API URhythmHUD : public UUserWidget
 	int LastRenderedState = 0;
 	TMap<EJudgement, int> LastJudgeCount;
 
-	virtual void NativeTick(const FGeometry & MyGeometry, float InDeltaTime) override;
+	virtual void NativeTick(const FGeometry& MyGeometry, float InDeltaTime) override;
+
 public:
 	UPROPERTY(meta = (BindWidget))
 	UButton* PauseButton;

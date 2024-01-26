@@ -28,10 +28,11 @@ public:
 	FJudgeResult LatestJudgeResult = FJudgeResult(None, 0);
 	// judge count. default 0
 	TMap<EJudgement, int> JudgeCount;
+
 	explicit FRhythmState(const FChart* Chart, bool AddReadyMeasure)
 	{
 		Judge = new FJudge(Chart->Meta.Rank);
-		for(int i = 0; i < EJudgementCount; i++)
+		for (int i = 0; i < EJudgementCount; i++)
 		{
 			JudgeCount.Add(static_cast<EJudgement>(i), 0);
 		}
@@ -44,13 +45,13 @@ public:
 
 private:
 	long long FirstTiming = 0;
-	
 };
 
 UCLASS()
 class IBMSUNREAL_API ARhythmControl : public AActor, public IRhythmControl
 {
 	GENERATED_BODY()
+
 private:
 	UFUNCTION()
 	void LoadGame();
@@ -75,8 +76,9 @@ private:
 
 	// ImagePlate
 	UPROPERTY(EditAnywhere, Category="ImagePlate")
-	AActor *ImagePlate;
-public:	
+	AActor* ImagePlate;
+
+public:
 	// Sets default values for this actor's properties
 	ARhythmControl();
 	UFUNCTION()
@@ -84,7 +86,7 @@ public:
 	std::atomic_bool IsLoaded;
 	std::atomic_bool IsLoadCancelled;
 	std::atomic_bool IsMainLoopCancelled;
-	
+
 	FJukebox* Jukebox;
 	FJudgeResult PressNote(FBMSNote* Note, long long PressedTime);
 	void ReleaseNote(FBMSNote* Note, long long ReleasedTime);
@@ -94,6 +96,7 @@ public:
 	virtual UWorld* GetContextWorld() override;
 	std::atomic_bool IsGamePaused = false;
 	long long LastPauseMicro = -1;
+
 protected:
 	UPROPERTY(EditAnywhere, Category="Media")
 	UMediaPlayer* MediaPlayer;
@@ -116,9 +119,9 @@ protected:
 	TSubclassOf<UUserWidget> RhythmHUDClass;
 	UPROPERTY(EditAnywhere, Category="Class Types")
 	TSubclassOf<UUserWidget> PauseHUDClass;
-public:	
+
+public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 	FChart* Chart = nullptr;
-
 };

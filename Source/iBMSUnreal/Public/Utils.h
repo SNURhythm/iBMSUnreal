@@ -10,6 +10,7 @@ class FUtils
 public:
 	inline static FString GameName = "iBMSUnreal";
 	inline static FString TeamName = "SNURhythm";
+
 	static FString GetDocumentsPath(FString SubPath = "")
 	{
 #if PLATFORM_IOS
@@ -27,12 +28,12 @@ class FAsyncGraphTask
 	: public FAsyncGraphTaskBase
 {
 public:
-
 	/** Creates and initializes a new instance. */
 	FAsyncGraphTask(ENamedThreads::Type InDesiredThread, TUniqueFunction<void()>&& InFunction)
 		: DesiredThread(InDesiredThread)
-		, Function(MoveTemp(InFunction))
-	{ }
+		  , Function(MoveTemp(InFunction))
+	{
+	}
 
 	/** Performs the actual task. */
 	void DoTask(ENamedThreads::Type CurrentThread, const FGraphEventRef& MyCompletionGraphEvent)
@@ -47,7 +48,6 @@ public:
 	}
 
 private:
-
 	/** The thread to execute the function on. */
 	ENamedThreads::Type DesiredThread;
 

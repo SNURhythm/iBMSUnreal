@@ -5,7 +5,7 @@
 #include "InputNormalizer.h"
 #include "IRhythmControl.h"
 
-class FRhythmInputHandler: public IInputHandler
+class FRhythmInputHandler : public IInputHandler
 {
 private:
 	TMap<FKey, int> KeyMap;
@@ -18,9 +18,10 @@ private:
 	float TouchDistance = 0;
 	FChartMeta& ChartMeta;
 	TMap<int, int> FingerToLane;
+
 public:
 	FRhythmInputHandler(IRhythmControl* Control, FChartMeta& Meta);
-	~FRhythmInputHandler();
+	virtual ~FRhythmInputHandler() override;
 	virtual void OnKeyDown(int KeyCode, KeySource Source, int CharCode = 0) override;
 	virtual void OnKeyUp(int KeyCode, KeySource Source, int CharCode = 0) override;
 	virtual void OnFingerDown(int FingerIndex, FVector Location) override;

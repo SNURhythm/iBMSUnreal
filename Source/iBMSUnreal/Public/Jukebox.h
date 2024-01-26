@@ -34,9 +34,10 @@ private:
 	FCriticalSection SoundQueueLock;
 	FCriticalSection MediaPlayerLock;
 	unsigned long long StartDspClock;
-	UPROPERTY();
+	UPROPERTY()
+	;
 	FCriticalSection BGALock;
-	
+
 	TQueue<TPair<int, long long>> BGAStartQueue;
 	UMediaPlayer* MediaPlayer = nullptr;
 	bool IsCorrectingBGADrift = false;
@@ -46,7 +47,7 @@ public:
 	FJukebox(FMOD::System* System);
 	~FJukebox();
 	void OnGameTick();
-	
+
 	void LoadChart(const FChart* chart, std::atomic_bool& bCancelled, UMediaPlayer* OptionalPlayer = nullptr);
 	void Start(std::atomic_bool& bCancelled, long long PosMicro = 0, bool AutoKeySound = false);
 	void Unpause();

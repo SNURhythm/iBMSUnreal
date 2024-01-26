@@ -9,5 +9,6 @@
  */
 namespace ImageUtils
 {
- void LoadTexture2D(const FString ImageFileName, const TArray<uint8>& ImageBytes, bool& IsValid, int32 TargetWidth, int32 TargetHeight, UTexture2D*& OutTexture, bool UpdateResource = true);
+	void LoadTexture2D(const FString ImageFileName, const TArray<uint8>& ImageBytes, bool& IsValid, int32 TargetWidth,
+	                   int32 TargetHeight, UTexture2D*& OutTexture, bool UpdateResource = true);
 }

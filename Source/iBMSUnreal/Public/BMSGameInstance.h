@@ -20,15 +20,17 @@ struct StartOptions
 	bool AutoKeysound = false;
 	bool AutoPlay = false;
 };
+
 UCLASS()
 class IBMSUNREAL_API UBMSGameInstance : public UGameInstance
 {
 	GENERATED_BODY()
-	FMOD::System *fmodSystem;
+	FMOD::System* fmodSystem;
 	virtual void Init() override;
 	virtual void BeginDestroy() override;
 	void InitFMOD();
 	StartOptions startOptions;
+
 public:
 	FMOD::System* GetFMODSystem();
 	void SetStartOptions(StartOptions options);

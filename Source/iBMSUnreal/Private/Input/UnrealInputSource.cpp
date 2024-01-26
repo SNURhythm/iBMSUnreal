@@ -4,7 +4,6 @@
 #include "Input/UnrealInputSource.h"
 
 
-
 FUnrealInputSource::~FUnrealInputSource()
 {
 }
@@ -12,8 +11,8 @@ FUnrealInputSource::~FUnrealInputSource()
 bool FUnrealInputSource::StartListen()
 {
 	// detect any key, pressed or released
-	FInputKeyBinding Press(FInputChord(EKeys::AnyKey, false, false, false, false), EInputEvent::IE_Pressed);
-	FInputKeyBinding Release(FInputChord(EKeys::AnyKey, false, false, false, false), EInputEvent::IE_Released);
+	FInputKeyBinding Press(FInputChord(EKeys::AnyKey, false, false, false, false), IE_Pressed);
+	FInputKeyBinding Release(FInputChord(EKeys::AnyKey, false, false, false, false), IE_Released);
 	// Key is any FKey value, commonly found in the EKeys struct, including EKeys::AnyKey
 	// You can also skip FInputChord altogether and just use the FKey value instead
 	// EInputEvent::IE_Pressed can be swapped out to IE_Released if you want the release event instead
@@ -27,9 +26,13 @@ bool FUnrealInputSource::StartListen()
 		FInputKeyManager::Get().GetCodesFromKey(Key, KeyCode, CharCode);
 		const uint32 KeyCodeValue = KeyCode ? *KeyCode : 0;
 		const uint32 CharCodeValue = CharCode ? *CharCode : 0;
-		UE_LOG(LogTemp, Warning, TEXT("Key pressed from unreal basic input: %s, %d, %d"), *Key.ToString(), KeyCodeValue, CharCodeValue);
+		UE_LOG(LogTemp, Warning, TEXT("Key pressed from unreal basic input: %s, %d, %d"), *Key.ToString(), KeyCodeValue,
+		       CharCodeValue);
 		// Your code here
-		if(InputHandler != nullptr) InputHandler->OnKeyDown(KeyCodeValue, KeySource::UnrealKey, CharCodeValue);
+		if (InputHandler != nullptr)
+		{
+			InputHandler->OnKeyDown(KeyCodeValue, UnrealKey, CharCodeValue);
+		}
 	});
 	Release.bConsumeInput = true;
 	Release.bExecuteWhenPaused = false;
@@ -41,19 +44,23 @@ bool FUnrealInputSource::StartListen()
 		FInputKeyManager::Get().GetCodesFromKey(Key, KeyCode, CharCode);
 		const uint32 KeyCodeValue = KeyCode ? *KeyCode : 0;
 		const uint32 CharCodeValue = CharCode ? *CharCode : 0;
-		UE_LOG(LogTemp, Warning, TEXT("Key released from unreal basic input: %s, %d, %d"), *Key.ToString(), KeyCodeValue, CharCodeValue);
+		UE_LOG(LogTemp, Warning, TEXT("Key released from unreal basic input: %s, %d, %d"), *Key.ToString(),
+		       KeyCodeValue, CharCodeValue);
 		// Your code here
-		if(InputHandler != nullptr) InputHandler->OnKeyUp(KeyCodeValue, KeySource::UnrealKey, CharCodeValue);
+		if (InputHandler != nullptr)
+		{
+			InputHandler->OnKeyUp(KeyCodeValue, UnrealKey, CharCodeValue);
+		}
 	});
 	Index = InputComponent->KeyBindings.Add(Press);
 	InputComponent->KeyBindings.Add(Release);
-	
+
 	return true;
 }
 
 void FUnrealInputSource::StopListen()
 {
-	if(Index >= 0)
+	if (Index >= 0)
 	{
 		InputComponent->KeyBindings.RemoveAt(Index);
 		InputComponent->KeyBindings.RemoveAt(Index);

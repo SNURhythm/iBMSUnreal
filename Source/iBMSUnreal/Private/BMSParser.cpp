@@ -10,7 +10,9 @@
 #include "Measure.h"
 #include "ShiftJISConverter.h"
 #include "SHA256.h"
-enum Channel {
+
+enum Channel
+{
 	LaneAutoplay = 1,
 	SectionRate = 2,
 	BpmChange = 3,
@@ -29,13 +31,15 @@ enum Channel {
 	P1MineKeyBase = 13 * 36 + 1,
 	P2MineKeyBase = 14 * 36 + 1
 };
-namespace KeyAssign {
-	int Beat7[] = { 0, 1, 2, 3, 4, 7, -1, 5, 6, 8, 9, 10, 11, 12, 15, -1, 13, 14 };
-	int PopN[] = { 0, 1, 2, 3, 4, -1, -1, -1, -1, -1, 5, 6, 7, 8, -1, -1, -1, -1 };
+
+namespace KeyAssign
+{
+	int Beat7[] = {0, 1, 2, 3, 4, 7, -1, 5, 6, 8, 9, 10, 11, 12, 15, -1, 13, 14};
+	int PopN[] = {0, 1, 2, 3, 4, -1, -1, -1, -1, -1, 5, 6, 7, 8, -1, -1, -1, -1};
 };
 
-const int TempKey = 16;
-const int Scroll = 1020;
+constexpr int TempKey = 16;
+constexpr int Scroll = 1020;
 
 FBMSParser::FBMSParser(): BpmTable{}, StopLengthTable{}
 {
@@ -63,8 +67,11 @@ void FBMSParser::Parse(FString path, FChart** chart, bool addReadyMeasure, bool 
 	auto measures = TMap<int, TArray<TPair<int, FString>>>();
 	TArray<uint8> bytes;
 	FFileHelper::LoadFileToArray(bytes, *path);
-	if(bCancelled) return;
-	
+	if (bCancelled)
+	{
+		return;
+	}
+
 	Chart->Meta.MD5 = FMD5::HashBytes(bytes.GetData(), bytes.Num());
 	Chart->Meta.SHA256 = sha256(bytes);
 	// bytes to FString
@@ -74,20 +81,26 @@ void FBMSParser::Parse(FString path, FChart** chart, bool addReadyMeasure, bool 
 	TArray<bool> SkipStack;
 	// init prng with seed
 	std::mt19937_64 Prng(Seed);
-	
-	
+
+
 	auto lines = TArray<FString>();
 	content.ParseIntoArrayLines(lines);
 	auto lastMeasure = -1;
 
 	for (auto& line : lines)
 	{
-		if(bCancelled) return;
-		if (!line.StartsWith("#")) continue;
-		auto upperLine = line.ToUpper();
-		if(upperLine.StartsWith("#IF")) // #IF n
+		if (bCancelled)
 		{
-			if(RandomStack.IsEmpty())
+			return;
+		}
+		if (!line.StartsWith("#"))
+		{
+			continue;
+		}
+		auto upperLine = line.ToUpper();
+		if (upperLine.StartsWith("#IF")) // #IF n
+		{
+			if (RandomStack.IsEmpty())
 			{
 				UE_LOG(LogTemp, Warning, TEXT("RandomStack is empty!"));
 				continue;
@@ -97,10 +110,9 @@ void FBMSParser::Parse(FString path, FChart** chart, bool addReadyMeasure, bool 
 			SkipStack.Push(CurrentRandom != n);
 			continue;
 		}
-		if(upperLine.StartsWith("#ELSE"))
+		if (upperLine.StartsWith("#ELSE"))
 		{
-			
-			if(SkipStack.IsEmpty())
+			if (SkipStack.IsEmpty())
 			{
 				UE_LOG(LogTemp, Warning, TEXT("SkipStack is empty!"));
 				continue;
@@ -109,9 +121,9 @@ void FBMSParser::Parse(FString path, FChart** chart, bool addReadyMeasure, bool 
 			SkipStack.Push(!CurrentSkip);
 			continue;
 		}
-		if(upperLine.StartsWith("#ELSEIF"))
+		if (upperLine.StartsWith("#ELSEIF"))
 		{
-			if(SkipStack.IsEmpty())
+			if (SkipStack.IsEmpty())
 			{
 				UE_LOG(LogTemp, Warning, TEXT("SkipStack is empty!"));
 				continue;
@@ -122,9 +134,9 @@ void FBMSParser::Parse(FString path, FChart** chart, bool addReadyMeasure, bool 
 			SkipStack.Push(CurrentSkip && CurrentRandom != n);
 			continue;
 		}
-		if(upperLine.StartsWith("#ENDIF") || upperLine.StartsWith("#END IF"))
+		if (upperLine.StartsWith("#ENDIF") || upperLine.StartsWith("#END IF"))
 		{
-			if(SkipStack.IsEmpty())
+			if (SkipStack.IsEmpty())
 			{
 				UE_LOG(LogTemp, Warning, TEXT("SkipStack is empty!"));
 				continue;
@@ -132,17 +144,20 @@ void FBMSParser::Parse(FString path, FChart** chart, bool addReadyMeasure, bool 
 			SkipStack.Pop();
 			continue;
 		}
-		if(!SkipStack.IsEmpty() && SkipStack.Last()) continue;
-		if(upperLine.StartsWith("#RANDOM") || upperLine.StartsWith("#RONDAM")) // #RANDOM n
+		if (!SkipStack.IsEmpty() && SkipStack.Last())
+		{
+			continue;
+		}
+		if (upperLine.StartsWith("#RANDOM") || upperLine.StartsWith("#RONDAM")) // #RANDOM n
 		{
 			int n = FCString::Atoi(*line.Mid(7));
 			std::uniform_int_distribution<int> dist(1, n);
 			RandomStack.Push(dist(Prng));
 			continue;
 		}
-		if(upperLine.StartsWith("#ENDRANDOM"))
+		if (upperLine.StartsWith("#ENDRANDOM"))
 		{
-			if(RandomStack.IsEmpty())
+			if (RandomStack.IsEmpty())
 			{
 				UE_LOG(LogTemp, Warning, TEXT("RandomStack is empty!"));
 				continue;
@@ -150,7 +165,8 @@ void FBMSParser::Parse(FString path, FChart** chart, bool addReadyMeasure, bool 
 			RandomStack.Pop();
 			continue;
 		}
-		if (line.Len() >= 7 && FChar::IsDigit(line[1]) && FChar::IsDigit(line[2]) && FChar::IsDigit(line[3]) && line[6] == ':')
+		if (line.Len() >= 7 && FChar::IsDigit(line[1]) && FChar::IsDigit(line[2]) && FChar::IsDigit(line[3]) && line[6]
+			== ':')
 		{
 			auto measure = FCString::Atoi(*line.Mid(1, 3));
 			lastMeasure = FMath::Max(lastMeasure, measure);
@@ -167,10 +183,12 @@ void FBMSParser::Parse(FString path, FChart** chart, bool addReadyMeasure, bool 
 		}
 		else
 		{
-			
 			if (upperLine.StartsWith("#WAV") || upperLine.StartsWith("#BMP"))
 			{
-				if (line.Len() < 7) continue;
+				if (line.Len() < 7)
+				{
+					continue;
+				}
 				auto xx = line.Mid(4, 2);
 				auto value = line.Mid(7);
 				FString cmd = upperLine.Mid(1, 3);
@@ -178,7 +196,10 @@ void FBMSParser::Parse(FString path, FChart** chart, bool addReadyMeasure, bool 
 			}
 			else if (upperLine.StartsWith("#STOP"))
 			{
-				if (line.Len() < 8) continue;
+				if (line.Len() < 8)
+				{
+					continue;
+				}
 				auto xx = line.Mid(5, 2);
 				auto value = line.Mid(8);
 				FString cmd = "STOP";
@@ -195,7 +216,10 @@ void FBMSParser::Parse(FString path, FChart** chart, bool addReadyMeasure, bool 
 				}
 				else
 				{
-					if (line.Len() < 7) continue;
+					if (line.Len() < 7)
+					{
+						continue;
+					}
 					auto xx = line.Mid(4, 2);
 					auto value = line.Mid(7);
 					FString cmd = "BPM";
@@ -227,7 +251,7 @@ void FBMSParser::Parse(FString path, FChart** chart, bool addReadyMeasure, bool 
 	if (addReadyMeasure)
 	{
 		measures.Add(0, TArray<TPair<int, FString>>());
-		measures[0].Add(TPair<int, FString>(Channel::LaneAutoplay, "********"));
+		measures[0].Add(TPair<int, FString>(LaneAutoplay, "********"));
 	}
 
 	double timePassed = 0;
@@ -246,7 +270,10 @@ void FBMSParser::Parse(FString path, FChart** chart, bool addReadyMeasure, bool 
 
 	for (auto i = 0; i <= lastMeasure; ++i)
 	{
-		if(bCancelled) return;
+		if (bCancelled)
+		{
+			return;
+		}
 		if (!measures.Contains(i))
 		{
 			measures.Add(i, TArray<TPair<int, FString>>());
@@ -258,74 +285,96 @@ void FBMSParser::Parse(FString path, FChart** chart, bool addReadyMeasure, bool 
 
 		for (auto& pair : measures[i])
 		{
-			if(bCancelled) break;
+			if (bCancelled)
+			{
+				break;
+			}
 			auto channel = pair.Key;
 			auto& data = pair.Value;
-			if (channel == Channel::SectionRate)
+			if (channel == SectionRate)
 			{
 				measure->Scale = FCString::Atod(*data);
 				continue;
 			}
 
 			auto laneNumber = 0; // NOTE: This is intentionally set to 0, not -1!
-			if (channel >= Channel::P1KeyBase && channel < Channel::P1KeyBase + 9)
+			if (channel >= P1KeyBase && channel < P1KeyBase + 9)
 			{
-				laneNumber = KeyAssign::Beat7[channel - Channel::P1KeyBase];
-				channel = Channel::P1KeyBase;
+				laneNumber = KeyAssign::Beat7[channel - P1KeyBase];
+				channel = P1KeyBase;
 			}
-			else if (channel >= Channel::P2KeyBase && channel < Channel::P2KeyBase + 9)
+			else if (channel >= P2KeyBase && channel < P2KeyBase + 9)
 			{
-				laneNumber = KeyAssign::Beat7[channel - Channel::P2KeyBase + 9];
-				channel = Channel::P1KeyBase;
+				laneNumber = KeyAssign::Beat7[channel - P2KeyBase + 9];
+				channel = P1KeyBase;
 			}
-			else if (channel >= Channel::P1InvisibleKeyBase && channel < Channel::P1InvisibleKeyBase + 9)
+			else if (channel >= P1InvisibleKeyBase && channel < P1InvisibleKeyBase + 9)
 			{
-				laneNumber = KeyAssign::Beat7[channel - Channel::P1InvisibleKeyBase];
-				channel = Channel::P1InvisibleKeyBase;
+				laneNumber = KeyAssign::Beat7[channel - P1InvisibleKeyBase];
+				channel = P1InvisibleKeyBase;
 			}
-			else if (channel >= Channel::P2InvisibleKeyBase && channel < Channel::P2InvisibleKeyBase + 9)
+			else if (channel >= P2InvisibleKeyBase && channel < P2InvisibleKeyBase + 9)
 			{
-				laneNumber = KeyAssign::Beat7[channel - Channel::P2InvisibleKeyBase + 9];
-				channel = Channel::P1InvisibleKeyBase;
+				laneNumber = KeyAssign::Beat7[channel - P2InvisibleKeyBase + 9];
+				channel = P1InvisibleKeyBase;
 			}
-			else if (channel >= Channel::P1LongKeyBase && channel < Channel::P1LongKeyBase + 9)
+			else if (channel >= P1LongKeyBase && channel < P1LongKeyBase + 9)
 			{
-				laneNumber = KeyAssign::Beat7[channel - Channel::P1LongKeyBase];
-				channel = Channel::P1LongKeyBase;
+				laneNumber = KeyAssign::Beat7[channel - P1LongKeyBase];
+				channel = P1LongKeyBase;
 			}
-			else if (channel >= Channel::P2LongKeyBase && channel < Channel::P2LongKeyBase + 9)
+			else if (channel >= P2LongKeyBase && channel < P2LongKeyBase + 9)
 			{
-				laneNumber = KeyAssign::Beat7[channel - Channel::P2LongKeyBase + 9];
-				channel = Channel::P1LongKeyBase;
+				laneNumber = KeyAssign::Beat7[channel - P2LongKeyBase + 9];
+				channel = P1LongKeyBase;
 			}
-			else if (channel >= Channel::P1MineKeyBase && channel < Channel::P1MineKeyBase + 9)
+			else if (channel >= P1MineKeyBase && channel < P1MineKeyBase + 9)
 			{
-				laneNumber = KeyAssign::Beat7[channel - Channel::P1MineKeyBase];
-				channel = Channel::P1MineKeyBase;
+				laneNumber = KeyAssign::Beat7[channel - P1MineKeyBase];
+				channel = P1MineKeyBase;
 			}
-			else if (channel >= Channel::P2MineKeyBase && channel < Channel::P2MineKeyBase + 9)
+			else if (channel >= P2MineKeyBase && channel < P2MineKeyBase + 9)
 			{
-				laneNumber = KeyAssign::Beat7[channel - Channel::P2MineKeyBase + 9];
-				channel = Channel::P1MineKeyBase;
+				laneNumber = KeyAssign::Beat7[channel - P2MineKeyBase + 9];
+				channel = P1MineKeyBase;
 			}
 
-			if (laneNumber == -1) continue;
+			if (laneNumber == -1)
+			{
+				continue;
+			}
 			auto isScratch = laneNumber == 7 || laneNumber == 15;
 			if (laneNumber == 5 || laneNumber == 6 || laneNumber == 13 || laneNumber == 14)
 			{
-				if(Chart->Meta.KeyMode == 5) Chart->Meta.KeyMode = 7;
-				else if(Chart->Meta.KeyMode == 10) Chart->Meta.KeyMode = 14;
+				if (Chart->Meta.KeyMode == 5)
+				{
+					Chart->Meta.KeyMode = 7;
+				}
+				else if (Chart->Meta.KeyMode == 10)
+				{
+					Chart->Meta.KeyMode = 14;
+				}
 			}
-			if (laneNumber >= 8) {
-				if(Chart->Meta.KeyMode == 7) Chart->Meta.KeyMode = 14;
-				else if(Chart->Meta.KeyMode == 5)Chart->Meta.KeyMode = 10;
+			if (laneNumber >= 8)
+			{
+				if (Chart->Meta.KeyMode == 7)
+				{
+					Chart->Meta.KeyMode = 14;
+				}
+				else if (Chart->Meta.KeyMode == 5)
+				{
+					Chart->Meta.KeyMode = 10;
+				}
 				Chart->Meta.IsDP = true;
 			}
 
 			auto dataCount = data.Len() / 2;
 			for (auto j = 0; j < dataCount; ++j)
 			{
-				if(bCancelled) break;
+				if (bCancelled)
+				{
+					break;
+				}
 				auto val = data.Mid(j * 2, 2);
 				if (val == "00")
 				{
@@ -342,47 +391,54 @@ void FBMSParser::Parse(FString path, FChart** chart, bool addReadyMeasure, bool 
 				// ReSharper disable PossibleLossOfFraction
 				auto position = static_cast<double>(j / g) / (dataCount / g);
 
-				if (!timelines.Contains(position)) {
+				if (!timelines.Contains(position))
+				{
 					auto timeline = new FTimeLine(TempKey, metaOnly);
 					timelines.Add(position, timeline);
 				}
 
 				auto timeline = timelines[position];
-				if (channel == Channel::LaneAutoplay || channel == Channel::P1InvisibleKeyBase)
+				if (channel == LaneAutoplay || channel == P1InvisibleKeyBase)
 				{
-					if (metaOnly) break;
+					if (metaOnly)
+					{
+						break;
+					}
 				}
 				switch (channel)
 				{
-				case Channel::LaneAutoplay:
-					if (metaOnly) break;
+				case LaneAutoplay:
+					if (metaOnly)
+					{
+						break;
+					}
 					if (val == "**")
 					{
-						timeline->AddBackgroundNote(new FBMSNote{ MetronomeWav });
+						timeline->AddBackgroundNote(new FBMSNote{MetronomeWav});
 						break;
 					}
 					if (DecodeBase36(val) != 0)
 					{
-						auto bgNote = new FBMSNote{ ToWaveId(Chart, val) };
+						auto bgNote = new FBMSNote{ToWaveId(Chart, val)};
 						timeline->AddBackgroundNote(bgNote);
 					}
 
 					break;
-				case Channel::BpmChange:
+				case BpmChange:
 					timeline->Bpm = FParse::HexNumber(*val);
-					// Debug.Log($"BPM_CHANGE: {timeline.Bpm}, on measure {i}");
+				// Debug.Log($"BPM_CHANGE: {timeline.Bpm}, on measure {i}");
 					timeline->BpmChange = true;
 					break;
-				case Channel::BgaPlay:
+				case BgaPlay:
 					timeline->BgaBase = DecodeBase36(val);
 					break;
-				case Channel::PoorPlay:
+				case PoorPlay:
 					timeline->BgaPoor = DecodeBase36(val);
 					break;
-				case Channel::LayerPlay:
+				case LayerPlay:
 					timeline->BgaLayer = DecodeBase36(val);
 					break;
-				case Channel::BpmChangeExtend:
+				case BpmChangeExtend:
 					{
 						auto id = DecodeBase36(val);
 						if (!CheckResourceIdRange(id))
@@ -390,15 +446,19 @@ void FBMSParser::Parse(FString path, FChart** chart, bool addReadyMeasure, bool 
 							UE_LOG(LogTemp, Warning, TEXT("Invalid BPM id: %s"), *val);
 							break;
 						}
-						if(BpmTable.Contains(id))
+						if (BpmTable.Contains(id))
+						{
 							timeline->Bpm = BpmTable[id];
+						}
 						else
+						{
 							timeline->Bpm = 0;
+						}
 						// Debug.Log($"BPM_CHANGE_EXTEND: {timeline.Bpm}, on measure {i}, {val}");
 						timeline->BpmChange = true;
 						break;
 					}
-				case Channel::Stop:
+				case Stop:
 					{
 						auto id = DecodeBase36(val);
 						if (!CheckResourceIdRange(id))
@@ -407,67 +467,83 @@ void FBMSParser::Parse(FString path, FChart** chart, bool addReadyMeasure, bool 
 							break;
 						}
 						if (StopLengthTable.Contains(id))
+						{
 							timeline->StopLength = StopLengthTable[id];
+						}
 						else
+						{
 							timeline->StopLength = 0;
+						}
 						// Debug.Log($"STOP: {timeline.StopLength}, on measure {i}");
 						break;
 					}
-				case Channel::P1KeyBase: {
-					auto ch = DecodeBase36(val);
-					if (ch == Lnobj && lastNote[laneNumber] != nullptr) {
-						if (isScratch)
+				case P1KeyBase:
+					{
+						auto ch = DecodeBase36(val);
+						if (ch == Lnobj && lastNote[laneNumber] != nullptr)
 						{
-							++totalBackSpinNotes;
+							if (isScratch)
+							{
+								++totalBackSpinNotes;
+							}
+							else
+							{
+								++totalLongNotes;
+							}
+
+							auto last = lastNote[laneNumber];
+							lastNote[laneNumber] = nullptr;
+							if (metaOnly)
+							{
+								break;
+							}
+
+							auto lastTimeline = last->Timeline;
+							auto ln = new FBMSLongNote{last->Wav};
+							delete last;
+							ln->Tail = new FBMSLongNote{NoWav};
+							ln->Tail->Head = ln;
+							lastTimeline->SetNote(
+								laneNumber, ln
+							);
+							timeline->SetNote(
+								laneNumber, ln->Tail
+							);
 						}
 						else
 						{
-							++totalLongNotes;
+							auto note = new FBMSNote{ToWaveId(Chart, val)};
+							lastNote[laneNumber] = note;
+							++totalNotes;
+							if (isScratch)
+							{
+								++totalScratchNotes;
+							}
+							if (metaOnly)
+							{
+								delete note; // this is intended
+								break;
+							}
+							timeline->SetNote(
+								laneNumber, note
+							);
 						}
-
-						auto last = lastNote[laneNumber];
-						lastNote[laneNumber] = nullptr;
-						if (metaOnly) break;
-
-						auto lastTimeline = last->Timeline;
-						auto ln = new FBMSLongNote{ last->Wav };
-						delete last;
-						ln->Tail = new FBMSLongNote{ NoWav };
-						ln->Tail->Head = ln;
-						lastTimeline->SetNote(
-							laneNumber, ln
-						);
-						timeline->SetNote(
-							laneNumber, ln->Tail
-						);
 					}
-					else {
-						auto note = new FBMSNote{ ToWaveId(Chart, val) };
-						lastNote[laneNumber] = note;
-						++totalNotes;
-						if (isScratch) ++totalScratchNotes;
-						if (metaOnly) {
-							delete note; // this is intended
+					break;
+				case P1InvisibleKeyBase:
+					{
+						if (metaOnly)
+						{
 							break;
 						}
-						timeline->SetNote(
-							laneNumber, note
+						auto invNote = new FBMSNote{ToWaveId(Chart, val)};
+						timeline->SetInvisibleNote(
+							laneNumber, invNote
 						);
+						break;
 					}
 
-				}
-				break;
-				case Channel::P1InvisibleKeyBase:
-				{
-					if (metaOnly) break;
-					auto invNote = new FBMSNote{ ToWaveId(Chart, val) };
-					timeline->SetInvisibleNote(
-						laneNumber, invNote
-					);
-					break;
-				}
-												
-				case Channel::P1LongKeyBase:
+				case P1LongKeyBase:
 					if (Lntype == 1)
 					{
 						if (lnStart[laneNumber] == nullptr)
@@ -482,10 +558,11 @@ void FBMSParser::Parse(FString path, FChart** chart, bool addReadyMeasure, bool 
 								++totalLongNotes;
 							}
 
-							auto ln = new FBMSLongNote{ ToWaveId(Chart, val) };
+							auto ln = new FBMSLongNote{ToWaveId(Chart, val)};
 							lnStart[laneNumber] = ln;
 
-							if (metaOnly) {
+							if (metaOnly)
+							{
 								delete ln; // this is intended
 								break;
 							}
@@ -493,12 +570,12 @@ void FBMSParser::Parse(FString path, FChart** chart, bool addReadyMeasure, bool 
 							timeline->SetNote(
 								laneNumber, ln
 							);
-
 						}
 						else
 						{
-							if (!metaOnly) {
-								auto tail = new FBMSLongNote{ NoWav };
+							if (!metaOnly)
+							{
+								auto tail = new FBMSLongNote{NoWav};
 								tail->Head = lnStart[laneNumber];
 								lnStart[laneNumber]->Tail = tail;
 								timeline->SetNote(
@@ -510,13 +587,16 @@ void FBMSParser::Parse(FString path, FChart** chart, bool addReadyMeasure, bool 
 					}
 
 					break;
-				case Channel::P1MineKeyBase:
+				case P1MineKeyBase:
 					// landmine
 					++totalLandmineNotes;
-					if (metaOnly) break;
+					if (metaOnly)
+					{
+						break;
+					}
 					auto damage = DecodeBase36(val) / 2.0f;
 					timeline->SetNote(
-						laneNumber, new FBMSLandmineNote{ damage }
+						laneNumber, new FBMSLandmineNote{damage}
 					);
 					break;
 				}
@@ -534,7 +614,10 @@ void FBMSParser::Parse(FString path, FChart** chart, bool addReadyMeasure, bool 
 
 		for (auto& pair : timelines)
 		{
-			if(bCancelled) break;
+			if (bCancelled)
+			{
+				break;
+			}
 			auto position = pair.Key;
 			auto timeline = pair.Value;
 
@@ -548,83 +631,105 @@ void FBMSParser::Parse(FString path, FChart** chart, bool addReadyMeasure, bool 
 				minBpm = FMath::Min(minBpm, timeline->Bpm);
 				maxBpm = FMath::Max(maxBpm, timeline->Bpm);
 			}
-			else timeline->Bpm = currentBpm;
+			else
+			{
+				timeline->Bpm = currentBpm;
+			}
 
 			// Debug.Log($"measure: {i}, position: {position}, lastPosition: {lastPosition}, bpm: {currentBpm} scale: {measure.Scale} interval: {interval} stop: {timeline.GetStopDuration()}");
 
-			
+
 			timePassed += timeline->GetStopDuration();
-			if (!metaOnly) measure->TimeLines.Add(timeline);
+			if (!metaOnly)
+			{
+				measure->TimeLines.Add(timeline);
+			}
 			Chart->Meta.PlayLength = static_cast<long long>(timePassed);
 
 			lastPosition = position;
 		}
 
-		if(metaOnly)
+		if (metaOnly)
 		{
-			for(auto& timeline : timelines)
+			for (auto& timeline : timelines)
 			{
 				delete timeline.Value;
 			}
 			timelines.Empty();
 		}
 
-		if (!metaOnly && measure->TimeLines.Num() == 0) {
+		if (!metaOnly && measure->TimeLines.Num() == 0)
+		{
 			auto timeline = new FTimeLine(TempKey, metaOnly);
 			timeline->Timing = static_cast<long long>(timePassed);
 			timeline->Bpm = currentBpm;
 			measure->TimeLines.Add(timeline);
 		}
 		timePassed += 240000000.0 * (1 - lastPosition) * measure->Scale / currentBpm;
-		if (!metaOnly) Chart->Measures.Add(measure);
-		else delete measure;
+		if (!metaOnly)
+		{
+			Chart->Measures.Add(measure);
+		}
+		else
+		{
+			delete measure;
+		}
 	}
 
 	Chart->Meta.TotalLength = static_cast<long long>(timePassed);
 	Chart->Meta.MinBpm = minBpm;
 	Chart->Meta.MaxBpm = maxBpm;
-	if(Chart->Meta.Difficulty == 0)
+	if (Chart->Meta.Difficulty == 0)
 	{
-		FString FullTitle = (Chart->Meta.Title  + Chart->Meta.SubTitle).ToLower();
-		if(FullTitle.Contains("beginner"))
+		FString FullTitle = (Chart->Meta.Title + Chart->Meta.SubTitle).ToLower();
+		if (FullTitle.Contains("beginner"))
 		{
 			Chart->Meta.Difficulty = 1;
-		} else if (FullTitle.Contains("normal"))
+		}
+		else if (FullTitle.Contains("normal"))
 		{
 			Chart->Meta.Difficulty = 2;
-		} else if (FullTitle.Contains("hyper"))
+		}
+		else if (FullTitle.Contains("hyper"))
 		{
 			Chart->Meta.Difficulty = 3;
-		} else if (FullTitle.Contains("another"))
+		}
+		else if (FullTitle.Contains("another"))
 		{
 			Chart->Meta.Difficulty = 4;
-		} else if (FullTitle.Contains("insane"))
+		}
+		else if (FullTitle.Contains("insane"))
 		{
 			Chart->Meta.Difficulty = 5;
-		} else
+		}
+		else
 		{
-			if(totalNotes < 250)
+			if (totalNotes < 250)
 			{
 				Chart->Meta.Difficulty = 1;
-			} else if (totalNotes < 600)
+			}
+			else if (totalNotes < 600)
 			{
 				Chart->Meta.Difficulty = 2;
-			} else if (totalNotes < 1000)
+			}
+			else if (totalNotes < 1000)
 			{
 				Chart->Meta.Difficulty = 3;
-			} else if(totalNotes < 2000)
+			}
+			else if (totalNotes < 2000)
 			{
 				Chart->Meta.Difficulty = 4;
-			} else
+			}
+			else
 			{
 				Chart->Meta.Difficulty = 5;
 			}
 		}
-		
 	}
 }
 
-void FBMSParser::ParseHeader(FChart* Chart, const FString& Cmd, const FString& Xx, FString Value) {
+void FBMSParser::ParseHeader(FChart* Chart, const FString& Cmd, const FString& Xx, FString Value)
+{
 	// Debug.Log($"cmd: {cmd}, xx: {xx} isXXNull: {xx == null}, value: {value}");
 	const FString CmdUpper = Cmd.ToUpper();
 	if (CmdUpper == "PLAYER")
@@ -657,7 +762,10 @@ void FBMSParser::ParseHeader(FChart* Chart, const FString& Cmd, const FString& X
 	}
 	else if (CmdUpper == "BPM")
 	{
-		if (Value.IsEmpty()) return; // TODO: handle this
+		if (Value.IsEmpty())
+		{
+			return; // TODO: handle this
+		}
 		if (Xx.IsEmpty())
 		{
 			// chart initial bpm
@@ -677,7 +785,10 @@ void FBMSParser::ParseHeader(FChart* Chart, const FString& Cmd, const FString& X
 	}
 	else if (CmdUpper == "STOP")
 	{
-		if (Value.IsEmpty() || Xx.IsEmpty() || Xx.Len() == 0) return;  // TODO: handle this
+		if (Value.IsEmpty() || Xx.IsEmpty() || Xx.Len() == 0)
+		{
+			return; // TODO: handle this
+		}
 		int id = DecodeBase36(Xx);
 		if (!CheckResourceIdRange(id))
 		{
@@ -705,25 +816,30 @@ void FBMSParser::ParseHeader(FChart* Chart, const FString& Cmd, const FString& X
 		auto total = FCString::Atod(*Value);
 		if (total > 0)
 		{
-			Chart->Meta.Total = total;	
+			Chart->Meta.Total = total;
 		}
 	}
-	else if (CmdUpper == "VOLWAV") {
-
+	else if (CmdUpper == "VOLWAV")
+	{
 	}
-	else if (CmdUpper == "STAGEFILE") {
+	else if (CmdUpper == "STAGEFILE")
+	{
 		Chart->Meta.StageFile = Value;
 	}
-	else if (CmdUpper == "BANNER") {
+	else if (CmdUpper == "BANNER")
+	{
 		Chart->Meta.Banner = Value;
 	}
-	else if (CmdUpper == "BACKBMP") {
+	else if (CmdUpper == "BACKBMP")
+	{
 		Chart->Meta.BackBmp = Value;
 	}
-	else if (CmdUpper == "PREVIEW") {
+	else if (CmdUpper == "PREVIEW")
+	{
 		Chart->Meta.Preview = Value;
 	}
-	else if (CmdUpper == "WAV") {
+	else if (CmdUpper == "WAV")
+	{
 		if (Xx.IsEmpty() || Value.IsEmpty())
 		{
 			UE_LOG(LogTemp, Warning, TEXT("WAV command requires two arguments"));
@@ -737,7 +853,8 @@ void FBMSParser::ParseHeader(FChart* Chart, const FString& Cmd, const FString& X
 		}
 		Chart->WavTable.Add(id, Value);
 	}
-	else if (CmdUpper == "BMP") {
+	else if (CmdUpper == "BMP")
+	{
 		if (Xx.IsEmpty() || Value.IsEmpty())
 		{
 			UE_LOG(LogTemp, Warning, TEXT("BMP command requires two arguments"));
@@ -755,33 +872,41 @@ void FBMSParser::ParseHeader(FChart* Chart, const FString& Cmd, const FString& X
 			Chart->Meta.BgaPoorDefault = true;
 		}
 	}
-	else if (CmdUpper == "RANDOM") {
-
+	else if (CmdUpper == "RANDOM")
+	{
 	}
-	else if (CmdUpper == "IF") {
-
+	else if (CmdUpper == "IF")
+	{
 	}
-	else if (CmdUpper == "ENDIF") {
-
+	else if (CmdUpper == "ENDIF")
+	{
 	}
-	else if (CmdUpper == "LNOBJ") {
+	else if (CmdUpper == "LNOBJ")
+	{
 		Lnobj = DecodeBase36(Value);
 	}
-	else if (CmdUpper == "LNTYPE") {
+	else if (CmdUpper == "LNTYPE")
+	{
 		Lntype = FCString::Atoi(*Value);
 	}
-	else if (CmdUpper == "LNMODE") {
+	else if (CmdUpper == "LNMODE")
+	{
 		Chart->Meta.LnMode = FCString::Atoi(*Value);
 	}
-	else {
+	else
+	{
 		UE_LOG(LogTemp, Warning, TEXT("Unknown command: %s"), *CmdUpper);
-	}	
+	}
 }
 
-int FBMSParser::Gcd(int A, int B) {
+int FBMSParser::Gcd(int A, int B)
+{
 	while (true)
 	{
-		if (B == 0) return A;
+		if (B == 0)
+		{
+			return A;
+		}
 		auto a1 = A;
 		A = B;
 		B = a1 % B;
@@ -793,7 +918,8 @@ bool FBMSParser::CheckResourceIdRange(int Id)
 	return Id >= 0 && Id < 36 * 36;
 }
 
-int FBMSParser::ToWaveId(FChart* Chart, const FString& Wav) {
+int FBMSParser::ToWaveId(FChart* Chart, const FString& Wav)
+{
 	auto decoded = DecodeBase36(Wav);
 	// check range
 	if (!CheckResourceIdRange(decoded))
@@ -805,7 +931,8 @@ int FBMSParser::ToWaveId(FChart* Chart, const FString& Wav) {
 	return Chart->WavTable.Contains(decoded) ? decoded : NoWav;
 }
 
-int FBMSParser::DecodeBase36(const FString& Str) {
+int FBMSParser::DecodeBase36(const FString& Str)
+{
 	int result = 0;
 	const FString& StrUpper = Str.ToUpper();
 	for (auto c : StrUpper)
@@ -826,6 +953,7 @@ int FBMSParser::DecodeBase36(const FString& Str) {
 	}
 	return result;
 }
+
 FBMSParser::~FBMSParser()
 {
 }

@@ -246,7 +246,7 @@
 /* OEM keys */
 
 #define VK_OEM_1	0xBA /* Used for miscellaneous characters; it can vary by keyboard. */
-			     /* Windows 2000/XP: For the US standard keyboard, the ';:' key */
+/* Windows 2000/XP: For the US standard keyboard, the ';:' key */
 
 #define VK_OEM_PLUS	0xBB /* Windows 2000/XP: For any country/region, the '+' key */
 #define VK_OEM_COMMA	0xBC /* Windows 2000/XP: For any country/region, the ',' key */
@@ -254,10 +254,10 @@
 #define VK_OEM_PERIOD	0xBE /* Windows 2000/XP: For any country/region, the '.' key */
 
 #define VK_OEM_2	0xBF /* Used for miscellaneous characters; it can vary by keyboard. */
-			     /* Windows 2000/XP: For the US standard keyboard, the '/?' key */
+/* Windows 2000/XP: For the US standard keyboard, the '/?' key */
 
 #define VK_OEM_3	0xC0 /* Used for miscellaneous characters; it can vary by keyboard. */
-			     /* Windows 2000/XP: For the US standard keyboard, the '`~' key */
+/* Windows 2000/XP: For the US standard keyboard, the '`~' key */
 
 /* 0xC1 to 0xD7 are reserved */
 #define VK_ABNT_C1	0xC1 /* Brazilian (ABNT) Keyboard */
@@ -266,16 +266,16 @@
 /* 0xD8 to 0xDA are unassigned */
 
 #define VK_OEM_4	0xDB /* Used for miscellaneous characters; it can vary by keyboard. */
-			     /* Windows 2000/XP: For the US standard keyboard, the '[{' key */
+/* Windows 2000/XP: For the US standard keyboard, the '[{' key */
 
 #define VK_OEM_5	0xDC /* Used for miscellaneous characters; it can vary by keyboard. */
-			     /* Windows 2000/XP: For the US standard keyboard, the '\|' key */
+/* Windows 2000/XP: For the US standard keyboard, the '\|' key */
 
 #define VK_OEM_6	0xDD /* Used for miscellaneous characters; it can vary by keyboard. */
-			     /* Windows 2000/XP: For the US standard keyboard, the ']}' key */
+/* Windows 2000/XP: For the US standard keyboard, the ']}' key */
 
 #define VK_OEM_7	0xDE /* Used for miscellaneous characters; it can vary by keyboard. */
-			     /* Windows 2000/XP: For the US standard keyboard, the 'single-quote/double-quote' key */
+/* Windows 2000/XP: For the US standard keyboard, the 'single-quote/double-quote' key */
 
 #define VK_OEM_8	0xDF /* Used for miscellaneous characters; it can vary by keyboard. */
 
@@ -283,7 +283,7 @@
 /* 0xE1 is OEM specific */
 
 #define VK_OEM_102	0xE2 /* Windows 2000/XP: Either the angle bracket key or */
-			     /* the backslash key on the RT 102-key keyboard */
+/* the backslash key on the RT 102-key keyboard */
 
 /* 0xE3 and 0xE4 are OEM specific */
 
@@ -292,9 +292,9 @@
 /* 0xE6 is OEM specific */
 
 #define VK_PACKET	0xE7	/* Windows 2000/XP: Used to pass Unicode characters as if they were keystrokes. */
-				/* The #define VK_PACKET key is the low word of a 32-bit Virtual Key value used */
-				/* for non-keyboard input methods. For more information, */
-				/* see Remark in KEYBDINPUT, SendInput, WM_KEYDOWN, and WM_KEYUP */
+/* The #define VK_PACKET key is the low word of a 32-bit Virtual Key value used */
+/* for non-keyboard input methods. For more information, */
+/* see Remark in KEYBDINPUT, SendInput, WM_KEYDOWN, and WM_KEYUP */
 
 /* 0xE8 is unassigned */
 /* 0xE9 to 0xF5 are OEM specific */

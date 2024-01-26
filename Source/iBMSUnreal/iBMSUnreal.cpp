@@ -3,4 +3,4 @@
 #include "iBMSUnreal.h"
 #include "Modules/ModuleManager.h"
 
-IMPLEMENT_PRIMARY_GAME_MODULE( FDefaultGameModuleImpl, iBMSUnreal, "iBMSUnreal" );
+IMPLEMENT_PRIMARY_GAME_MODULE(FDefaultGameModuleImpl, iBMSUnreal, "iBMSUnreal");

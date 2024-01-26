@@ -5,20 +5,22 @@
 #include "Input/UnrealInputSource.h"
 #include "Input/UnrealTouchInputSource.h"
 
-FRhythmInputHandler::FRhythmInputHandler(IRhythmControl* Control, FChartMeta& Meta): RhythmControl(Control), ChartMeta(Meta)
+FRhythmInputHandler::FRhythmInputHandler(IRhythmControl* Control, FChartMeta& Meta): RhythmControl(Control),
+	ChartMeta(Meta)
 {
 	const TMap<int, TMap<FKey, int>> DefaultKeyMap = {
 		{
-			7,{
+			7, {
 				// keys: SDF, SPACE, JKL
-				{EKeys::S, 0}, {EKeys::D, 1}, {EKeys::F, 2}, {EKeys::SpaceBar, 3}, {EKeys::J, 4}, {EKeys::K, 5}, {EKeys::L, 6},
+				{EKeys::S, 0}, {EKeys::D, 1}, {EKeys::F, 2}, {EKeys::SpaceBar, 3}, {EKeys::J, 4}, {EKeys::K, 5},
+				{EKeys::L, 6},
 				// scratch: LShift, RShift
 				{EKeys::LeftShift, 7},
 				{EKeys::RightShift, 7}
 			}
 		},
 		{
-			5,{
+			5, {
 				// keys: DF, SPACE, JK
 				{EKeys::D, 0}, {EKeys::F, 1}, {EKeys::SpaceBar, 2}, {EKeys::J, 3}, {EKeys::K, 4},
 				// scratch: LShift, RShift
@@ -27,10 +29,11 @@ FRhythmInputHandler::FRhythmInputHandler(IRhythmControl* Control, FChartMeta& Me
 			}
 		},
 		{
-			14,{
+			14, {
 				// keys: ZSXDCFV and MK,L.;/
 				{EKeys::Z, 0}, {EKeys::S, 1}, {EKeys::X, 2}, {EKeys::D, 3}, {EKeys::C, 4}, {EKeys::F, 5}, {EKeys::V, 6},
-				{EKeys::M, 8}, {EKeys::K, 9}, {EKeys::Comma, 10}, {EKeys::L, 11}, {EKeys::Period, 12}, {EKeys::Semicolon, 13}, {EKeys::Slash, 14},
+				{EKeys::M, 8}, {EKeys::K, 9}, {EKeys::Comma, 10}, {EKeys::L, 11}, {EKeys::Period, 12},
+				{EKeys::Semicolon, 13}, {EKeys::Slash, 14},
 				// Lscratch: LShift
 				{EKeys::LeftShift, 7},
 				// Rscratch: RShift
@@ -38,7 +41,7 @@ FRhythmInputHandler::FRhythmInputHandler(IRhythmControl* Control, FChartMeta& Me
 			}
 		},
 		{
-			10,{
+			10, {
 				// keys: ZSXDC and ,l.;/
 				{EKeys::Z, 0}, {EKeys::S, 1}, {EKeys::X, 2}, {EKeys::D, 3}, {EKeys::C, 4},
 				{EKeys::Comma, 8}, {EKeys::L, 9}, {EKeys::Period, 10}, {EKeys::Semicolon, 11}, {EKeys::Slash, 12},
@@ -61,7 +64,8 @@ void FRhythmInputHandler::OnKeyDown(int KeyCode, KeySource Source, int CharCode)
 {
 	FKey Normalized = InputNormalizer::Normalize(KeyCode, Source, CharCode);
 	UE_LOG(LogTemp, Warning, TEXT("Rhythm Key down: %s"), *Normalized.ToString());
-	if(KeyMap.Contains(Normalized)){
+	if (KeyMap.Contains(Normalized))
+	{
 		RhythmControl->PressLane(KeyMap[Normalized]);
 	}
 }
@@ -70,7 +74,8 @@ void FRhythmInputHandler::OnKeyUp(int KeyCode, KeySource Source, int CharCode)
 {
 	const FKey Normalized = InputNormalizer::Normalize(KeyCode, Source, CharCode);
 	UE_LOG(LogTemp, Warning, TEXT("Rhythm Key up: %s"), *Normalized.ToString());
-	if(KeyMap.Contains(Normalized)){
+	if (KeyMap.Contains(Normalized))
+	{
 		RhythmControl->ReleaseLane(KeyMap[Normalized]);
 	}
 }
@@ -79,10 +84,12 @@ void FRhythmInputHandler::OnFingerDown(int FingerIndex, FVector Location)
 {
 	UE_LOG(LogTemp, Warning, TEXT("Finger Down Location: %f, %f"), Location.X, Location.Y);
 	int MainLane, CompensateLane = -1;
-	
+
 	GetLaneFromScreenPosition(&MainLane, &CompensateLane, FVector2D(Location.X, Location.Y));
 	UE_LOG(LogTemp, Warning, TEXT("MainLane: %d, CompensateLane: %d"), MainLane, CompensateLane);
-	auto EffectiveLane = CompensateLane != -1 ?  RhythmControl->PressLane(MainLane, CompensateLane) : RhythmControl->PressLane(MainLane);
+	auto EffectiveLane = CompensateLane != -1
+		                     ? RhythmControl->PressLane(MainLane, CompensateLane)
+		                     : RhythmControl->PressLane(MainLane);
 	UE_LOG(LogTemp, Warning, TEXT("EffectiveLane: %d"), EffectiveLane);
 	FingerToLane[FingerIndex] = EffectiveLane;
 }
@@ -90,7 +97,10 @@ void FRhythmInputHandler::OnFingerDown(int FingerIndex, FVector Location)
 void FRhythmInputHandler::OnFingerUp(int FingerIndex, FVector Location)
 {
 	int Lane = FingerToLane[FingerIndex];
-	if(Lane < 0) return;
+	if (Lane < 0)
+	{
+		return;
+	}
 	RhythmControl->ReleaseLane(Lane);
 	FingerToLane[FingerIndex] = -1;
 }
@@ -98,16 +108,21 @@ void FRhythmInputHandler::OnFingerUp(int FingerIndex, FVector Location)
 int FRhythmInputHandler::ClampLane(int Lane) const
 {
 	int LaneCount = ChartMeta.KeyMode;
-	if(Lane < 0) return 7; // left scratch
-	if(Lane >= LaneCount)
+	if (Lane < 0)
+	{
+		return 7; // left scratch
+	}
+	if (Lane >= LaneCount)
 	{
 		return ChartMeta.IsDP ? 15 : 7; // right scratch
 	}
-	if(Lane >= 7 && ChartMeta.KeyMode == 14) {
+	if (Lane >= 7 && ChartMeta.KeyMode == 14)
+	{
 		// 14Keys: 7 is scratch, so we should map 7~13 to 8~14
 		Lane += 1;
 	}
-	if(Lane >= 5 && ChartMeta.KeyMode == 10) {
+	if (Lane >= 5 && ChartMeta.KeyMode == 10)
+	{
 		// 10Keys: 5,6 is empty and 7 is scratch, so we should map 5~9 to 8~12
 		Lane += 3;
 	}
@@ -135,14 +150,19 @@ void FRhythmInputHandler::GetLaneFromScreenPosition(int* MainLane, int* Compensa
 	RightCompensateLane = ClampLane(RightCompensateLane);
 
 	*MainLane = Lane;
-	if(LeftCompensateLane != Lane) *CompensateLane = LeftCompensateLane;
-	if(RightCompensateLane != Lane) *CompensateLane = RightCompensateLane;
-	
+	if (LeftCompensateLane != Lane)
+	{
+		*CompensateLane = LeftCompensateLane;
+	}
+	if (RightCompensateLane != Lane)
+	{
+		*CompensateLane = RightCompensateLane;
+	}
 }
 
 bool FRhythmInputHandler::StartListenNative()
 {
-	if(NativeInput!=nullptr)
+	if (NativeInput != nullptr)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Input already started"));
 		return false;
@@ -154,7 +174,7 @@ bool FRhythmInputHandler::StartListenNative()
 
 bool FRhythmInputHandler::StartListenUnreal(UInputComponent* InputComponent)
 {
-	if(UnrealInput!=nullptr)
+	if (UnrealInput != nullptr)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Input already started"));
 		return false;
@@ -167,14 +187,14 @@ bool FRhythmInputHandler::StartListenUnreal(UInputComponent* InputComponent)
 bool FRhythmInputHandler::StartListenUnrealTouch(APlayerController* PController, AActor* NoteArea, float Distance)
 {
 	// init finger to lane map
-	for (int i=0; i<10; i++)
+	for (int i = 0; i < 10; i++)
 	{
 		FingerToLane.Add(i, -1);
 	}
 	PlayerController = PController;
 	Area = NoteArea;
 	TouchDistance = Distance;
-	if(UnrealTouchInput!=nullptr)
+	if (UnrealTouchInput != nullptr)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Input already started"));
 		return false;
@@ -186,9 +206,9 @@ bool FRhythmInputHandler::StartListenUnrealTouch(APlayerController* PController,
 
 void FRhythmInputHandler::StopListen()
 {
-	for(auto& Input : {&NativeInput, &UnrealInput, &UnrealTouchInput})
+	for (auto& Input : {&NativeInput, &UnrealInput, &UnrealTouchInput})
 	{
-		if(*Input != nullptr)
+		if (*Input != nullptr)
 		{
 			(*Input)->StopListen();
 			delete (*Input);

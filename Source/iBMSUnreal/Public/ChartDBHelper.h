@@ -12,8 +12,14 @@ class IBMSUNREAL_API ChartDBHelper
 {
 public:
 	//Singleton
-	ChartDBHelper() {}
-	ChartDBHelper(const ChartDBHelper&) {}
+	ChartDBHelper()
+	{
+	}
+
+	ChartDBHelper(const ChartDBHelper&)
+	{
+	}
+
 	ChartDBHelper& operator=(const ChartDBHelper&) { return *this; }
 
 	static ChartDBHelper& GetInstance()
@@ -22,6 +28,7 @@ public:
 		static ChartDBHelper instance;
 		return instance;
 	}
+
 	// Connect, return connection
 	sqlite3* Connect();
 
@@ -45,7 +52,7 @@ public:
 
 	static FString ToRelativePath(FString& path);
 	static FString ToAbsolutePath(FString& path);
+
 private:
 	FChartMeta ReadChartMeta(sqlite3_stmt* stmt);
-
 };

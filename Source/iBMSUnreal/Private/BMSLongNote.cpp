@@ -30,7 +30,6 @@ void FBMSLongNote::Release(long long Time)
 
 void FBMSLongNote::MissPress(long long Time)
 {
-
 }
 
 void FBMSLongNote::Reset()
@@ -46,4 +45,3 @@ FBMSLongNote::~FBMSLongNote()
 	Head = nullptr;
 	Tail = nullptr;
 }
-

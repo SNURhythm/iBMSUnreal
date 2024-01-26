@@ -5,15 +5,17 @@
 
 #include "Chart.h"
 // include macos appkit
-FNativeInputSource::FNativeInputSource(){
+FNativeInputSource::FNativeInputSource()
+{
 }
 
 FNativeInputSource::~FNativeInputSource()
 {
 }
 #if PLATFORM_WINDOWS
-LRESULT FNativeInputSource::WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam){
-	if(msg == WM_INPUT)
+LRESULT FNativeInputSource::WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
+{
+	if (msg == WM_INPUT)
 	{
 		// get raw input
 		UINT dwSize = 40;
@@ -21,13 +23,17 @@ LRESULT FNativeInputSource::WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM l
 		GetRawInputData((HRAWINPUT)lParam, RID_INPUT, lpb.data(), &dwSize, sizeof(RAWINPUTHEADER));
 		int rawInput = lpb[30];
 		const bool IsKeyDown = (lpb[26] & 0x01) != 1;
-		if(rawInput != 0){
+		if (rawInput != 0)
+		{
 			UE_LOG(LogTemp, Warning, TEXT("Raw input: %d, %d"), rawInput, IsKeyDown);
-			if(!IsListening) return DefWindowProc(hwnd, msg, wParam, lParam);
+			if (!IsListening)
+			{
+				return DefWindowProc(hwnd, msg, wParam, lParam);
+			}
 			if (rawInput == 0x10)
 			{
 				// LShift
-				switch(lpb[24])
+				switch (lpb[24])
 				{
 				case 42:
 					rawInput = 0xA0; // LShift
@@ -39,10 +45,13 @@ LRESULT FNativeInputSource::WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM l
 					break;
 				}
 			}
-			if(IsKeyDown){
-				OnKeyDown(rawInput, KeySource::VirtualKey);
-			} else {
-				OnKeyUp(rawInput, KeySource::VirtualKey);
+			if (IsKeyDown)
+			{
+				OnKeyDown(rawInput, VirtualKey);
+			}
+			else
+			{
+				OnKeyUp(rawInput, VirtualKey);
 			}
 		}
 	}
@@ -143,7 +152,7 @@ bool FNativeInputSource::StartListen()
 	});
 	return true;
 #elif PLATFORM_WINDOWS
-	ListenTask = UE::Tasks::Launch (UE_SOURCE_LOCATION, [this]()
+	ListenTask = UE::Tasks::Launch(UE_SOURCE_LOCATION, [this]()
 	{
 		WNDCLASSEXW wx = {};
 		wx.cbSize = sizeof(WNDCLASSEXW);
@@ -151,23 +160,34 @@ bool FNativeInputSource::StartListen()
 		wx.lpfnWndProc = [](HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam) -> LRESULT
 		{
 			FNativeInputSource* pThis;
-			if(msg == WM_NCCREATE){
+			if (msg == WM_NCCREATE)
+			{
 				pThis = static_cast<FNativeInputSource*>(reinterpret_cast<CREATESTRUCT*>(lParam)->lpCreateParams);
 				SetWindowLongPtr(hwnd, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(pThis));
-			} else {
+			}
+			else
+			{
 				pThis = reinterpret_cast<FNativeInputSource*>(GetWindowLongPtr(hwnd, GWLP_USERDATA));
 			}
-			if(pThis == nullptr) return DefWindowProc(hwnd, msg, wParam, lParam);
-			if(!pThis->IsListening) return DefWindowProc(hwnd, msg, wParam, lParam);
+			if (pThis == nullptr)
+			{
+				return DefWindowProc(hwnd, msg, wParam, lParam);
+			}
+			if (!pThis->IsListening)
+			{
+				return DefWindowProc(hwnd, msg, wParam, lParam);
+			}
 			pThis->WndProc(hwnd, msg, wParam, lParam);
 			return DefWindowProc(hwnd, msg, wParam, lParam);
 		};
-		
+
 		wx.hInstance = GetModuleHandle(nullptr);
 		wx.lpszClassName = TEXT("Dummy");
 		RegisterClassEx(&wx);
-		CurrentHwnd = CreateWindowEx(WS_EX_OVERLAPPEDWINDOW, wx.lpszClassName, TEXT(""), WS_OVERLAPPEDWINDOW, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, HWND_MESSAGE, nullptr, wx.hInstance, this);
-		
+		CurrentHwnd = CreateWindowEx(WS_EX_OVERLAPPEDWINDOW, wx.lpszClassName, TEXT(""), WS_OVERLAPPEDWINDOW,
+		                             CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, HWND_MESSAGE, nullptr,
+		                             wx.hInstance, this);
+
 		RAWINPUTDEVICE rid;
 		rid.usUsagePage = 0x01;
 		rid.usUsage = 0x06;
@@ -175,10 +195,13 @@ bool FNativeInputSource::StartListen()
 		rid.hwndTarget = CurrentHwnd;
 		RegisterRawInputDevices(&rid, 1, sizeof(rid));
 		MSG msg;
-		
-		while(IsListening && GetMessageW(&msg, CurrentHwnd, WM_CLOSE, WM_INPUT))
+
+		while (IsListening && GetMessageW(&msg, CurrentHwnd, WM_CLOSE, WM_INPUT))
 		{
-			if(!IsListening) break;
+			if (!IsListening)
+			{
+				break;
+			}
 			TranslateMessage(&msg);
 			DispatchMessage(&msg);
 		}
@@ -195,7 +218,7 @@ void FNativeInputSource::StopListen()
 	UE_LOG(LogTemp, Warning, TEXT("Stop listen key input"));
 	IsListening = false;
 #if PLATFORM_WINDOWS
-	if(CurrentHwnd)
+	if (CurrentHwnd)
 	{
 		PostMessageW(CurrentHwnd, WM_CLOSE, 0, 0);
 		UE_LOG(LogTemp, Warning, TEXT("Hwnd closed"));
@@ -224,11 +247,17 @@ void FNativeInputSource::SetHandler(IInputHandler* Handler)
 void FNativeInputSource::OnKeyDown(int KeyCode, KeySource Source)
 {
 	UE_LOG(LogTemp, Warning, TEXT("Native: Key %d pressed"), KeyCode);
-	if(InputHandler != nullptr) InputHandler->OnKeyDown(KeyCode, Source);
+	if (InputHandler != nullptr)
+	{
+		InputHandler->OnKeyDown(KeyCode, Source);
+	}
 }
 
 void FNativeInputSource::OnKeyUp(int KeyCode, KeySource Source)
 {
 	UE_LOG(LogTemp, Warning, TEXT("Native: Key %d released"), KeyCode);
-	if(InputHandler != nullptr) InputHandler->OnKeyUp(KeyCode, Source);
+	if (InputHandler != nullptr)
+	{
+		InputHandler->OnKeyUp(KeyCode, Source);
+	}
 }

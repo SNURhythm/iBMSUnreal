@@ -17,6 +17,7 @@ UCLASS()
 class IBMSUNREAL_API ABMSGameModeBase : public AGameModeBase
 {
 	GENERATED_BODY()
+
 public:
 	ABMSGameModeBase();
 

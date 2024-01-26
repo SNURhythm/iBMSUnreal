@@ -16,17 +16,32 @@ void ShiftJISConverter::BytesToUTF8(FString& outString, const uint8* input, int3
 		char arraySection = (input[indexInput]) >> 4;
 
 		size_t arrayOffset;
-		if (arraySection == 0x8) arrayOffset = 0x100; //these are two-byte shiftjis
-		else if (arraySection == 0x9) arrayOffset = 0x1100;
-		else if (arraySection == 0xE) arrayOffset = 0x2100;
-		else arrayOffset = 0; //this is one byte shiftjis
+		if (arraySection == 0x8)
+		{
+			arrayOffset = 0x100; //these are two-byte shiftjis
+		}
+		else if (arraySection == 0x9)
+		{
+			arrayOffset = 0x1100;
+		}
+		else if (arraySection == 0xE)
+		{
+			arrayOffset = 0x2100;
+		}
+		else
+		{
+			arrayOffset = 0; //this is one byte shiftjis
+		}
 
 		//determining real array offset
 		if (arrayOffset)
 		{
 			arrayOffset += ((input[indexInput]) & 0xf) << 8;
 			indexInput++;
-			if (indexInput >= size) break;
+			if (indexInput >= size)
+			{
+				break;
+			}
 		}
 		arrayOffset += input[indexInput++];
 		arrayOffset <<= 1;
@@ -55,5 +70,4 @@ void ShiftJISConverter::BytesToUTF8(FString& outString, const uint8* input, int3
 	result.SetNum(indexOutput);
 
 	FFileHelper::BufferToString(outString, result.GetData(), result.Num());
-	
 }

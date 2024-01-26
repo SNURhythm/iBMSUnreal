@@ -18,16 +18,16 @@ FJudgeResult FJudge::JudgeNow(const FBMSNote* Note, const long long InputTime)
 	const auto& Timeline = Note->Timeline;
 	const long long Diff = InputTime - Timeline->Timing;
 	// check range for each judgement
-	for(const auto& Pair : TimingWindows)
+	for (const auto& Pair : TimingWindows)
 	{
 		const auto& Judgement = Pair.Key;
 		const auto& Range = Pair.Value;
-		if(CheckRange(Diff, Range.Key, Range.Value))
+		if (CheckRange(Diff, Range.Key, Range.Value))
 		{
 			return FJudgeResult{Judgement, Diff};
 		}
 	}
-	
+
 	return FJudgeResult{None, Diff};
 }
 
@@ -38,7 +38,7 @@ int FJudge::ClampRank(const int Rank)
 
 FString FJudge::GetRankDescription(const int Rank)
 {
-	switch(ClampRank(Rank))
+	switch (ClampRank(Rank))
 	{
 	case 0:
 		return "VERY HARD";

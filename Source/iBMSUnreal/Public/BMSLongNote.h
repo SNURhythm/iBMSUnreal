@@ -12,13 +12,13 @@ class IBMSUNREAL_API FBMSLongNote : public FBMSNote
 {
 public:
 	FBMSLongNote();
-	~FBMSLongNote();
+	virtual ~FBMSLongNote() override;
 	FBMSLongNote* Tail;
 	FBMSLongNote* Head;
 	bool IsHolding = false;
 	bool IsTail();
 	long long ReleaseTime;
-	
+
 	FBMSLongNote(int Wav);
 
 	virtual void Press(long long Time) override;

@@ -6,7 +6,7 @@
 // Sets default values
 ANoteActor::ANoteActor()
 {
- 	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
+	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = false;
 	// init root component
 	// RootComponent = CreateDefaultSubobject<USceneComponent>(TEXT("RenderComponent"));
@@ -21,14 +21,10 @@ void ANoteActor::BeginPlay()
 	GetRenderComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	GetRenderComponent()->SetComponentTickEnabled(false);
 	SetActorEnableCollision(false);
-	
-	
 }
 
 // Called every frame
 void ANoteActor::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-
 }
-

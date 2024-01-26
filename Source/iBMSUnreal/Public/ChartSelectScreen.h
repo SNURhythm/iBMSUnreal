@@ -17,10 +17,11 @@ UCLASS()
 class IBMSUNREAL_API AChartSelectScreen : public AActor
 {
 	GENERATED_BODY()
-	
-public:	
+
+public:
 	// Sets default values for this actor's properties
 	AChartSelectScreen();
+
 private:
 	FJukebox* jukebox;
 	bool IsScanning;
@@ -45,9 +46,10 @@ private:
 	// On Search Box Text Committed
 	UFUNCTION()
 	void OnSearchBoxTextCommitted(const FText& Text, ETextCommit::Type CommitMethod);
-	
+
 	UPROPERTY()
 	UChartListEntryData* CurrentEntryData;
+
 protected:
 	UPROPERTY(EditAnywhere, Category="Media")
 	UMediaPlayer* MediaPlayer;
@@ -72,7 +74,7 @@ protected:
 	// EndPlay
 	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
 
-public:	
+public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 	UFUNCTION()

@@ -8,7 +8,8 @@
 /**
  * 
  */
-class IBMSUNREAL_API FMeasure {
+class IBMSUNREAL_API FMeasure
+{
 public:
 	double Scale = 1;
 	long long Timing = 0;

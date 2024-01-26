@@ -3,8 +3,12 @@
 
 #include "TimeLine.h"
 
-FTimeLine::FTimeLine(int lanes, bool metaOnly) {
-	if (metaOnly) return;
+FTimeLine::FTimeLine(int lanes, bool metaOnly)
+{
+	if (metaOnly)
+	{
+		return;
+	}
 	Notes.Init(nullptr, lanes);
 	InvisibleNotes.Init(nullptr, lanes);
 	LandmineNotes.Init(nullptr, lanes);
@@ -12,7 +16,6 @@ FTimeLine::FTimeLine(int lanes, bool metaOnly) {
 
 FTimeLine* FTimeLine::SetNote(int lane, FBMSNote* note)
 {
-
 	Notes[lane] = note;
 	note->Lane = lane;
 	note->Timeline = this;
@@ -49,26 +52,34 @@ double FTimeLine::GetStopDuration()
 
 FTimeLine::~FTimeLine()
 {
-	for (const auto& note : Notes) {
-		if (note != nullptr) {
+	for (const auto& note : Notes)
+	{
+		if (note != nullptr)
+		{
 			delete note;
 		}
 	}
 	Notes.Empty();
-	for (const auto& note : InvisibleNotes) {
-		if (note != nullptr) {
+	for (const auto& note : InvisibleNotes)
+	{
+		if (note != nullptr)
+		{
 			delete note;
 		}
 	}
 	InvisibleNotes.Empty();
-	for (const auto& note : LandmineNotes) {
-		if (note != nullptr) {
+	for (const auto& note : LandmineNotes)
+	{
+		if (note != nullptr)
+		{
 			delete note;
 		}
 	}
 	LandmineNotes.Empty();
-	for (const auto& note : BackgroundNotes) {
-		if (note != nullptr) {
+	for (const auto& note : BackgroundNotes)
+	{
+		if (note != nullptr)
+		{
 			delete note;
 		}
 	}

@@ -25,7 +25,6 @@
 #include "Kismet/GameplayStatics.h"
 
 
-
 using namespace UE::Tasks;
 
 enum EDiffType
@@ -56,12 +55,18 @@ static void FindNew(TArray<FDiff>& Diffs, const TSet<FString>& PrevPathSet, cons
 	DirectoriesToVisit.Add(Directory);
 	while (DirectoriesToVisit.Num() > 0)
 	{
-		if (bCancelled) break;
+		if (bCancelled)
+		{
+			break;
+		}
 		FString CurrentDirectory = DirectoriesToVisit.Pop();
 		TArray<FString> Files;
 		FileManager.IterateDirectory(*CurrentDirectory, [&](const TCHAR* FilenameOrDirectory, bool bIsDirectory) -> bool
 		{
-			if (bCancelled) return false;
+			if (bCancelled)
+			{
+				return false;
+			}
 			if (bIsDirectory)
 			{
 				DirectoriesToVisit.Add(FilenameOrDirectory);
@@ -80,7 +85,7 @@ static void FindNew(TArray<FDiff>& Diffs, const TSet<FString>& PrevPathSet, cons
 				{
 					auto diff = FDiff();
 					diff.path = FullPath;
-					diff.type = EDiffType::Added;
+					diff.type = Added;
 					Diffs.Add(diff);
 				}
 			}
@@ -92,7 +97,6 @@ static void FindNew(TArray<FDiff>& Diffs, const TSet<FString>& PrevPathSet, cons
 
 void AChartSelectScreen::LoadCharts()
 {
-	
 	auto dbHelper = ChartDBHelper::GetInstance();
 	auto db = dbHelper.Connect();
 	dbHelper.CreateChartMetaTable(db);
@@ -130,13 +134,11 @@ void AChartSelectScreen::LoadCharts()
 		if (!Directory.IsEmpty())
 		{
 			Directory = IFileManager::Get().ConvertToAbsolutePathForExternalAppForRead(*Directory);
-		
+
 			// insert entry
 			dbHelper.InsertEntry(db, Directory);
 		}
 		entries = dbHelper.SelectAllEntries(db);
-
-
 	}
 #else // not desktop
 	// use iOS Document Directory
@@ -226,7 +228,7 @@ void AChartSelectScreen::LoadCharts()
 		UE_LOG(LogTemp, Warning, TEXT("ChartSelectScreen SoundPath: %s"), *SoundPath);
 
 
-		FMODSystem->createSound(TCHAR_TO_ANSI(*SoundPath), FMOD_DEFAULT, 0, &SuccessSound);
+		FMODSystem->createSound(TCHAR_TO_ANSI(*SoundPath), FMOD_DEFAULT, nullptr, &SuccessSound);
 		UE_LOG(LogTemp, Warning, TEXT("ChartSelectScreen Start Task!!"));
 
 		TArray<FChartMeta> chartMetas;
@@ -235,23 +237,33 @@ void AChartSelectScreen::LoadCharts()
 		{
 			return A.Title < B.Title;
 		});
-		
+
 		AsyncTask(ENamedThreads::GameThread, [chartMetas, this]()
 		{
-			if (bCancelled) return;
+			if (bCancelled)
+			{
+				return;
+			}
 			SetChartMetas(chartMetas);
-			auto prevStartOption = Cast<UBMSGameInstance>(UGameplayStatics::GetGameInstance(GetWorld()))->GetStartOptions();
-			if (prevStartOption.BmsPath.IsEmpty()) return;
+			auto prevStartOption = Cast<UBMSGameInstance>(UGameplayStatics::GetGameInstance(GetWorld()))->
+				GetStartOptions();
+			if (prevStartOption.BmsPath.IsEmpty())
+			{
+				return;
+			}
 			// get index
 			int index = chartMetas.IndexOfByPredicate([&](const FChartMeta ChartMeta)
 			{
 				return ChartMeta.BmsPath == prevStartOption.BmsPath;
 			});
-			if (index == INDEX_NONE) return;
+			if (index == INDEX_NONE)
+			{
+				return;
+			}
 			ChartSelectUI->ChartList->NavigateToIndex(index);
 			ChartSelectUI->ChartList->SetSelectedIndex(index);
 		});
-		
+
 		// find new charts
 		TArray<FDiff> Diffs;
 		TSet<FString> PathSet;
@@ -259,7 +271,10 @@ void AChartSelectScreen::LoadCharts()
 		// TODO: Initialize prevPathSet by db
 		for (auto& meta : chartMetas)
 		{
-			if (bCancelled) break;
+			if (bCancelled)
+			{
+				break;
+			}
 			auto path = ChartDBHelper::ToRelativePath(meta.BmsPath);
 			PathSet.Add(path);
 		}
@@ -270,7 +285,10 @@ void AChartSelectScreen::LoadCharts()
 		UE_LOG(LogTemp, Warning, TEXT("ChartSelectScreen isCancelled: %d"), (bool)bCancelled);
 		for (auto& entry : entries)
 		{
-			if (bCancelled) break;
+			if (bCancelled)
+			{
+				break;
+			}
 			FindNew(Diffs, PathSet, entry, bCancelled);
 		}
 		UE_LOG(LogTemp, Warning, TEXT("ChartSelectScreen FindNew Done: %d"), Diffs.Num());
@@ -278,12 +296,15 @@ void AChartSelectScreen::LoadCharts()
 		// find deleted charts
 		for (auto& path : PathSet)
 		{
-			if (bCancelled) break;
+			if (bCancelled)
+			{
+				break;
+			}
 			if (!FileManager.FileExists(*ChartDBHelper::ToAbsolutePath(path)))
 			{
 				auto diff = FDiff();
 				diff.path = path;
-				diff.type = EDiffType::Deleted;
+				diff.type = Deleted;
 				Diffs.Add(diff);
 			}
 		}
@@ -295,7 +316,7 @@ void AChartSelectScreen::LoadCharts()
 			dbHelper.Close(db);
 			return;
 		}
-	
+
 		const bool bSupportMultithreading = FPlatformProcess::SupportsMultithreading();
 		const int TaskNum = FMath::Max(FPlatformMisc::NumberOfWorkerThreadsToSpawn() / 2, 1);
 		UE_LOG(LogTemp, Warning, TEXT("ChartSelectScreen taskNum: %d"), TaskNum);
@@ -304,23 +325,41 @@ void AChartSelectScreen::LoadCharts()
 		std::atomic_bool isCommitting;
 		ParallelFor(TaskNum, [&](int32 idx)
 		{
-			if (bCancelled) return;
+			if (bCancelled)
+			{
+				return;
+			}
 			const int Start = idx * TaskSize;
-			if (Start >= Diffs.Num()) return;
+			if (Start >= Diffs.Num())
+			{
+				return;
+			}
 			int end = (idx + 1) * TaskSize;
-			if (idx == TaskNum - 1) end = Diffs.Num();
-			if (end > Diffs.Num()) end = Diffs.Num();
+			if (idx == TaskNum - 1)
+			{
+				end = Diffs.Num();
+			}
+			if (end > Diffs.Num())
+			{
+				end = Diffs.Num();
+			}
 			for (int i = Start; i < end; i++)
 			{
-				if (bCancelled) return;
+				if (bCancelled)
+				{
+					return;
+				}
 				auto& diff = Diffs[i];
 
-				if (diff.type == EDiffType::Added)
+				if (diff.type == Added)
 				{
 					FBMSParser Parser;
 					FChart* Chart;
 					Parser.Parse(diff.path, &Chart, false, true, bCancelled);
-					if (bCancelled) return;
+					if (bCancelled)
+					{
+						return;
+					}
 					++SuccessNewChartCount;
 					if (SuccessNewChartCount % 100 == 0)
 					{
@@ -339,7 +378,8 @@ void AChartSelectScreen::LoadCharts()
 					dbHelper.InsertChartMeta(db, Chart->Meta);
 
 					delete Chart;
-				} else
+				}
+				else
 				{
 					dbHelper.DeleteChartMeta(db, diff.path);
 				}
@@ -347,27 +387,41 @@ void AChartSelectScreen::LoadCharts()
 		}, !bSupportMultithreading);
 		dbHelper.CommitTransaction(db);
 		dbHelper.Close(db);
-	
-		if (bCancelled) goto scan_end;
+
+		if (bCancelled)
+		{
+			goto scan_end;
+		}
 
 		AsyncTask(ENamedThreads::GameThread, [this]()
 		{
-
-			if (bCancelled) return;
+			if (bCancelled)
+			{
+				return;
+			}
 			// refresh search result
 			auto dbHelper = ChartDBHelper::GetInstance();
 			const auto db = dbHelper.Connect();
 			const auto SearchText = ChartSelectUI->SearchBox->GetText();
 			FString SearchString = SearchText.ToString();
 			TArray<FChartMeta> chartMetas;
-			if(SearchString.IsEmpty())dbHelper.SelectAllChartMeta(db, chartMetas);
-			else dbHelper.SearchChartMeta(db, SearchString, chartMetas);
+			if (SearchString.IsEmpty())
+			{
+				dbHelper.SelectAllChartMeta(db, chartMetas);
+			}
+			else
+			{
+				dbHelper.SearchChartMeta(db, SearchString, chartMetas);
+			}
 			dbHelper.Close(db);
 			chartMetas.Sort([](const FChartMeta& A, const FChartMeta& B)
 			{
 				return A.Title < B.Title;
 			});
-			if (bCancelled) return;
+			if (bCancelled)
+			{
+				return;
+			}
 			SetChartMetas(chartMetas);
 			// restore selection with CurrentEntryData
 			if (CurrentEntryData)
@@ -378,26 +432,35 @@ void AChartSelectScreen::LoadCharts()
 				{
 					return ChartMeta.BmsPath == chartMeta.BmsPath;
 				});
-				if (index == INDEX_NONE) return;
+				if (index == INDEX_NONE)
+				{
+					return;
+				}
 				ChartSelectUI->ChartList->NavigateToIndex(index);
 				ChartSelectUI->ChartList->SetSelectedIndex(index);
 			}
-			
 		});
-		
+
 		UE_LOG(LogTemp, Warning, TEXT("ChartSelectScreen End Task"));
 		UE_LOG(LogTemp, Warning, TEXT("success count: %d"), (int)SuccessNewChartCount);
-		if (bCancelled) goto scan_end;
-		UE_LOG(LogTemp, Warning, TEXT("FMODSystem->playSound: %d"), FMODSystem->playSound(SuccessSound, nullptr, false, nullptr));
+		if (bCancelled)
+		{
+			goto scan_end;
+		}
+		UE_LOG(LogTemp, Warning, TEXT("FMODSystem->playSound: %d"),
+		       FMODSystem->playSound(SuccessSound, nullptr, false, nullptr));
 
-scan_end:
+	scan_end:
 		IsScanning = false;
 	});
 }
 
 void AChartSelectScreen::OnStartButtonClicked()
 {
-	if (!CurrentEntryData) return;
+	if (!CurrentEntryData)
+	{
+		return;
+	}
 	auto chartMeta = CurrentEntryData->ChartMeta;
 	UE_LOG(LogTemp, Warning, TEXT("ChartMeta: %s"), *chartMeta.BmsPath);
 	auto gameInstance = Cast<UBMSGameInstance>(UGameplayStatics::GetGameInstance(GetWorld()));
@@ -409,6 +472,7 @@ void AChartSelectScreen::OnStartButtonClicked()
 	// load level
 	UGameplayStatics::OpenLevel(GetWorld(), "RhythmPlay");
 }
+
 void AChartSelectScreen::OnMediaOpened(FString OpenedUrl)
 {
 	auto dim = MediaPlayer->GetVideoTrackDimensions(0, 0);
@@ -420,7 +484,6 @@ void AChartSelectScreen::OnMediaOpened(FString OpenedUrl)
 void AChartSelectScreen::OnMediaOpenFailed(FString FailedUrl)
 {
 	UE_LOG(LogTemp, Warning, TEXT("MediaPlayer->OnMediaOpenFailed"));
-	
 }
 
 void AChartSelectScreen::OnPlaybackResumed()
@@ -460,7 +523,10 @@ void AChartSelectScreen::BeginPlay()
 			ChartSelectUI->ChartList->OnItemSelectionChanged().AddLambda([&](UObject* Item)
 			{
 				auto EntryData = Cast<UChartListEntryData>(Item);
-				if (!IsValid(EntryData)) return;
+				if (!IsValid(EntryData))
+				{
+					return;
+				}
 				auto chartMeta = EntryData->ChartMeta;
 				UE_LOG(LogTemp, Warning, TEXT("ChartMeta: %s"), *chartMeta.BmsPath);
 				ChartSelectUI->TitleText->SetText(FText::FromString(chartMeta.Title));
@@ -489,7 +555,7 @@ void AChartSelectScreen::BeginPlay()
 				}
 				bJukeboxCancelled = false;
 				FString BmsPath = chartMeta.BmsPath;
-				
+
 				bool IsImageValid = false;
 				UTexture2D* BackgroundImage = nullptr;
 				auto ImagePath = chartMeta.StageFile;
@@ -530,52 +596,60 @@ void AChartSelectScreen::BeginPlay()
 				{
 					FBMSParser Parser;
 					FChart* Chart;
-					
+
 					UE_LOG(LogTemp, Warning, TEXT("Full-parsing %s"), *BmsPath);
-					
+
 					Parser.Parse(BmsPath, &Chart, false, false, bJukeboxCancelled);
 					UE_LOG(LogTemp, Warning, TEXT("Full-parsing done"));
 					UE_LOG(LogTemp, Warning, TEXT("Loading sound"));
 
 					jukebox->Stop();
-					jukebox->LoadChart(Chart,  bJukeboxCancelled, MediaPlayer);
-					if(bJukeboxCancelled)
+					jukebox->LoadChart(Chart, bJukeboxCancelled, MediaPlayer);
+					if (bJukeboxCancelled)
 					{
 						jukebox->Unload();
 						delete Chart;
 						return;
 					}
-					if(!jukebox->BGASourceMap.IsEmpty())
+					if (!jukebox->BGASourceMap.IsEmpty())
 					{
 						AsyncTask(ENamedThreads::GameThread, [&]()
 						{
-							if(bJukeboxCancelled) return;
+							if (bJukeboxCancelled)
+							{
+								return;
+							}
 							BackgroundImageLock.Lock();
-							if(IsValid(ChartSelectUI) && IsValid(ChartSelectUI->BackgroundImage))
+							if (IsValid(ChartSelectUI) && IsValid(ChartSelectUI->BackgroundImage))
 							{
 								ChartSelectUI->BackgroundImage->SetBrushTintColor(FLinearColor(0.5f, 0.5f, 0.5f, 0.5f));
 								ChartSelectUI->BackgroundImage->SetBrushFromMaterial(VideoMaterial);
 							}
 							BackgroundImageLock.Unlock();
 						});
-					} else
+					}
+					else
 					{
 						AsyncTask(ENamedThreads::GameThread, [&, ImagePath]()
 						{
-							if(bJukeboxCancelled) return;
-							if(!ImagePath.IsEmpty())
+							if (bJukeboxCancelled)
+							{
+								return;
+							}
+							if (!ImagePath.IsEmpty())
 							{
 								UTexture2D* Image = nullptr;
 								bool IsTextureValid = false;
 								TArray<uint8> ImageBytes;
 								FFileHelper::LoadFileToArray(ImageBytes, *ImagePath);
 								ImageUtils::LoadTexture2D(ImagePath, ImageBytes, IsTextureValid, -1, -1, Image);
-								if(IsTextureValid)
+								if (IsTextureValid)
 								{
 									BackgroundImageLock.Lock();
-									if(IsValid(ChartSelectUI) && IsValid(ChartSelectUI->BackgroundImage))
+									if (IsValid(ChartSelectUI) && IsValid(ChartSelectUI->BackgroundImage))
 									{
-										ChartSelectUI->BackgroundImage->SetBrushTintColor(FLinearColor(0.5f, 0.5f, 0.5f, 0.5f));
+										ChartSelectUI->BackgroundImage->SetBrushTintColor(
+											FLinearColor(0.5f, 0.5f, 0.5f, 0.5f));
 										ChartSelectUI->BackgroundImage->SetBrushFromTexture(Image);
 									}
 									BackgroundImageLock.Unlock();
@@ -651,10 +725,16 @@ void AChartSelectScreen::BeginPlay()
 
 void AChartSelectScreen::SetChartMetas(const TArray<FChartMeta>& ChartMetas)
 {
-	if (!IsValid(ChartSelectUI)) return;
-	if (!IsValid(ChartSelectUI->ChartList)) return;
+	if (!IsValid(ChartSelectUI))
+	{
+		return;
+	}
+	if (!IsValid(ChartSelectUI->ChartList))
+	{
+		return;
+	}
 	ChartListLock.Lock();
-	
+
 	auto old = ChartSelectUI->ChartList->GetListItems();
 	// convert to UChartListEntryData
 	TArray<UChartListEntryData*> EntryDatas;
@@ -699,29 +779,36 @@ void AChartSelectScreen::OnSearchBoxTextCommitted(const FText& Text, ETextCommit
 void AChartSelectScreen::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
-	if(jukebox)
+	if (jukebox)
 	{
 		jukebox->OnGameTick();
 	}
-	if(IsScanning)
+	if (IsScanning)
 	{
 		const int CurrentNewCharts = SuccessNewChartCount;
-		const FString Text = TotalNewCharts == 0 ? TEXT("Checking for new files") : FString::Printf(TEXT("Scanning %d/%d"), CurrentNewCharts, TotalNewCharts);
+		const FString Text = TotalNewCharts == 0
+			                     ? TEXT("Checking for new files")
+			                     : FString::Printf(TEXT("Scanning %d/%d"), CurrentNewCharts, TotalNewCharts);
 		ChartSelectUI->OverlayInfoText->SetText(FText::FromString(Text));
-	} else
+	}
+	else
 	{
 		ChartSelectUI->OverlayInfoText->SetText(FText::FromString(""));
 	}
-	if(ChartSelectUI->OverlayInfoText->GetText().IsEmpty())
+	if (ChartSelectUI->OverlayInfoText->GetText().IsEmpty())
 	{
 		ChartSelectUI->OverlayInfoBox->SetVisibility(ESlateVisibility::Collapsed);
-	} else {
+	}
+	else
+	{
 		ChartSelectUI->OverlayInfoBox->SetVisibility(ESlateVisibility::Visible);
 	}
-	if (FMODSystem == nullptr) return;
+	if (FMODSystem == nullptr)
+	{
+		return;
+	}
 	FMODSystem->update();
 }
-
 
 
 void AChartSelectScreen::EndPlay(const EEndPlayReason::Type EndPlayReason)

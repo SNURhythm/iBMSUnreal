@@ -7,12 +7,12 @@
 /**
  * 
  */
-class IBMSUNREAL_API FBMSLandmineNote: public FBMSNote
+class IBMSUNREAL_API FBMSLandmineNote : public FBMSNote
 {
 public:
 	float Damage;
 	FBMSLandmineNote(float Damage);
-	~FBMSLandmineNote();
+	virtual ~FBMSLandmineNote() override;
 
 	virtual bool IsLandmineNote() override { return true; }
 };

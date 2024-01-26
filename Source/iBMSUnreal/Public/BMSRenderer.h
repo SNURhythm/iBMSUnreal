@@ -38,15 +38,15 @@ public:
 	int PassedTimelineCount = 0;
 	int PassedMeasureCount = 0;
 	TArray<FBMSLongNote*> OrphanLongNotes;
-	
+
 	void Dispose();
-	
 };
 
-UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
+UCLASS(ClassGroup=(Custom), meta=(BlueprintSpawnableComponent))
 class IBMSUNREAL_API UBMSRenderer : public UActorComponent
 {
 	GENERATED_BODY()
+
 private:
 	FChart* Chart;
 	FRendererState* State;
@@ -54,11 +54,12 @@ private:
 	UMaterialInterface* Material;
 	TMap<int, FLaneState> LaneStates;
 
-public:	
+public:
 	// Sets default values for this actor's properties
 	UBMSRenderer();
 	UPROPERTY(EditAnywhere, Category="BMS Renderer")
 	AActor* NoteArea;
+
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
@@ -69,14 +70,13 @@ protected:
 	// Paper2D Sprite for rendering notes
 	UPROPERTY(EditAnywhere, Category="BMS Renderer")
 	class UPaperSprite* NoteSprite;
-	
+
 	FTimeLine* LastTimeLine;
 	float NoteAreaHeight;
 	float NoteAreaWidth;
 	float JudgeLineZ;
 	int KeyLaneCount;
 	float NoteWidth;
-	
 
 public:
 	void DestroyNote(const FBMSNote* Note);

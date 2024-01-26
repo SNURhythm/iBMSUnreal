@@ -12,24 +12,24 @@
 
 void FRendererState::Dispose()
 {
-	for(auto& item: NoteActors)
+	for (auto& item : NoteActors)
 	{
 		item.Value->Destroy();
 	}
 	NoteActors.Empty();
 
-	for(auto& item: MeasureActors)
+	for (auto& item : MeasureActors)
 	{
 		item.Value->Destroy();
 	}
 	MeasureActors.Empty();
-	for(auto& item: ObjectPool)
+	for (auto& item : ObjectPool)
 	{
-		while(!item.Value->IsEmpty())
+		while (!item.Value->IsEmpty())
 		{
 			APaperSpriteActor* Instance;
 			item.Value->Dequeue(Instance);
-			if(Instance->IsHidden())
+			if (Instance->IsHidden())
 			{
 				Instance->Destroy();
 			}
@@ -37,7 +37,7 @@ void FRendererState::Dispose()
 		delete item.Value;
 	}
 	ObjectPool.Empty();
-	
+
 	OrphanLongNotes.Empty();
 }
 
@@ -69,14 +69,15 @@ void UBMSRenderer::BeginPlay()
 	NoteAreaWidth = NoteAreaSize.X;
 	// relative to NoteArea
 	JudgeLineZ = 0;
-	
-	
 }
 
 
 void UBMSRenderer::DestroyNote(const FBMSNote* Note)
 {
-	if(!State->NoteActors.Contains(Note)) return;
+	if (!State->NoteActors.Contains(Note))
+	{
+		return;
+	}
 	RecycleInstance(EBMSObjectType::Note, State->NoteActors[Note]);
 	State->NoteActors.Remove(Note);
 }
@@ -84,7 +85,7 @@ void UBMSRenderer::DestroyNote(const FBMSNote* Note)
 void UBMSRenderer::RecycleInstance(const EBMSObjectType Type, APaperSpriteActor* Instance) const
 {
 	Instance->SetActorHiddenInGame(true);
-	if(!State->ObjectPool.Contains(Type))
+	if (!State->ObjectPool.Contains(Type))
 	{
 		State->ObjectPool.Add(Type, new TQueue<APaperSpriteActor*>());
 	}
@@ -94,41 +95,43 @@ void UBMSRenderer::RecycleInstance(const EBMSObjectType Type, APaperSpriteActor*
 APaperSpriteActor* UBMSRenderer::GetInstance(const EBMSObjectType Type) const
 {
 	APaperSpriteActor* Instance;
-	if(State->ObjectPool.Contains(Type) && !State->ObjectPool[Type]->IsEmpty())
+	if (State->ObjectPool.Contains(Type) && !State->ObjectPool[Type]->IsEmpty())
 	{
 		State->ObjectPool[Type]->Dequeue(Instance);
-	} else {
+	}
+	else
+	{
 		// Spawn inside NoteArea
 		TSubclassOf<APaperSpriteActor> TypeClass;
-		switch(Type)
+		switch (Type)
 		{
-			case EBMSObjectType::Note:
-				TypeClass = ANoteActor::StaticClass();
-				break;
-			case EBMSObjectType::LongNoteHead:
-				TypeClass = ANoteActor::StaticClass();
-				break;
-			case EBMSObjectType::LongNoteTail:
-				TypeClass = ANoteActor::StaticClass();
-				break;
-			case EBMSObjectType::MeasureLine:
-				TypeClass = AMeasureActor::StaticClass();
-				break;
+		case Note:
+			TypeClass = ANoteActor::StaticClass();
+			break;
+		case LongNoteHead:
+			TypeClass = ANoteActor::StaticClass();
+			break;
+		case LongNoteTail:
+			TypeClass = ANoteActor::StaticClass();
+			break;
+		case MeasureLine:
+			TypeClass = AMeasureActor::StaticClass();
+			break;
 		}
 		Instance = GetWorld()->SpawnActor<APaperSpriteActor>(TypeClass);
 		Instance->GetRenderComponent()->SetMaterial(0, Material);
 		Instance->AttachToActor(NoteArea, FAttachmentTransformRules::KeepRelativeTransform);
-		switch(Type)
+		switch (Type)
 		{
-		case EBMSObjectType::Note:
-		case EBMSObjectType::LongNoteHead:
-		case EBMSObjectType::LongNoteTail:
+		case Note:
+		case LongNoteHead:
+		case LongNoteTail:
 			{
 				Instance->GetRenderComponent()->SetSprite(NoteSprite);
 				Instance->GetRenderComponent()->TranslucencySortPriority = 3;
 				break;
 			}
-		case EBMSObjectType::MeasureLine:
+		case MeasureLine:
 			{
 				Instance->GetRenderComponent()->SetSprite(NoteSprite);
 				Instance->GetRootComponent()->SetWorldScale3D(FVector(1, 0, 0.2));
@@ -140,7 +143,7 @@ APaperSpriteActor* UBMSRenderer::GetInstance(const EBMSObjectType Type) const
 		}
 	}
 	Instance->SetActorHiddenInGame(false);
-	if(Type == Note || Type == LongNoteHead || Type == LongNoteTail)
+	if (Type == Note || Type == LongNoteHead || Type == LongNoteTail)
 	{
 		Instance->GetRenderComponent()->SetSpriteColor(FLinearColor(1, 1, 1, 1));
 		Instance->GetRootComponent()->SetWorldScale3D(FVector(1, 0, 1));
@@ -149,30 +152,33 @@ APaperSpriteActor* UBMSRenderer::GetInstance(const EBMSObjectType Type) const
 		Instance->SetActorRelativeScale3D(Scale);
 		Instance->SetActorRelativeRotation(FRotator(0, 0, 0));
 	}
-	if(Type==MeasureLine)
+	if (Type == MeasureLine)
 	{
-
 	}
 	return Instance;
 }
 
 void UBMSRenderer::DestroyMeasureLine(const FMeasure* Measure) const
 {
-	if(!State->MeasureActors.Contains(Measure)) return;
-	RecycleInstance(EBMSObjectType::MeasureLine, State->MeasureActors[Measure]);
+	if (!State->MeasureActors.Contains(Measure))
+	{
+		return;
+	}
+	RecycleInstance(MeasureLine, State->MeasureActors[Measure]);
 	State->MeasureActors.Remove(Measure);
 }
 
 void UBMSRenderer::DrawMeasureLine(FMeasure* Measure, const double Offset)
 {
 	const double Top = OffsetToTop(Offset);
-	if(State->MeasureActors.Contains(Measure))
+	if (State->MeasureActors.Contains(Measure))
 	{
 		APaperSpriteActor* MeasureActor = State->MeasureActors[Measure];
 		MeasureActor->SetActorRelativeLocation(FVector(0, 0, Top));
-	} else
+	}
+	else
 	{
-		APaperSpriteActor* MeasureActor = GetInstance(EBMSObjectType::MeasureLine);
+		APaperSpriteActor* MeasureActor = GetInstance(MeasureLine);
 		FVector Scale = MeasureActor->GetActorRelativeScale3D();
 		Scale.X = 1;
 		MeasureActor->SetActorRelativeScale3D(Scale);
@@ -183,15 +189,19 @@ void UBMSRenderer::DrawMeasureLine(FMeasure* Measure, const double Offset)
 
 void UBMSRenderer::DrawNote(FBMSNote* Note, const double Offset)
 {
-	if(Note->IsPlayed) return;
+	if (Note->IsPlayed)
+	{
+		return;
+	}
 	const double Left = LaneToLeft(Note->Lane);
 
 	APaperSpriteActor* Actor;
-	if(State->NoteActors.Contains(Note))
+	if (State->NoteActors.Contains(Note))
 	{
 		Actor = State->NoteActors[Note];
 		Actor->SetActorRelativeLocation(FVector(Left, 0, OffsetToTop(Offset)));
-	} else
+	}
+	else
 	{
 		Actor = GetInstance(EBMSObjectType::Note);
 		Actor->SetActorRelativeLocation(FVector(Left, 0, OffsetToTop(Offset)));
@@ -199,30 +209,37 @@ void UBMSRenderer::DrawNote(FBMSNote* Note, const double Offset)
 		State->NoteActors.Add(Note, Actor);
 	}
 
-	if(IsScratchLane(Note->Lane))
+	if (IsScratchLane(Note->Lane))
 	{
 		// tilt 90 degrees on Z
 		Actor->SetActorRelativeRotation(FRotator(0, 270, 0));
 	}
-
-	
 }
+
 FLinearColor UBMSRenderer::GetColorByLane(int Lane) const
 {
-	if(IsScratchLane(Lane)) return FLinearColor(1, 0, 0, 1);
+	if (IsScratchLane(Lane))
+	{
+		return FLinearColor(1, 0, 0, 1);
+	}
 	// even: white, odd: blue
-	if(Lane % 2 == 0) return FLinearColor(1, 1, 1, 1);
+	if (Lane % 2 == 0)
+	{
+		return FLinearColor(1, 1, 1, 1);
+	}
 	return FLinearColor(0, 0, 1, 1);
 }
-void UBMSRenderer::DrawLongNote(FBMSLongNote* Head, const double StartOffset, const double EndOffset, const bool TailOnly)
+
+void UBMSRenderer::DrawLongNote(FBMSLongNote* Head, const double StartOffset, const double EndOffset,
+                                const bool TailOnly)
 {
 	FBMSLongNote* Tail = Head->Tail;
 	const double Left = LaneToLeft(Head->Lane);
 	double StartTop = OffsetToTop(StartOffset);
 	const double EndTop = FMath::Min(1, OffsetToTop(EndOffset));
-	if(Head->IsPlayed)
+	if (Head->IsPlayed)
 	{
-		if(EndTop < JudgeLineZ)
+		if (EndTop < JudgeLineZ)
 		{
 			DestroyNote(Tail);
 			return;
@@ -232,19 +249,20 @@ void UBMSRenderer::DrawLongNote(FBMSLongNote* Head, const double StartOffset, co
 	const double Height = EndTop - StartTop;
 	const FLinearColor Color = GetColorByLane(Head->Lane);
 
-	if(!TailOnly)
+	if (!TailOnly)
 	{
 		APaperSpriteActor* HeadActor;
-		if(State->NoteActors.Contains(Head))
+		if (State->NoteActors.Contains(Head))
 		{
 			HeadActor = State->NoteActors[Head];
 			HeadActor->SetActorRelativeLocation(FVector(Left, 0, StartTop));
-		} else
+		}
+		else
 		{
-			HeadActor = GetInstance(EBMSObjectType::LongNoteHead);
+			HeadActor = GetInstance(LongNoteHead);
 			HeadActor->SetActorRelativeLocation(FVector(Left, 0, StartTop));
 			HeadActor->GetRenderComponent()->SetSpriteColor(Color);
-			if(IsScratchLane(Head->Lane))
+			if (IsScratchLane(Head->Lane))
 			{
 				// tilt 90 degrees on Z
 				HeadActor->SetActorRelativeRotation(FRotator(0, 270, 0));
@@ -253,17 +271,18 @@ void UBMSRenderer::DrawLongNote(FBMSLongNote* Head, const double StartOffset, co
 		}
 	}
 	float Alpha = 0.01f;
-	if(Head->IsHolding)
+	if (Head->IsHolding)
 	{
 		Alpha = 1.0f;
-	} else
+	}
+	else
 	{
-		Alpha = Head->IsPlayed? 0.2f : 0.3f;
+		Alpha = Head->IsPlayed ? 0.2f : 0.3f;
 	}
 
 	FLinearColor TailColor = FLinearColor(Color.R, Color.G, Color.B, Alpha);
 	APaperSpriteActor* TailActor;
-	if(State->NoteActors.Contains(Tail))
+	if (State->NoteActors.Contains(Tail))
 	{
 		TailActor = State->NoteActors[Tail];
 		TailActor->SetActorRelativeLocation(FVector(Left, 0, StartTop));
@@ -272,9 +291,10 @@ void UBMSRenderer::DrawLongNote(FBMSLongNote* Head, const double StartOffset, co
 		Scale.Z = Height;
 		TailActor->SetActorRelativeScale3D(Scale);
 		TailActor->GetRenderComponent()->SetSpriteColor(TailColor);
-	} else
+	}
+	else
 	{
-		TailActor = GetInstance(EBMSObjectType::LongNoteTail);
+		TailActor = GetInstance(LongNoteTail);
 		FVector Scale = TailActor->GetActorRelativeScale3D();
 		Scale.Z = Height;
 		TailActor->SetActorRelativeScale3D(Scale);
@@ -282,7 +302,7 @@ void UBMSRenderer::DrawLongNote(FBMSLongNote* Head, const double StartOffset, co
 		TailActor->GetRenderComponent()->SetSpriteColor(TailColor);
 		State->NoteActors.Add(Tail, TailActor);
 	}
-	if(IsScratchLane(Tail->Lane))
+	if (IsScratchLane(Tail->Lane))
 	{
 		// tilt 90 degrees on Z
 		TailActor->SetActorRelativeRotation(FRotator(0, 270, 0));
@@ -291,10 +311,19 @@ void UBMSRenderer::DrawLongNote(FBMSLongNote* Head, const double StartOffset, co
 
 double UBMSRenderer::LaneToLeft(int Lane) const
 {
-	if(IsLeftScratchLane(Lane)) return -1;
-	if(IsRightScratchLane(Lane)) return 0; // Right Scratch
-	if(Lane >= 8) Lane -= KeyLaneCount == 14 ? 1 : 3; // DP or 2P
-	return (static_cast<double>(Lane+1)/KeyLaneCount) - 1;
+	if (IsLeftScratchLane(Lane))
+	{
+		return -1;
+	}
+	if (IsRightScratchLane(Lane))
+	{
+		return 0; // Right Scratch
+	}
+	if (Lane >= 8)
+	{
+		Lane -= KeyLaneCount == 14 ? 1 : 3; // DP or 2P
+	}
+	return (static_cast<double>(Lane + 1) / KeyLaneCount) - 1;
 }
 
 bool UBMSRenderer::IsScratchLane(int Lane) const
@@ -330,7 +359,10 @@ bool UBMSRenderer::IsUnderLowerBound(const double Offset) const
 
 void UBMSRenderer::OnLanePressed(const int Lane, const FJudgeResult Judge, const long long Time)
 {
-	if(!State) return;
+	if (!State)
+	{
+		return;
+	}
 	UE_LOG(LogTemp, Warning, TEXT("Lane %d pressed"), Lane);
 	LaneStates[Lane].IsPressed = true;
 	LaneStates[Lane].LastPressedJudge = Judge;
@@ -339,23 +371,31 @@ void UBMSRenderer::OnLanePressed(const int Lane, const FJudgeResult Judge, const
 
 void UBMSRenderer::OnLaneReleased(const int Lane, const long long Time)
 {
-	if(!State) return;
+	if (!State)
+	{
+		return;
+	}
 	UE_LOG(LogTemp, Warning, TEXT("Lane %d released"), Lane);
 	LaneStates[Lane].IsPressed = false;
 	LaneStates[Lane].LastStateTime = Time;
 }
+
 void UBMSRenderer::DrawLaneBeam(const int Lane, const long long Time)
 {
 	auto LaneState = LaneStates[Lane];
-	if(LaneState.LastStateTime == -1) return;
+	if (LaneState.LastStateTime == -1)
+	{
+		return;
+	}
 	auto LaneBeam = LaneBeams[Lane];
-	
+
 	// PGREAT = Orange, None = White, Others = Late: Red, Early: Blue
 	double Alpha;
-	if(LaneState.IsPressed)
+	if (LaneState.IsPressed)
 	{
 		Alpha = 0.01;
-	} else
+	}
+	else
 	{
 		// fade out
 		Alpha = 0.01 - (Time - LaneState.LastStateTime) / 1000000.0 / 10.0;
@@ -367,44 +407,62 @@ void UBMSRenderer::DrawLaneBeam(const int Lane, const long long Time)
 	}
 	LaneBeam->SetActorHiddenInGame(false);
 	FLinearColor Color;
-	if (LaneState.LastPressedJudge.Judgement == EJudgement::PGreat)
+	if (LaneState.LastPressedJudge.Judgement == PGreat)
 	{
 		Color = FLinearColor(1, 0.5, 0, Alpha);
-	} else if (LaneState.LastPressedJudge.Judgement == EJudgement::None)
+	}
+	else if (LaneState.LastPressedJudge.Judgement == None)
 	{
 		Color = FLinearColor(1, 1, 1, Alpha);
-	} else
+	}
+	else
 	{
 		Color = LaneState.LastPressedJudge.Diff > 0 ? FLinearColor(1, 0, 0, Alpha) : FLinearColor(0, 0, 1, Alpha);
 	}
 	LaneBeam->GetRenderComponent()->SetSpriteColor(Color);
-	
 }
+
 void UBMSRenderer::Draw(const long long CurrentTime)
 {
-	if(!State) return;
-	for(auto& LaneState: LaneStates)
+	if (!State)
 	{
-		DrawLaneBeam(LaneState.Key, std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::system_clock::now().time_since_epoch()).count());
+		return;
 	}
-	if(!Chart) return;
-	for(int i = State->PassedMeasureCount; i < Chart->Measures.Num(); i++)
+	for (auto& LaneState : LaneStates)
+	{
+		DrawLaneBeam(LaneState.Key,
+		             std::chrono::duration_cast<std::chrono::microseconds>(
+			             std::chrono::system_clock::now().time_since_epoch()).count());
+	}
+	if (!Chart)
+	{
+		return;
+	}
+	for (int i = State->PassedMeasureCount; i < Chart->Measures.Num(); i++)
 	{
 		const bool IsFirstMeasure = i == State->PassedMeasureCount;
 		const auto& Measure = Chart->Measures[i];
-		if(Measure->Timing > CurrentTime) break;
+		if (Measure->Timing > CurrentTime)
+		{
+			break;
+		}
 
-		for(int j = IsFirstMeasure ? State->PassedTimelineCount : 0; j < Measure->TimeLines.Num(); j++)
+		for (int j = IsFirstMeasure ? State->PassedTimelineCount : 0; j < Measure->TimeLines.Num(); j++)
 		{
 			const auto& TimeLine = Measure->TimeLines[j];
-			if (TimeLine->Timing > CurrentTime) break;
+			if (TimeLine->Timing > CurrentTime)
+			{
+				break;
+			}
 			LastTimeLine = TimeLine;
 		}
 	}
 
 	// draw notes
-	const double CurrentPos = (CurrentTime < LastTimeLine->Timing + LastTimeLine->GetStopDuration()) ? LastTimeLine->Pos :
-		                          LastTimeLine->Pos + (CurrentTime - (LastTimeLine->Timing + LastTimeLine->GetStopDuration())) * LastTimeLine->Bpm / Chart->Meta.Bpm;
+	const double CurrentPos = (CurrentTime < LastTimeLine->Timing + LastTimeLine->GetStopDuration())
+		                          ? LastTimeLine->Pos
+		                          : LastTimeLine->Pos + (CurrentTime - (LastTimeLine->Timing + LastTimeLine->
+			                          GetStopDuration())) * LastTimeLine->Bpm / Chart->Meta.Bpm;
 
 	for (int i = State->PassedMeasureCount; i < Chart->Measures.Num(); i++)
 	{
@@ -415,60 +473,78 @@ void UBMSRenderer::Draw(const long long CurrentTime)
 		{
 			const auto& TimeLine = Measure->TimeLines[j];
 			const double Offset = TimeLine->Pos - CurrentPos;
-			if(IsOverUpperBound(Offset)) break;
+			if (IsOverUpperBound(Offset))
+			{
+				break;
+			}
 
-			if(j==0) DrawMeasureLine(Measure, Measure->Pos - CurrentPos);
+			if (j == 0)
+			{
+				DrawMeasureLine(Measure, Measure->Pos - CurrentPos);
+			}
 
 			const bool ShouldDestroyTimeLine = IsUnderLowerBound(Offset);
 
-			if(ShouldDestroyTimeLine && IsFirstMeasure)
+			if (ShouldDestroyTimeLine && IsFirstMeasure)
 			{
 				State->PassedTimelineCount++;
 			}
 
-			for(const auto& Note : TimeLine->Notes)
+			for (const auto& Note : TimeLine->Notes)
 			{
-				if(!Note) continue;
-				if(Note->IsDead) continue;
-				if(ShouldDestroyTimeLine || Note->IsPlayed)
+				if (!Note)
+				{
+					continue;
+				}
+				if (Note->IsDead)
+				{
+					continue;
+				}
+				if (ShouldDestroyTimeLine || Note->IsPlayed)
 				{
 					bool DontDestroy = false;
-					if(Note->IsLongNote())
+					if (Note->IsLongNote())
 					{
 						FBMSLongNote* LongNote = static_cast<FBMSLongNote*>(Note);
-						if(LongNote->IsTail())
+						if (LongNote->IsTail())
 						{
-							if(ShouldDestroyTimeLine)
+							if (ShouldDestroyTimeLine)
 							{
 								State->OrphanLongNotes.Remove(LongNote->Head);
-							} else
+							}
+							else
 							{
 								DontDestroy = true;
 							}
-						} else
+						}
+						else
 						{
 							State->OrphanLongNotes.Add(LongNote);
 						}
 					}
 
-					if(!DontDestroy)
+					if (!DontDestroy)
 					{
 						Note->IsDead = true;
 						DestroyNote(Note);
 					}
 					continue;
 				}
-				if(Note->IsLongNote())
+				if (Note->IsLongNote())
 				{
 					FBMSLongNote* LongNote = static_cast<FBMSLongNote*>(Note);
-					if(!LongNote->IsTail()) DrawLongNote(LongNote, Offset, LongNote->Tail->Timeline->Pos - CurrentPos);
-				} else
+					if (!LongNote->IsTail())
+					{
+						DrawLongNote(LongNote, Offset, LongNote->Tail->Timeline->Pos - CurrentPos);
+					}
+				}
+				else
 				{
 					DrawNote(Note, Offset);
 				}
 			}
 		}
-		if(State->PassedTimelineCount == Measure->TimeLines.Num() && IsFirstMeasure)
+		if (State->PassedTimelineCount == Measure->TimeLines.Num() && IsFirstMeasure)
 		{
 			State->PassedTimelineCount = 0;
 			State->PassedMeasureCount++;
@@ -476,11 +552,11 @@ void UBMSRenderer::Draw(const long long CurrentTime)
 		}
 	}
 
-	for(const auto& OrphanLongNote : State->OrphanLongNotes)
+	for (const auto& OrphanLongNote : State->OrphanLongNotes)
 	{
-		DrawLongNote(OrphanLongNote, OrphanLongNote->Timeline->Pos - CurrentPos, OrphanLongNote->Tail->Timeline->Pos - CurrentPos, true);
+		DrawLongNote(OrphanLongNote, OrphanLongNote->Timeline->Pos - CurrentPos,
+		             OrphanLongNote->Tail->Timeline->Pos - CurrentPos, true);
 	}
-	
 }
 
 void UBMSRenderer::Init(FChart* ChartInit)
@@ -491,24 +567,24 @@ void UBMSRenderer::Init(FChart* ChartInit)
 	KeyLaneCount = ChartInit->Meta.GetKeyLaneCount(); // main line count except for scratch
 
 	NoteWidth = 1.0f / KeyLaneCount;
-	for(auto Lane: ChartInit->Meta.GetTotalLaneIndices())
+	for (auto Lane : ChartInit->Meta.GetTotalLaneIndices())
 	{
 		LaneStates.Add(Lane, FLaneState());
 		APaperSpriteActor* LaneBeam = GetWorld()->SpawnActor<APaperSpriteActor>(ANoteActor::StaticClass());
 		LaneBeam->GetRenderComponent()->SetMaterial(0, Material);
 		LaneBeam->AttachToActor(NoteArea, FAttachmentTransformRules::KeepRelativeTransform);
 		LaneBeam->GetRenderComponent()->SetSprite(NoteSprite);
-		
+
 		LaneBeam->GetRenderComponent()->TranslucencySortPriority = 2;
 		LaneBeam->GetRenderComponent()->SetMobility(EComponentMobility::Movable);
 		LaneBeam->GetRenderComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 		LaneBeam->GetRenderComponent()->SetComponentTickEnabled(false);
-		LaneBeam->SetActorEnableCollision(false);	
-		
+		LaneBeam->SetActorEnableCollision(false);
+
 		LaneBeam->SetActorRelativeLocation(FVector(LaneToLeft(Lane), 0, 0));
 		LaneBeam->SetActorRelativeScale3D(FVector(NoteWidth, 0, 1));
 		bool IsScratch = IsScratchLane(Lane);
-		if(IsScratch)
+		if (IsScratch)
 		{
 			LaneBeam->SetActorRelativeRotation(FRotator(0, 270, 0));
 		}
@@ -520,12 +596,14 @@ void UBMSRenderer::Init(FChart* ChartInit)
 
 	FTimeLine* _lastTimeLine = ChartInit->Measures[0]->TimeLines[0];
 	_lastTimeLine->Pos = 0.0;
-	for(const auto& Measure: ChartInit->Measures)
+	for (const auto& Measure : ChartInit->Measures)
 	{
-		Measure->Pos = _lastTimeLine->Pos + (Measure->Timing - (_lastTimeLine->Timing + _lastTimeLine->GetStopDuration())) * _lastTimeLine->Bpm / ChartInit->Meta.Bpm;
-		for(const auto& Timeline: Measure->TimeLines)
+		Measure->Pos = _lastTimeLine->Pos + (Measure->Timing - (_lastTimeLine->Timing + _lastTimeLine->
+			GetStopDuration())) * _lastTimeLine->Bpm / ChartInit->Meta.Bpm;
+		for (const auto& Timeline : Measure->TimeLines)
 		{
-			Timeline->Pos = _lastTimeLine->Pos + (Timeline->Timing - (_lastTimeLine->Timing + _lastTimeLine->GetStopDuration())) * _lastTimeLine->Bpm / ChartInit->Meta.Bpm;
+			Timeline->Pos = _lastTimeLine->Pos + (Timeline->Timing - (_lastTimeLine->Timing + _lastTimeLine->
+				GetStopDuration())) * _lastTimeLine->Bpm / ChartInit->Meta.Bpm;
 			_lastTimeLine = Timeline;
 		}
 	}
@@ -537,5 +615,3 @@ void UBMSRenderer::Reset()
 	delete State;
 	State = new FRendererState();
 }
-
-

@@ -9,7 +9,7 @@
 /**
  * 
  */
-class IBMSUNREAL_API FUnrealTouchInputSource: public IInputSource
+class IBMSUNREAL_API FUnrealTouchInputSource : public IInputSource
 {
 	IInputHandler* InputHandler = nullptr;
 	int32 Index = -1;
@@ -17,8 +17,11 @@ class IBMSUNREAL_API FUnrealTouchInputSource: public IInputSource
 public:
 	UInputComponent* InputComponent;
 
-	explicit FUnrealTouchInputSource(UInputComponent* Comp): InputComponent(Comp) {}
-	~FUnrealTouchInputSource();
+	explicit FUnrealTouchInputSource(UInputComponent* Comp): InputComponent(Comp)
+	{
+	}
+
+	virtual ~FUnrealTouchInputSource() override;
 	virtual bool StartListen() override;
 	virtual void StopListen() override;
 	virtual void SetHandler(IInputHandler* Handler) override;

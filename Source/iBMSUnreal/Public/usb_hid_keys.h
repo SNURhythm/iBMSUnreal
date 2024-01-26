@@ -35,6 +35,7 @@
 
 #define SCANCODE_NONE 0x00 // No key pressed
 #define SCANCODE_ERR_OVF 0x01 //  Keyboard Error Roll Over - used for all slots if too many keys are pressed ("Phantom key")
+
 // 0x02 //  Keyboard POST Fail
 // 0x03 //  Keyboard Error Undefined
 #define SCANCODE_A 0x04 // Keyboard a and A

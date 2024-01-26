@@ -20,7 +20,6 @@ void UBGARenderer::BeginPlay()
 	Super::BeginPlay();
 
 	// ...
-	
 }
 
 
@@ -31,4 +30,3 @@ void UBGARenderer::TickComponent(float DeltaTime, ELevelTick TickType, FActorCom
 
 	// ...
 }
-

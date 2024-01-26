@@ -7,7 +7,9 @@
  * 
  */
 class FTimeLine;
-class IBMSUNREAL_API FBMSNote {
+
+class IBMSUNREAL_API FBMSNote
+{
 public:
 	int Lane = 0;
 	int Wav = 0;
@@ -16,7 +18,7 @@ public:
 	bool IsDead = false;
 	long long PlayedTime = 0;
 	FTimeLine* Timeline;
-	
+
 	// private Note nextNote;
 
 	FBMSNote(int Wav);

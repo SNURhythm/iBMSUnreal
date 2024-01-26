@@ -29,6 +29,7 @@
  * Convert input to output file, applying some hard-coded filter-graph on both
  * audio and video streams.
  */
+// ReSharper disable CppZeroConstantCanBeReplacedWithNullptr
 #include "transcode.h"
 #include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>

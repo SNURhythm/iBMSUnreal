@@ -25,11 +25,9 @@ void ABMSGameModeBase::Logout(AController* Exiting)
 {
 	Super::Logout(Exiting);
 	UE_LOG(LogTemp, Warning, TEXT("Logout"));
-
 }
 
 void ABMSGameModeBase::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
-
 }

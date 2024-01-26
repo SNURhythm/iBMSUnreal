@@ -9,8 +9,8 @@
  * 
  */
 
-class IBMSUNREAL_API FTimeLine {
-
+class IBMSUNREAL_API FTimeLine
+{
 public:
 	TArray<FBMSNote*> BackgroundNotes;
 	TArray<FBMSNote*> InvisibleNotes;

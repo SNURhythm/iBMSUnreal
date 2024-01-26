@@ -7,7 +7,8 @@
 /**
  * 
  */
-namespace ShiftJISConverter {
+namespace ShiftJISConverter
+{
 	void BytesToUTF8(FString& outString, const uint8* input, int32 size);
 }
 

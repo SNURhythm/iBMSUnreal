@@ -22,29 +22,33 @@ void UChartListEntry::NativeConstruct()
 	Super::NativeConstruct();
 	//Button->OnClicked.AddDynamic(this, &UChartListEntry::OnButtonClicked);
 }
+
 void UChartListEntry::NativeDestruct()
 {
 	Super::NativeDestruct();
 	FScopeLock Lock(&BannerTextureLock);
-	if(IsValid(CurrentBannerTexture)) {
+	if (IsValid(CurrentBannerTexture))
+	{
 		CurrentBannerTexture->ReleaseResource();
 		CurrentBannerTexture->GetPlatformData()->Mips[0].BulkData.RemoveBulkData();
 		CurrentBannerTexture = nullptr;
 	}
 }
+
 void UChartListEntry::NativeOnListItemObjectSet(UObject* InObject)
 {
 	EntryData = Cast<UChartListEntryData>(InObject);
 	if (EntryData)
 	{
 		auto ChartMeta = EntryData->ChartMeta;
-		TitleText->SetText(FText::FromString(ChartMeta.Title + (ChartMeta.SubTitle.IsEmpty() ? "" : " " + ChartMeta.SubTitle)));
+		TitleText->SetText(
+			FText::FromString(ChartMeta.Title + (ChartMeta.SubTitle.IsEmpty() ? "" : " " + ChartMeta.SubTitle)));
 		ArtistText->SetText(FText::FromString(ChartMeta.Artist));
 		KeyModeText->SetText(FText::FromString(FString::Printf(TEXT("%dK"), ChartMeta.KeyMode)));
 		PlayLevelText->SetText(FText::FromString(FString::Printf(TEXT("%g"), ChartMeta.PlayLevel)));
 		PlayLevelText->SetShadowColorAndOpacity(FLinearColor::Black);
 		// set playlevel text color by difficulty (1~5)
-		switch(ChartMeta.Difficulty)
+		switch (ChartMeta.Difficulty)
 		{
 		case 1:
 			PlayLevelText->SetColorAndOpacity(FLinearColor::Green);
@@ -60,7 +64,7 @@ void UChartListEntry::NativeOnListItemObjectSet(UObject* InObject)
 			break;
 		case 5:
 			PlayLevelText->SetColorAndOpacity(FLinearColor::Black);
-			// set shadow color to white
+		// set shadow color to white
 			PlayLevelText->SetShadowColorAndOpacity(FLinearColor::White);
 			break;
 		default:
@@ -68,16 +72,20 @@ void UChartListEntry::NativeOnListItemObjectSet(UObject* InObject)
 			break;
 		}
 		auto path = ChartMeta.Banner;
-		if(path.IsEmpty()) {
+		if (path.IsEmpty())
+		{
 			path = ChartMeta.StageFile;
 		}
-		if(path.IsEmpty()) {
+		if (path.IsEmpty())
+		{
 			path = ChartMeta.BackBmp;
 		}
-		if(path.IsEmpty()) {
+		if (path.IsEmpty())
+		{
 			path = ChartMeta.Preview;
 		}
-		if(path.IsEmpty()) {
+		if (path.IsEmpty())
+		{
 			// set to blank, black
 			Banner->SetBrushFromTexture(nullptr);
 			Banner->SetBrushTintColor(FLinearColor::Black);
@@ -87,16 +95,17 @@ void UChartListEntry::NativeOnListItemObjectSet(UObject* InObject)
 		Banner->SetBrushFromTexture(nullptr);
 
 		path = FPaths::Combine(ChartMeta.Folder, path);
-		UE::Tasks::Launch(UE_SOURCE_LOCATION, [this, path]() {
-
+		UE::Tasks::Launch(UE_SOURCE_LOCATION, [this, path]()
+		{
 			TArray<uint8>* ImageBytes = new TArray<uint8>();
 			FFileHelper::LoadFileToArray(*ImageBytes, *path);
-			
-			
+
+
 			AsyncTask(ENamedThreads::GameThread, [this, path, ImageBytes]()
 			{
 				FScopeLock Lock(&BannerTextureLock);
-				if(IsValid(CurrentBannerTexture)) {
+				if (IsValid(CurrentBannerTexture))
+				{
 					CurrentBannerTexture->ReleaseResource();
 					CurrentBannerTexture->GetPlatformData()->Mips[0].BulkData.RemoveBulkData();
 					CurrentBannerTexture = nullptr;
@@ -115,9 +124,9 @@ void UChartListEntry::NativeOnListItemObjectSet(UObject* InObject)
 				if (IsImageValid)
 				{
 					// this macro is a hacky way to avoid winbase.h's UpdateResource macro
-					#define UpdateResource UpdateResource
+#define UpdateResource UpdateResource
 					Texture->UpdateResource();
-					#undef UpdateResource
+#undef UpdateResource
 					CurrentBannerTexture = Texture;
 					Banner->SetBrushTintColor(FLinearColor::White);
 					Banner->SetBrushFromTexture(Texture);
@@ -129,8 +138,5 @@ void UChartListEntry::NativeOnListItemObjectSet(UObject* InObject)
 				}
 			});
 		});
-
-		
-
 	}
 }

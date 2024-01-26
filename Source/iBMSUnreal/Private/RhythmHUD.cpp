@@ -6,18 +6,16 @@
 #include "RhythmControl.h"
 
 
-
-
 void URhythmHUD::NativeTick(const FGeometry& MyGeometry, float InDeltaTime)
 {
 	Super::NativeTick(MyGeometry, InDeltaTime);
-	if(LastRenderRequestState == LastRenderedState)
+	if (LastRenderRequestState == LastRenderedState)
 	{
 		return;
 	}
 	LastRenderedState = LastRenderRequestState;
 	FString JudgeComboString = LastJudgeString;
-	if(LastCombo > 0)
+	if (LastCombo > 0)
 	{
 		JudgeComboString += FString::Printf(TEXT(" %d"), LastCombo);
 	}
