@@ -20,6 +20,7 @@ A crossplatform BMS player, powered by Unreal Engine 5
 - Parser
   - #SCROLL
   - BMSON support
+  - PMS support
 - Gameplay
   - Groove Gauge
   - S-RANDOM, HALF-RANDOM, ...
