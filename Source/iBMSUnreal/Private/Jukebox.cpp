@@ -99,86 +99,83 @@ FJukebox::~FJukebox()
 void FJukebox::OnGameTick()
 {
 	bool IsPaused;
-	if (IsValid(MediaPlayer))
+	FScopeLock Lock(&MediaPlayerLock);
+	if (!IsValid(MediaPlayer)) return;
+	
+	if (CurrentBGAStart >= 0 && MediaPlayer->IsPlaying())
 	{
-		if (CurrentBGAStart >= 0 && MediaPlayer->IsPlaying())
+		// check drift
+		const auto EstimatedTime = GetPositionMicro() - CurrentBGAStart;
+		const auto ActualTime = MediaPlayer->GetTime().GetTotalMicroseconds();
+		const auto DriftMicro = ActualTime - EstimatedTime;
+		const auto AbsDriftMicro = FMath::Abs(DriftMicro);
+
+		if (AbsDriftMicro > 40 * 1000 || (IsCorrectingBGADrift && AbsDriftMicro > 5 * 1000))
 		{
-			// check drift
-			const auto EstimatedTime = GetPositionMicro() - CurrentBGAStart;
-			const auto ActualTime = MediaPlayer->GetTime().GetTotalMicroseconds();
-			const auto DriftMicro = ActualTime - EstimatedTime;
-			const auto AbsDriftMicro = FMath::Abs(DriftMicro);
+			// UE_LOG(LogTemp, Warning, TEXT("BGA drift: %f"), DriftMicro);
+			// if slower, set playback rate faster
+			// if faster, set playback rate slower
+			// adjustment is a linear function of drift which makes player to catch up estimated time quickly
 
-			if (AbsDriftMicro > 40 * 1000 || (IsCorrectingBGADrift && AbsDriftMicro > 5 * 1000))
+			const auto RateAdjustment = AbsDriftMicro / 1000.0 / 1000.0 * 5.0;
+			// UE_LOG(LogTemp, Warning, TEXT("Rate adjustment: %f"), rateAdjustment);
+			auto Rate = DriftMicro > 0 ? 1.0 - RateAdjustment : 1.0 + RateAdjustment;
+			// UE_LOG(LogTemp, Warning, TEXT("Rate: %f"), rate);
+			TArray<FFloatRange> SupportedRates;
+			MediaPlayer->GetSupportedRates(SupportedRates, true);
+			bool IsGood = false;
+			for (auto& Range : SupportedRates)
 			{
-				// UE_LOG(LogTemp, Warning, TEXT("BGA drift: %f"), DriftMicro);
-				// if slower, set playback rate faster
-				// if faster, set playback rate slower
-				// adjustment is a linear function of drift which makes player to catch up estimated time quickly
+				if (Range.Contains(Rate))
+				{
+					IsGood = true;
+					break;
+				}
+			}
+			if (!IsGood)
+			{
+				// find closest rate
+				// if rate > 1.0, find closest rate > 1.0
+				// if rate < 1.0, find closest rate < 1.0
 
-				const auto RateAdjustment = AbsDriftMicro / 1000.0 / 1000.0 * 5.0;
-				// UE_LOG(LogTemp, Warning, TEXT("Rate adjustment: %f"), rateAdjustment);
-				auto Rate = DriftMicro > 0 ? 1.0 - RateAdjustment : 1.0 + RateAdjustment;
-				// UE_LOG(LogTemp, Warning, TEXT("Rate: %f"), rate);
-				TArray<FFloatRange> SupportedRates;
-				MediaPlayer->GetSupportedRates(SupportedRates, true);
-				bool IsGood = false;
+				// iterate through all lower/upper bounds
+
+				auto Closest = SupportedRates[0].GetLowerBoundValue();
 				for (auto& Range : SupportedRates)
 				{
-					if (Range.Contains(Rate))
+					const auto Bound = Rate > 1.0 ? Range.GetUpperBoundValue() : Range.GetLowerBoundValue();
+					if (Bound == 0.0f)
 					{
-						IsGood = true;
-						break;
+						continue;
+					}
+					if (FMath::Abs(Bound - Rate) < FMath::Abs(Closest - Rate))
+					{
+						Closest = Bound;
 					}
 				}
-				if (!IsGood)
-				{
-					// find closest rate
-					// if rate > 1.0, find closest rate > 1.0
-					// if rate < 1.0, find closest rate < 1.0
-
-					// iterate through all lower/upper bounds
-
-					auto Closest = SupportedRates[0].GetLowerBoundValue();
-					for (auto& Range : SupportedRates)
-					{
-						const auto Bound = Rate > 1.0 ? Range.GetUpperBoundValue() : Range.GetLowerBoundValue();
-						if (Bound == 0.0f)
-						{
-							continue;
-						}
-						if (FMath::Abs(Bound - Rate) < FMath::Abs(Closest - Rate))
-						{
-							Closest = Bound;
-						}
-					}
-					Rate = Closest;
-				}
-				// UE_LOG(LogTemp, Warning, TEXT("Closest Available Rate: %f"), Rate);
-				MediaPlayer->SetRate(Rate);
-				IsCorrectingBGADrift = true;
+				Rate = Closest;
 			}
-			else
-			{
-				if (IsCorrectingBGADrift)
-				{
-					IsCorrectingBGADrift = false;
-					MediaPlayer->SetRate(1.0f);
-				}
-			}
+			// UE_LOG(LogTemp, Warning, TEXT("Closest Available Rate: %f"), Rate);
+			MediaPlayer->SetRate(Rate);
+			IsCorrectingBGADrift = true;
 		}
-		ChannelGroup->getPaused(&IsPaused);
-		if (IsPaused)
+		else
 		{
-			return;
+			if (IsCorrectingBGADrift)
+			{
+				IsCorrectingBGADrift = false;
+				MediaPlayer->SetRate(1.0f);
+			}
 		}
-		BGALock.Lock();
+	}
+	ChannelGroup->getPaused(&IsPaused);
+	if (IsPaused) return;
+	
+	{
+		FScopeLock Lock2(&BGALock);
 		TPair<int, long long> pair;
 
-		if (!BGAStartQueue.Peek(pair))
-		{
-			goto Skip;
-		}
+		if (!BGAStartQueue.Peek(pair)) return;
 		// UE_LOG(LogTemp, Warning, TEXT("BGA %d at %lld vs current time %lld"), pair.Key, pair.Value, GetPositionMicro());
 		if (GetPositionMicro() >= pair.Value)
 		{
@@ -186,50 +183,47 @@ void FJukebox::OnGameTick()
 			{
 				UE_LOG(LogTemp, Warning, TEXT("BGA %d is not loaded"), pair.Key);
 				BGAStartQueue.Dequeue(pair);
-				goto Skip;
+				return;
 			}
 			const auto Source = BGASourceMap[pair.Key];
 			if (!Source)
 			{
 				UE_LOG(LogTemp, Warning, TEXT("BGA %d is null"), pair.Key);
 				BGAStartQueue.Dequeue(pair);
-				goto Skip;
-			}
-			UE_LOG(LogTemp, Warning, TEXT("Start BGA %d"), pair.Key);
-			MediaPlayerLock.Lock();
-			ChannelGroup->getPaused(&IsPaused);
-			if (IsPaused)
-			{
-				MediaPlayerLock.Unlock();
 				return;
 			}
+			UE_LOG(LogTemp, Warning, TEXT("Start BGA %d"), pair.Key);
+			
+			
+				
+			ChannelGroup->getPaused(&IsPaused);
+			if (IsPaused) return;
 			if (IsValid(MediaPlayer) && IsValid(Source))
 			{
 				MediaPlayer->OpenSource(Source);
 			}
-			MediaPlayerLock.Unlock();
-			ChannelGroup->getPaused(&IsPaused);
-			if (IsPaused)
-			{
-				BGALock.Unlock();
-				return;
-			}
+			
+			
 			CurrentBGAStart = pair.Value;
 
 			BGAStartQueue.Dequeue(pair);
 		}
-
-	Skip:
-		BGALock.Unlock();
 	}
+
+
 }
+
 
 void FJukebox::LoadChart(const FChart* chart, std::atomic_bool& bCancelled, UMediaPlayer* OptionalPlayer)
 {
 	Unload();
 	Chart = chart;
 	const bool bSupportMultiThreading = FPlatformProcess::SupportsMultithreading();
-	const int TaskNum = FMath::Max(FPlatformMisc::NumberOfWorkerThreadsToSpawn() / 2, 1);
+	
+	const int TaskNum = FMath::Max(FPlatformMisc::NumberOfWorkerThreadsToSpawn() - 1, 1);
+	UE_LOG(LogTemp, Warning, TEXT("Supports multithreading: %d, number of threads: %d"), bSupportMultiThreading,
+		   TaskNum);
+	
 	constexpr int32 WavNum = 36 * 36;
 	const int TaskSize = WavNum / TaskNum;
 	FString ChartFolder = Chart->Meta.Folder;
@@ -514,8 +508,9 @@ void FJukebox::PlaySound(FMOD::Sound* Sound, FMOD::ChannelGroup* Group, const bo
 	AudioChannelMapLock.Unlock();
 }
 
-void FJukebox::Pause() const
+void FJukebox::Pause()
 {
+	FScopeLock Lock(&MediaPlayerLock);
 	ChannelGroup->setPaused(true);
 	if (IsValid(MediaPlayer))
 	{

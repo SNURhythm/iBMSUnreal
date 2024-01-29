@@ -318,8 +318,9 @@ void AChartSelectScreen::LoadCharts()
 		}
 
 		const bool bSupportMultithreading = FPlatformProcess::SupportsMultithreading();
-		const int TaskNum = FMath::Max(FPlatformMisc::NumberOfWorkerThreadsToSpawn() / 2, 1);
-		UE_LOG(LogTemp, Warning, TEXT("ChartSelectScreen taskNum: %d"), TaskNum);
+		const int TaskNum = FMath::Max(FPlatformMisc::NumberOfWorkerThreadsToSpawn() - 1, 1);
+		UE_LOG(LogTemp, Warning, TEXT("Supports multithreading: %d, number of threads: %d"), bSupportMultithreading,
+			   TaskNum);
 		const int TaskSize = Diffs.Num() / TaskNum;
 		dbHelper.BeginTransaction(db);
 		std::atomic_bool isCommitting;

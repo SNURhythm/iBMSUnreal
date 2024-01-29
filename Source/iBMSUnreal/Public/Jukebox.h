@@ -52,7 +52,7 @@ public:
 	void Start(std::atomic_bool& bCancelled, long long PosMicro = 0, bool AutoKeySound = false);
 	void Unpause();
 
-	void Pause() const;
+	void Pause();
 	bool IsPaused() const;
 	void Stop();
 
