@@ -21,6 +21,7 @@ A crossplatform BMS player, powered by Unreal Engine 5
   - #SCROLL
   - BMSON support
   - PMS support
+  - Custom random seed support
 - Gameplay
   - Groove Gauge
   - S-RANDOM, HALF-RANDOM, ...
@@ -29,6 +30,7 @@ A crossplatform BMS player, powered by Unreal Engine 5
   - Key bomb effect
   - Classic 2D VSRG gear for desktop
   - Course play
+  - Touch input options (flick-to-scratch, virtual controller, etc.)
 - Additional features
   - Replay
   - In-game chart viewer
