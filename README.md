@@ -26,8 +26,9 @@ A crossplatform BMS player, powered by Unreal Engine 5
   - Groove Gauge
   - S-RANDOM, HALF-RANDOM, ...
   - Play options (HI-SPEED, LIFT, SUDDEN, LNMODE, etc.)
-  - Result screen 
+  - Result screen
   - Key bomb effect
+  - Image sequence BGA support
   - Classic 2D VSRG gear for desktop
   - Course play
   - Touch input options (flick-to-scratch, virtual controller, etc.)
