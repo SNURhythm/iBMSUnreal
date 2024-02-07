@@ -1,6 +1,6 @@
 # iBMSUnreal
 
-A crossplatform BMS player, powered by Unreal Engine 5
+A crossplatform BMS player, powered by Unreal Engine 5. Planned to be migrated to [OpenBMS](https://github.com/SNURhythm/OpenBMS)
 
 ## Supported platforms
 
